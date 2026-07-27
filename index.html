@@ -11,28 +11,33 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-512.png">
 <title>Kids Exercise Generator</title>
-<link rel="stylesheet" href="css/styles.css?v=7">
+<link rel="stylesheet" href="css/styles.css?v=8">
 </head>
 <body>
 <div class="frog-frame">
   <div class="frog-head-cap"></div>
-  <div class="frog-eyes">
-    <div class="frog-eye"><div class="frog-pupil"></div></div>
-    <div class="frog-eye"><div class="frog-pupil"></div></div>
-  </div>
+  <div class="frog-eye frog-eye-left"><div class="frog-pupil"></div></div>
+  <div class="frog-eye frog-eye-right"><div class="frog-pupil"></div></div>
+  <div class="frog-nose"><span></span><span></span></div>
   <div class="frog-mouth">
-    <svg viewBox="0 0 120 46" width="76" height="30" aria-hidden="true">
-      <path d="M6,6 Q60,44 114,6" fill="none" stroke="#12351A" stroke-width="8" stroke-linecap="round"/>
-      <ellipse cx="60" cy="24" rx="9" ry="6" fill="#F8A5C2"/>
+    <svg viewBox="0 0 64 36" width="48" height="27" aria-hidden="true">
+      <rect x="2" y="2" width="60" height="32" rx="15" fill="#37413A"/>
+      <path d="M20,17 C20,12 26,11 32,15 C38,11 44,12 44,17 C44,23 34,28 32,25 C30,28 20,23 20,17 Z" fill="#F8A5C2"/>
     </svg>
   </div>
-  <div class="frog-side-dot frog-side-dot-left"></div>
-  <div class="frog-side-dot frog-side-dot-right"></div>
+  <div class="frog-side-dots frog-side-dots-left">
+    <span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div class="frog-side-dots frog-side-dots-right">
+    <span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
   <div class="frog-screen">
     <div id="app"></div>
+    <div class="frog-leg frog-leg-tl"><span class="frog-toe"></span><span class="frog-toe"></span><span class="frog-toe"></span></div>
+    <div class="frog-leg frog-leg-tr"><span class="frog-toe"></span><span class="frog-toe"></span><span class="frog-toe"></span></div>
+    <div class="frog-leg frog-leg-bl"><span class="frog-toe"></span><span class="frog-toe"></span><span class="frog-toe"></span></div>
+    <div class="frog-leg frog-leg-br"><span class="frog-toe"></span><span class="frog-toe"></span><span class="frog-toe"></span></div>
   </div>
-  <div class="frog-hand frog-hand-left"></div>
-  <div class="frog-hand frog-hand-right"></div>
 </div>
 
 <!-- Plain (non-module) scripts, loaded in dependency order, so this works when opened
