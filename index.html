@@ -11,20 +11,28 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-512.png">
 <title>Kids Exercise Generator</title>
-<link rel="stylesheet" href="css/styles.css?v=6">
+<link rel="stylesheet" href="css/styles.css?v=7">
 </head>
 <body>
 <div class="frog-frame">
-  <div class="frog-ear frog-ear-left"></div>
-  <div class="frog-ear frog-ear-right"></div>
+  <div class="frog-head-cap"></div>
   <div class="frog-eyes">
     <div class="frog-eye"><div class="frog-pupil"></div></div>
     <div class="frog-eye"><div class="frog-pupil"></div></div>
   </div>
-  <div class="frog-smile"></div>
+  <div class="frog-mouth">
+    <svg viewBox="0 0 120 46" width="76" height="30" aria-hidden="true">
+      <path d="M6,6 Q60,44 114,6" fill="none" stroke="#12351A" stroke-width="8" stroke-linecap="round"/>
+      <ellipse cx="60" cy="24" rx="9" ry="6" fill="#F8A5C2"/>
+    </svg>
+  </div>
+  <div class="frog-side-dot frog-side-dot-left"></div>
+  <div class="frog-side-dot frog-side-dot-right"></div>
   <div class="frog-screen">
     <div id="app"></div>
   </div>
+  <div class="frog-hand frog-hand-left"></div>
+  <div class="frog-hand frog-hand-right"></div>
 </div>
 
 <!-- Plain (non-module) scripts, loaded in dependency order, so this works when opened
