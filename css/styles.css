@@ -183,8 +183,8 @@ html, body {
   .frog-pupil { width: 54px; height: 54px; }
   .frog-pupil::after { width: 14px; height: 14px; top: 8px; left: 10px; }
   .frog-nose { top: 22px; }
-  .frog-mouth { top: 42px; }
-  .frog-mouth svg { width: 38px; height: 22px; }
+  .frog-mouth { top: 38px; }
+  .frog-mouth svg { width: 62px; height: 24px; }
   .frog-side-dots { top: 112px; grid-template-columns: repeat(2, 5px); gap: 3px; }
   .frog-side-dots span { width: 5px; height: 5px; }
   .frog-leg { width: 44px; height: 44px; }
