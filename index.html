@@ -11,10 +11,21 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-512.png">
 <title>Kids Exercise Generator</title>
-<link rel="stylesheet" href="css/styles.css?v=5">
+<link rel="stylesheet" href="css/styles.css?v=6">
 </head>
 <body>
-<div id="app"></div>
+<div class="frog-frame">
+  <div class="frog-ear frog-ear-left"></div>
+  <div class="frog-ear frog-ear-right"></div>
+  <div class="frog-eyes">
+    <div class="frog-eye"><div class="frog-pupil"></div></div>
+    <div class="frog-eye"><div class="frog-pupil"></div></div>
+  </div>
+  <div class="frog-smile"></div>
+  <div class="frog-screen">
+    <div id="app"></div>
+  </div>
+</div>
 
 <!-- Plain (non-module) scripts, loaded in dependency order, so this works when opened
      directly via file:// on an iPad with no local server (Safari blocks fetch()/ES module
