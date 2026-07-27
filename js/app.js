@@ -273,7 +273,7 @@ function showQuestion() {
 
   const card = el("div", { class: "card" });
   card.appendChild(el("div", { class: "prompt", text: String(q.prompt) }));
-  const readAloudBtn = button("🔊 Read Aloud", () => speak(String(q.prompt)), "next");
+  const readAloudBtn = button("🔊 Read Aloud", () => speak(String(q.speak || q.prompt)), "next");
   readAloudBtn.classList.add("read-aloud-btn");
   card.appendChild(readAloudBtn);
 
