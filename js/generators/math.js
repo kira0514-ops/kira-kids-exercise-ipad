@@ -647,32 +647,68 @@ function mixedOperationsQ(ageIdx, diffIdx) {
   return { prompt, choices: numericChoices(answer, 0, answer + Math.max(15, Math.floor(answer / 2)) + 10), answer };
 }
 
+const ADD_EQ_TEMPLATES = [
+  "{name} had some {item}. Then {name} found {b} more {item}, ending up with {c} {item} in total. Let x be how many {item} {name} started with. Solve: x + {b} = {c}",
+  "A jar had some {item} in it. After {b} more {item} were added, the jar had {c} {item}. If x is the number of {item} that were in the jar at first, solve: x + {b} = {c}",
+  "{name} was given {b} {item} as a gift, bringing the total to {c} {item}. Let x be how many {item} {name} had before the gift. Solve: x + {b} = {c}",
+];
+const SUB_EQ_TEMPLATES = [
+  "{name} had some {item}. After giving away {b} {item}, {name} had {c} {item} left. Let x be how many {item} {name} started with. Solve: x - {b} = {c}",
+  "A box had some {item}. {b} {item} were taken out, leaving {c} {item} in the box. If x is the number of {item} that were in the box at first, solve: x - {b} = {c}",
+];
+const MUL_EQ_TEMPLATES = [
+  "{name} has {b} equal bags of {item}, with x {item} in each bag, for a total of {c} {item}. Solve: {b}x = {c}",
+  "There are {b} boxes, each holding x {item}, and together they hold {c} {item}. Solve: {b}x = {c}",
+];
+const AX_PLUS_B_EQ_TEMPLATES = [
+  "{name} buys {a} bags of {item}, with x {item} in each bag, then finds {b} more loose {item}. In total {name} now has {c} {item}. Solve: {a}x + {b} = {c}",
+  "Each of {name}'s {a} shelves holds x {item}, and {name} adds {b} more {item} on top of that. There are now {c} {item} in total. Solve: {a}x + {b} = {c}",
+];
+const AX_MINUS_B_EQ_TEMPLATES = [
+  "{name} had {a} bags of {item} with x {item} in each bag, but {b} {item} were lost along the way, leaving {c} {item}. Solve: {a}x - {b} = {c}",
+  "There were {a} boxes with x {item} in each box. After {b} {item} were removed, {c} {item} remained. Solve: {a}x - {b} = {c}",
+];
+
+function equationWordProblem(kind, vars) {
+  const name = choice(NAMES), item = choice(ITEMS);
+  const templates = { add: ADD_EQ_TEMPLATES, sub: SUB_EQ_TEMPLATES, mul: MUL_EQ_TEMPLATES,
+    axPlusB: AX_PLUS_B_EQ_TEMPLATES, axMinusB: AX_MINUS_B_EQ_TEMPLATES }[kind];
+  return fmt(choice(templates), { name, item, ...vars });
+}
+
 function equationsQ(ageIdx, diffIdx) {
   if (ageIdx === 1) {
     let x, b, c, prompt, left, answer;
     if (diffIdx === 0) {
       x = randInt(1, 15); b = randInt(1, 15); c = x + b;
-      if (choice([true, false])) { prompt = `x + ${b} = ${c}. What is x?`; left = `x + ${b}`; }
+      left = `x + ${b}`;
+      if (Math.random() < 0.5) { prompt = equationWordProblem("add", { b, c }); }
+      else if (choice([true, false])) { prompt = `x + ${b} = ${c}. What is x?`; }
       else { prompt = `${b} + x = ${c}. What is x?`; left = `${b} + x`; }
     } else if (diffIdx === 1) {
       if (choice([true, false])) {
         b = randInt(1, 15); x = b + randInt(1, 15); c = x - b;
-        prompt = `x - ${b} = ${c}. What is x?`; left = `x - ${b}`;
+        left = `x - ${b}`;
+        prompt = Math.random() < 0.5 ? equationWordProblem("sub", { b, c }) : `x - ${b} = ${c}. What is x?`;
       } else {
         x = randInt(2, 10); b = randInt(2, 9); c = x * b;
-        prompt = `${b} × x = ${c}. What is x?`; left = `${b} × x`;
+        left = `${b} × x`;
+        prompt = Math.random() < 0.5 ? equationWordProblem("mul", { b, c }) : `${b} × x = ${c}. What is x?`;
       }
     } else {
       const op = choice(["add", "sub", "mul"]);
       if (op === "add") {
         x = randInt(1, 60); b = randInt(1, 60); c = x + b;
-        prompt = `x + ${b} = ${c}. What is x?`; left = `x + ${b}`;
+        left = `x + ${b}`;
+        prompt = Math.random() < 0.5 ? equationWordProblem("add", { b, c }) : `x + ${b} = ${c}. What is x?`;
       } else if (op === "sub") {
         b = randInt(1, 50); x = b + randInt(1, 50); c = x - b;
-        prompt = `x - ${b} = ${c}. What is x?`; left = `x - ${b}`;
+        left = `x - ${b}`;
+        prompt = Math.random() < 0.5 ? equationWordProblem("sub", { b, c }) : `x - ${b} = ${c}. What is x?`;
       } else {
         x = randInt(2, 12); b = randInt(2, 12); c = x * b;
-        prompt = `${b} × x = ${c}. What is x?`; left = `${b} × x`;
+        left = `${b} × x`;
+        prompt = Math.random() < 0.5 ? equationWordProblem("mul", { b, c }) : `${b} × x = ${c}. What is x?`;
       }
     }
     answer = x;
@@ -687,19 +723,27 @@ function equationsQ(ageIdx, diffIdx) {
     let x, b;
     if (op === "add") {
       x = randInt(1, 100); b = randInt(1, 100); c = x + b;
-      prompt = `x + ${b} = ${c}. What is x?`; left = `x + ${b}`;
+      left = `x + ${b}`;
+      prompt = Math.random() < 0.5 ? equationWordProblem("add", { b, c }) : `x + ${b} = ${c}. What is x?`;
     } else if (op === "sub") {
       b = randInt(1, 80); x = b + randInt(1, 80); c = x - b;
-      prompt = `x - ${b} = ${c}. What is x?`; left = `x - ${b}`;
+      left = `x - ${b}`;
+      prompt = Math.random() < 0.5 ? equationWordProblem("sub", { b, c }) : `x - ${b} = ${c}. What is x?`;
     } else {
       x = randInt(2, 20); b = randInt(2, 12); c = x * b;
-      prompt = `${b} × x = ${c}. What is x?`; left = `${b} × x`;
+      left = `${b} × x`;
+      prompt = Math.random() < 0.5 ? equationWordProblem("mul", { b, c }) : `${b} × x = ${c}. What is x?`;
     }
     answer = x;
   } else if (diffIdx === 1) {
     const a = randInt(2, 9), x = randInt(2, 15), b = randInt(1, 20);
-    if (choice([true, false])) { c = a * x + b; prompt = `${a}x + ${b} = ${c}. What is x?`; left = `${a}x + ${b}`; }
-    else { c = a * x - b; prompt = `${a}x - ${b} = ${c}. What is x?`; left = `${a}x - ${b}`; }
+    if (choice([true, false])) {
+      c = a * x + b; left = `${a}x + ${b}`;
+      prompt = Math.random() < 0.5 ? equationWordProblem("axPlusB", { a, b, c }) : `${a}x + ${b} = ${c}. What is x?`;
+    } else {
+      c = a * x - b; left = `${a}x - ${b}`;
+      prompt = Math.random() < 0.5 ? equationWordProblem("axMinusB", { a, b, c }) : `${a}x - ${b} = ${c}. What is x?`;
+    }
     answer = x;
   } else if (diffIdx === 2) {
     const a = randInt(2, 9), x = randInt(2, 20), b = randInt(1, 30);
