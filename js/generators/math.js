@@ -138,9 +138,9 @@ function fractionsQ(ageIdx, diffIdx) {
     const d1 = choice([2, 3, 4, 5, 6]), d2 = choice([2, 3, 4, 5, 6]);
     const n1 = randInt(1, d1 - 1), n2 = randInt(1, d2 - 1);
     const denom = d1 * d2;
-    const answer = `${n1 * n2}/${denom}`;
+    const answer = fractionToString(n1 * n2, denom);
     const prompt = `${n1}/${d1} × ${n2}/${d2} = ?`;
-    const pool = []; for (let k = 1; k < denom; k++) pool.push(`${k}/${denom}`);
+    const pool = []; for (let k = 1; k < denom; k++) pool.push(fractionToString(k, denom));
     return { prompt, choices: makeChoices(answer, pool), answer,
       illustration: { type: "fraction_pies", fractions: [[n1, d1], [n2, d2]] } };
   }
@@ -179,9 +179,9 @@ function fractionsQ(ageIdx, diffIdx) {
   const [d1, d2] = choice(pairs);
   const n1 = randInt(1, d1 - 1), n2 = randInt(1, d2 - 1);
   const totalNum = n1 * Math.floor(d2 / d1) + n2;
-  const answer = `${totalNum}/${d2}`;
+  const answer = fractionToString(totalNum, d2);
   const prompt = `${n1}/${d1} + ${n2}/${d2} = ?`;
-  const pool = []; for (let k = 1; k < 2 * d2; k++) pool.push(`${k}/${d2}`);
+  const pool = []; for (let k = 1; k < 2 * d2; k++) pool.push(fractionToString(k, d2));
   return { prompt, choices: makeChoices(answer, pool), answer,
     illustration: { type: "fraction_pies", fractions: [[n1, d1], [n2, d2]] } };
 }

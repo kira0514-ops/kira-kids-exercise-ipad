@@ -44,6 +44,19 @@ function gcd(a, b) {
   return a;
 }
 
+function fractionToString(num, den) {
+  // Reduce num/den to lowest terms and render it as a mixed number when improper.
+  const g = gcd(num, den) || 1;
+  const n = num / g, d = den / g;
+  if (d === 1) return `${n}`;
+  if (n > d) {
+    const whole = Math.floor(n / d);
+    const rem = n % d;
+    return rem === 0 ? `${whole}` : `${whole} ${rem}/${d}`;
+  }
+  return `${n}/${d}`;
+}
+
 function numericChoices(answer, low = 0, high = 999, count = 4) {
   const choices = new Set([answer]);
   let tries = 0;
