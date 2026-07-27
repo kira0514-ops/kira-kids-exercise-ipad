@@ -125,5 +125,12 @@
 <script src="js/profiles.js?v=1"></script>
 <script src="js/flashcards.js?v=10"></script>
 <script src="js/app.js?v=12"></script>
+<script>
+// Fire-and-forget visit counter (no account/signup, no personal data) -- lets Kira
+// check play count at https://counterapi.dev/dashboard.html?ns=kira-kids-exercise-ipad
+try {
+  fetch("https://api.counterapi.dev/v1/kira-kids-exercise-ipad/app_visits/up").catch(() => {});
+} catch (e) {}
+</script>
 </body>
 </html>
