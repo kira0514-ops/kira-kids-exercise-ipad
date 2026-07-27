@@ -19,8 +19,9 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-family);
-  overscroll-behavior: none;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 #app {
