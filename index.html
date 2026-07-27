@@ -11,9 +11,18 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-512.png">
 <title>Kids Exercise Generator</title>
-<link rel="stylesheet" href="css/styles.css?v=9">
+<link rel="stylesheet" href="css/styles.css?v=10">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="frog-goo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="blur"/>
+      <feColorMatrix in="blur" mode="matrix"
+        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="goo"/>
+    </filter>
+  </defs>
+</svg>
 <div class="frog-frame">
   <div class="frog-head-cap"></div>
   <div class="frog-eye frog-eye-left"><div class="frog-pupil"></div></div>
@@ -22,7 +31,7 @@
   <div class="frog-mouth">
     <svg viewBox="0 0 80 30" width="92" height="35" aria-hidden="true">
       <path d="M4,15 Q40,1 76,15 Q40,21 4,15 Z" fill="#151515"/>
-      <ellipse cx="40" cy="15" rx="10" ry="5" fill="#7A1F1F"/>
+      <path d="M40,20.5 C33,15.5 29,12 29,8.5 C29,5.8 31.2,4.5 33.3,5.3 C35,6 39,8.5 40,11 C41,8.5 45,6 46.7,5.3 C48.8,4.5 51,5.8 51,8.5 C51,12 47,15.5 40,20.5 Z" fill="#F48FB1"/>
     </svg>
   </div>
   <div class="frog-side-dots frog-side-dots-left">
@@ -33,10 +42,70 @@
   </div>
   <div class="frog-screen">
     <div id="app"></div>
-    <div class="frog-leg frog-leg-tl"><span class="frog-toe"></span><span class="frog-toe"></span><span class="frog-toe"></span></div>
-    <div class="frog-leg frog-leg-tr"><span class="frog-toe"></span><span class="frog-toe"></span><span class="frog-toe"></span></div>
-    <div class="frog-leg frog-leg-bl"><span class="frog-toe"></span><span class="frog-toe"></span><span class="frog-toe"></span></div>
-    <div class="frog-leg frog-leg-br"><span class="frog-toe"></span><span class="frog-toe"></span><span class="frog-toe"></span></div>
+    <div class="frog-leg frog-leg-tl">
+      <svg viewBox="0 0 70 70" width="70" height="70" aria-hidden="true">
+        <g filter="url(#frog-goo)">
+          <circle cx="18" cy="18" r="16" fill="#12351A"/>
+          <circle cx="13" cy="43" r="11" fill="#12351A"/>
+          <circle cx="30" cy="49" r="11" fill="#12351A"/>
+          <circle cx="47" cy="41" r="11" fill="#12351A"/>
+        </g>
+        <g filter="url(#frog-goo)">
+          <circle cx="18" cy="18" r="12" fill="#4CAF50"/>
+          <circle cx="13" cy="43" r="7.5" fill="#4CAF50"/>
+          <circle cx="30" cy="49" r="7.5" fill="#4CAF50"/>
+          <circle cx="47" cy="41" r="7.5" fill="#4CAF50"/>
+        </g>
+      </svg>
+    </div>
+    <div class="frog-leg frog-leg-tr">
+      <svg viewBox="0 0 70 70" width="70" height="70" aria-hidden="true">
+        <g filter="url(#frog-goo)">
+          <circle cx="18" cy="18" r="16" fill="#12351A"/>
+          <circle cx="13" cy="43" r="11" fill="#12351A"/>
+          <circle cx="30" cy="49" r="11" fill="#12351A"/>
+          <circle cx="47" cy="41" r="11" fill="#12351A"/>
+        </g>
+        <g filter="url(#frog-goo)">
+          <circle cx="18" cy="18" r="12" fill="#4CAF50"/>
+          <circle cx="13" cy="43" r="7.5" fill="#4CAF50"/>
+          <circle cx="30" cy="49" r="7.5" fill="#4CAF50"/>
+          <circle cx="47" cy="41" r="7.5" fill="#4CAF50"/>
+        </g>
+      </svg>
+    </div>
+    <div class="frog-leg frog-leg-bl">
+      <svg viewBox="0 0 70 70" width="70" height="70" aria-hidden="true">
+        <g filter="url(#frog-goo)">
+          <circle cx="18" cy="18" r="16" fill="#12351A"/>
+          <circle cx="13" cy="43" r="11" fill="#12351A"/>
+          <circle cx="30" cy="49" r="11" fill="#12351A"/>
+          <circle cx="47" cy="41" r="11" fill="#12351A"/>
+        </g>
+        <g filter="url(#frog-goo)">
+          <circle cx="18" cy="18" r="12" fill="#4CAF50"/>
+          <circle cx="13" cy="43" r="7.5" fill="#4CAF50"/>
+          <circle cx="30" cy="49" r="7.5" fill="#4CAF50"/>
+          <circle cx="47" cy="41" r="7.5" fill="#4CAF50"/>
+        </g>
+      </svg>
+    </div>
+    <div class="frog-leg frog-leg-br">
+      <svg viewBox="0 0 70 70" width="70" height="70" aria-hidden="true">
+        <g filter="url(#frog-goo)">
+          <circle cx="18" cy="18" r="16" fill="#12351A"/>
+          <circle cx="13" cy="43" r="11" fill="#12351A"/>
+          <circle cx="30" cy="49" r="11" fill="#12351A"/>
+          <circle cx="47" cy="41" r="11" fill="#12351A"/>
+        </g>
+        <g filter="url(#frog-goo)">
+          <circle cx="18" cy="18" r="12" fill="#4CAF50"/>
+          <circle cx="13" cy="43" r="7.5" fill="#4CAF50"/>
+          <circle cx="30" cy="49" r="7.5" fill="#4CAF50"/>
+          <circle cx="47" cy="41" r="7.5" fill="#4CAF50"/>
+        </g>
+      </svg>
+    </div>
   </div>
 </div>
 

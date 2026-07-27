@@ -125,34 +125,11 @@ html, body {
 
 .frog-leg {
   position: absolute;
-  width: 62px;
-  height: 62px;
+  width: 70px;
+  height: 70px;
   z-index: 3;
+  pointer-events: none;
 }
-.frog-leg::before {
-  content: "";
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 48px;
-  height: 22px;
-  background: #4CAF50;
-  border: 4px solid #12351A;
-  border-radius: 12px;
-  transform: rotate(40deg);
-  transform-origin: 15% 50%;
-}
-.frog-toe {
-  position: absolute;
-  width: 17px;
-  height: 17px;
-  background: #4CAF50;
-  border: 3px solid #12351A;
-  border-radius: 50%;
-}
-.frog-toe:nth-child(1) { top: 30px; left: 36px; }
-.frog-toe:nth-child(2) { top: 36px; left: 44px; }
-.frog-toe:nth-child(3) { top: 42px; left: 32px; }
 
 .frog-leg-tl { top: -24px; left: -18px; }
 .frog-leg-tr { top: -24px; right: -18px; transform: scaleX(-1); }
@@ -187,12 +164,8 @@ html, body {
   .frog-mouth svg { width: 62px; height: 24px; }
   .frog-side-dots { top: 112px; grid-template-columns: repeat(2, 5px); gap: 3px; }
   .frog-side-dots span { width: 5px; height: 5px; }
-  .frog-leg { width: 44px; height: 44px; }
-  .frog-leg::before { width: 34px; height: 16px; top: 6px; left: 6px; }
-  .frog-toe { width: 12px; height: 12px; }
-  .frog-toe:nth-child(1) { top: 21px; left: 25px; }
-  .frog-toe:nth-child(2) { top: 25px; left: 31px; }
-  .frog-toe:nth-child(3) { top: 30px; left: 22px; }
+  .frog-leg { width: 48px; height: 48px; }
+  .frog-leg svg { width: 48px; height: 48px; }
   .frog-leg-tl { top: -18px; left: -12px; }
   .frog-leg-tr { top: -18px; right: -12px; }
   .frog-leg-bl { bottom: -18px; left: -12px; }
