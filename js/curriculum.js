@@ -220,7 +220,7 @@ function startDailyCurriculum() {
       let q = null;
       for (let attempt = 0; attempt < 25; attempt++) {
         q = genFn(ageIdx, diffIdx, [topic]);
-        if (!seenPrompts.has(q.prompt)) break;
+        if (!seenPrompts.has(q.prompt) && !RECENT_PROMPTS.has(q.prompt)) break;
       }
       seenPrompts.add(q.prompt);
       q.subject = subject;
@@ -231,6 +231,7 @@ function startDailyCurriculum() {
   }
   shuffle(questions);
   questions = questions.slice(0, DAILY_CURRICULUM_QUESTION_COUNT);
+  RECENT_PROMPTS.addAll(questions.map((q) => q.prompt));
 
   state.questions = questions;
   state.currentIndex = 0;

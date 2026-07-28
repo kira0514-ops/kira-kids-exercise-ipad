@@ -90,6 +90,7 @@ function enterProfile(id) {
   state.ageIdx = p.ageIdx != null ? p.ageIdx : 1;
   SEEN.setProfile(id);
   DAILY.setProfile(id);
+  RECENT_PROMPTS.setProfile(id);
   showSetup();
 }
 

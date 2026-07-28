@@ -312,7 +312,7 @@ function startQuiz() {
     let q = null;
     for (let attempt = 0; attempt < 25; attempt++) {
       q = SUBJECT_GENERATOR[subject](state.ageIdx, state.diffIdx, topics);
-      if (!seenPrompts.has(q.prompt)) break;
+      if (!seenPrompts.has(q.prompt) && !RECENT_PROMPTS.has(q.prompt)) break;
     }
     seenPrompts.add(q.prompt);
     q.subject = subject;
@@ -320,6 +320,7 @@ function startQuiz() {
     q.ageIdx = state.ageIdx;
     questions.push(q);
   }
+  RECENT_PROMPTS.addAll(questions.map((q) => q.prompt));
   state.questions = questions;
   state.currentIndex = 0;
   state.score = 0;

@@ -60,3 +60,67 @@ class SeenTracker {
 }
 
 const SEEN = new SeenTracker();
+
+// Cross-session memory for exact-prompt repeats (math, equations, etc. draw numbers from
+// a numeric range rather than a small curated pool, so SeenTracker's pick-from-a-list model
+// doesn't fit -- this just remembers the last N prompt strings shown and lets callers avoid
+// re-rolling one of them, evicting the oldest once the cap is hit so an exhausted pool still
+// cycles instead of locking up.
+const RECENT_PROMPTS_STORAGE_KEY = "kidsExerciseGenerator.recentPrompts";
+const RECENT_PROMPTS_CAP = 300;
+
+class RecentPromptsTracker {
+  constructor() {
+    this.profileId = "default";
+    this.order = [];
+    this.set = new Set();
+    this.load();
+  }
+
+  storageKey() {
+    return this.profileId === "default" ? RECENT_PROMPTS_STORAGE_KEY : `${RECENT_PROMPTS_STORAGE_KEY}.${this.profileId}`;
+  }
+
+  setProfile(profileId) {
+    this.profileId = profileId || "default";
+    this.load();
+  }
+
+  load() {
+    try {
+      const raw = localStorage.getItem(this.storageKey());
+      this.order = raw ? JSON.parse(raw) : [];
+      this.set = new Set(this.order);
+    } catch (e) {
+      this.order = [];
+      this.set = new Set();
+    }
+  }
+
+  save() {
+    try {
+      localStorage.setItem(this.storageKey(), JSON.stringify(this.order));
+    } catch (e) {
+      // a failed save should never crash the app
+    }
+  }
+
+  has(prompt) {
+    return this.set.has(prompt);
+  }
+
+  addAll(prompts) {
+    for (const prompt of prompts) {
+      if (this.set.has(prompt)) continue;
+      this.order.push(prompt);
+      this.set.add(prompt);
+    }
+    while (this.order.length > RECENT_PROMPTS_CAP) {
+      const removed = this.order.shift();
+      this.set.delete(removed);
+    }
+    this.save();
+  }
+}
+
+const RECENT_PROMPTS = new RecentPromptsTracker();
