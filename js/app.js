@@ -317,6 +317,7 @@ function startQuiz() {
     seenPrompts.add(q.prompt);
     q.subject = subject;
     q.diffIdx = state.diffIdx;
+    q.ageIdx = state.ageIdx;
     questions.push(q);
   }
   state.questions = questions;
@@ -360,7 +361,8 @@ function showQuestion() {
     card.appendChild(wrap);
   }
 
-  const requiresScratchpad = q.subject === "Math" && (q.diffIdx ?? state.diffIdx) >= 2;
+  const requiresScratchpad = q.subject === "Math" &&
+    ((q.diffIdx ?? state.diffIdx) >= 2 || (q.ageIdx ?? state.ageIdx) === 0);
   if (requiresScratchpad) {
     card.appendChild(createScratchpad((hasInk) => {
       buttons.forEach((b) => { b.disabled = !hasInk; });

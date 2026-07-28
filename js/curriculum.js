@@ -225,6 +225,7 @@ function startDailyCurriculum() {
       seenPrompts.add(q.prompt);
       q.subject = subject;
       q.diffIdx = diffIdx;
+      q.ageIdx = ageIdx;
       questions.push(q);
     }
   }
