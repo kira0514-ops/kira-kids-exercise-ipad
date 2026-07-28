@@ -99,6 +99,76 @@ function button(text, onclick, variant = "start") {
   return el("button", { class: `btn btn-${variant}`, text, onclick });
 }
 
+// Freehand "show your work" pad for harder math questions -- mirrors kids_exercise_app.py's
+// _create_scratchpad, ported from a Tkinter canvas to an HTML canvas driven by Pointer Events
+// so mouse, touch, and stylus (iPad) all work the same way. onChange(hasInk) fires whenever
+// ink appears or the pad is cleared, so the caller can gate the answer choices on it.
+function createScratchpad(onChange) {
+  const wrap = el("div", { class: "scratchpad-wrap" });
+  wrap.appendChild(el("div", { class: "scratchpad-label", text: "✏️ Work it out here:" }));
+  const canvas = document.createElement("canvas");
+  canvas.className = "scratchpad-canvas";
+  canvas.style.touchAction = "none";
+  wrap.appendChild(canvas);
+
+  const ctx = canvas.getContext("2d");
+  let hasInk = false;
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+  let ratio = 1;
+
+  function sizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    ratio = window.devicePixelRatio || 1;
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#1A237E";
+  }
+
+  function pointFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    return [e.clientX - rect.left, e.clientY - rect.top];
+  }
+
+  function start(e) {
+    drawing = true;
+    [lastX, lastY] = pointFromEvent(e);
+  }
+  function move(e) {
+    if (!drawing) return;
+    const [x, y] = pointFromEvent(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    [lastX, lastY] = [x, y];
+    if (!hasInk) { hasInk = true; onChange(true); }
+  }
+  function end() { drawing = false; }
+
+  canvas.addEventListener("pointerdown", start);
+  canvas.addEventListener("pointermove", move);
+  canvas.addEventListener("pointerup", end);
+  canvas.addEventListener("pointerleave", end);
+  canvas.addEventListener("pointercancel", end);
+
+  requestAnimationFrame(sizeCanvas);
+
+  const clearBtn = button("🧹 Clear", () => {
+    ctx.clearRect(0, 0, canvas.width / ratio, canvas.height / ratio);
+    hasInk = false;
+    onChange(false);
+  }, "exit");
+  clearBtn.classList.add("scratchpad-clear-btn");
+  wrap.appendChild(clearBtn);
+
+  return wrap;
+}
+
 // -- Setup / main menu ------------------------------------------------------
 function showSetup() {
   applyThemeVars();
@@ -246,6 +316,7 @@ function startQuiz() {
     }
     seenPrompts.add(q.prompt);
     q.subject = subject;
+    q.diffIdx = state.diffIdx;
     questions.push(q);
   }
   state.questions = questions;
@@ -288,6 +359,13 @@ function showQuestion() {
     wrap.appendChild(visual);
     card.appendChild(wrap);
   }
+
+  const requiresScratchpad = q.subject === "Math" && (q.diffIdx ?? state.diffIdx) >= 2;
+  if (requiresScratchpad) {
+    card.appendChild(createScratchpad((hasInk) => {
+      buttons.forEach((b) => { b.disabled = !hasInk; });
+    }));
+  }
   root.appendChild(card);
 
   const choicesGrid = el("div", { class: "choices-grid" });
@@ -295,6 +373,7 @@ function showQuestion() {
   const buttons = [];
   choiceStrs.forEach((cs, i) => {
     const btn = button(cs, null, "choice");
+    btn.disabled = requiresScratchpad;
     btn.addEventListener("click", () => onChoice(cs, btn, buttons, q));
     buttons.push(btn);
     choicesGrid.appendChild(btn);
