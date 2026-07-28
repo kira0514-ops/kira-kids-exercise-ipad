@@ -56,7 +56,7 @@ function missingLetterQ(ageIdx, diffIdx) {
   const blanked = word.slice(0, pos) + "_" + word.slice(pos + 1);
   const letterPool = VOWELS.includes(answer) ? VOWELS : LETTERS;
   return { prompt: `Fill in the missing letter: ${blanked}`, choices: makeChoices(answer, letterPool), answer,
-    speak: word };
+    speak: `Fill in the missing letter: ${word}` };
 }
 
 function synonymQ(ageIdx, diffIdx) {
