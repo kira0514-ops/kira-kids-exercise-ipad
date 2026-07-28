@@ -46,6 +46,11 @@ const SUBJECT_GENERATOR = {
 
 const root = document.getElementById("app");
 
+function availableTopics(subject) {
+  const minAge = SUBJECT_MIN_AGE[subject];
+  return Array.from(SUBJECT_TOPIC_STATE[subject]()).filter((t) => minAge[t] <= state.ageIdx);
+}
+
 function theme() {
   return APP_DATA.THEMES[state.theme];
 }
@@ -153,7 +158,7 @@ function showSetup() {
       const available = minAge[topic] <= state.ageIdx;
       const label = el("label", { class: available ? "topic-chip" : "topic-chip topic-disabled" });
       const cb = el("input", { type: "checkbox" });
-      cb.checked = topicSet.has(topic);
+      cb.checked = available && topicSet.has(topic);
       cb.disabled = !available;
       cb.addEventListener("change", () => {
         if (cb.checked) topicSet.add(topic); else topicSet.delete(topic);
@@ -223,7 +228,7 @@ function startQuiz() {
     return;
   }
   for (const subject of chosenSubjects) {
-    if (SUBJECT_TOPIC_STATE[subject]().size === 0) {
+    if (availableTopics(subject).length === 0) {
       errorLabel.textContent = `⚠ Please choose at least one ${subject} topic.`;
       return;
     }
@@ -233,7 +238,7 @@ function startQuiz() {
   const seenPrompts = new Set();
   for (let i = 0; i < state.count; i++) {
     const subject = choice(chosenSubjects);
-    const topics = Array.from(SUBJECT_TOPIC_STATE[subject]());
+    const topics = availableTopics(subject);
     let q = null;
     for (let attempt = 0; attempt < 25; attempt++) {
       q = SUBJECT_GENERATOR[subject](state.ageIdx, state.diffIdx, topics);
