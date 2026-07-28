@@ -77,6 +77,19 @@ function renderPracticeQuestion(parent, q) {
   parent.appendChild(box);
 }
 
+function lessonSectionSpeakText(section) {
+  const parts = [];
+  if (section.title) parts.push(section.title);
+  if (section.formula) {
+    const lines = Array.isArray(section.formula) ? section.formula : [section.formula];
+    parts.push(...lines);
+  }
+  if (section.steps) parts.push(...section.steps);
+  else if (section.explanation) parts.push(section.explanation);
+  for (const ex of section.examples || []) parts.push(ex.text);
+  return parts.join(". ");
+}
+
 function renderLessonSections(container, subject, topic) {
   const lesson = APP_DATA.LESSONS[subject][topic];
   let sections = lesson.sections;
@@ -90,6 +103,10 @@ function renderLessonSections(container, subject, topic) {
     const cardInner = el("div", { class: "lesson-card-inner" });
 
     if (section.title) cardInner.appendChild(el("div", { class: "lesson-section-title", text: `${secI + 1}. ${section.title}` }));
+
+    const speakBtn = button("🔊 Read Aloud", () => speak(lessonSectionSpeakText(section)), "next");
+    speakBtn.classList.add("read-aloud-btn");
+    cardInner.appendChild(speakBtn);
 
     if (section.formula) {
       const formulaLines = Array.isArray(section.formula) ? section.formula : [section.formula];
