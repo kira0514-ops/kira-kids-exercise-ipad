@@ -21,9 +21,13 @@ function matchesPredicateRule(q, rule) {
   return true;
 }
 
-function generateForSection(subject, topic, spec) {
+function generateForSection(subject, topic, spec, learnerAgeIdx, learnerDiffIdx) {
   const fn = TOPIC_FUNCS_BY_SUBJECT[subject]()[topic];
-  const ageIdx = spec.age, diffIdx = spec.diff;
+  // Practice questions always match the learner's own age/difficulty, not the lesson's
+  // hardcoded spec -- otherwise e.g. a Kindergartner reading a Place Value lesson would
+  // get Upper Elementary-level practice questions baked into that section.
+  const ageIdx = learnerAgeIdx != null ? learnerAgeIdx : spec.age;
+  const diffIdx = learnerDiffIdx != null ? learnerDiffIdx : spec.diff;
   const rule = spec.predicate_rule || null;
   const tries = spec.tries || 20;
   const n = spec.n || 2;
@@ -90,13 +94,14 @@ function lessonSectionSpeakText(section) {
   return parts.join(". ");
 }
 
-function renderLessonSections(container, subject, topic) {
+function renderLessonSections(container, subject, topic, learnerAgeIdx, learnerDiffIdx, sectionLimit) {
   const lesson = APP_DATA.LESSONS[subject][topic];
   let sections = lesson.sections;
   if (!sections) {
     const examples = lesson.examples || [{ text: lesson.example, illustration: lesson.illustration }];
     sections = [{ title: null, explanation: lesson.explanation, examples }];
   }
+  if (sectionLimit) sections = sections.slice(0, sectionLimit);
 
   sections.forEach((section, secI) => {
     const cardBorder = el("div", { class: "lesson-card-border" });
@@ -153,7 +158,7 @@ function renderLessonSections(container, subject, topic) {
 
     if (section.practice) {
       cardInner.appendChild(el("div", { class: "lesson-section-title", text: "✏️ Try it yourself:" }));
-      for (const q of generateForSection(subject, topic, section.practice)) {
+      for (const q of generateForSection(subject, topic, section.practice, learnerAgeIdx, learnerDiffIdx)) {
         renderPracticeQuestion(cardInner, q);
       }
     }
@@ -201,7 +206,7 @@ function showLesson(subject, topic) {
   root.appendChild(top);
 
   const container = el("div", { class: "lesson-container" });
-  renderLessonSections(container, subject, topic);
+  renderLessonSections(container, subject, topic, state.ageIdx, state.diffIdx);
   root.appendChild(container);
 
   const btnRow = el("div", { class: "next-row" });

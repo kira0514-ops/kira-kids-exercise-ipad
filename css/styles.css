@@ -355,6 +355,8 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .curriculum-age-row { justify-content: center; margin-bottom: 10px; }
 .curriculum-card { max-width: 500px; margin: 10px auto; text-align: center; }
 .curriculum-day-heading { font-size: 24px; font-weight: bold; color: var(--grad1); padding-top: 10px; }
+.curriculum-jump-row { justify-content: center; margin-top: 4px; font-size: 13px; }
+.curriculum-day-input { width: 60px; }
 .curriculum-progress { max-width: 400px; margin: 6px auto; }
 .curriculum-unit-label { font-weight: bold; color: #C62828; text-align: center; margin: 6px 0; }
 .curriculum-unit-label-standalone { max-width: 600px; margin: 6px auto 12px; padding: 0 20px; }

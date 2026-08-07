@@ -4,12 +4,18 @@
 
 function getCurriculumPhase(ageIdx, day) {
   const phases = APP_DATA.CURRICULUM_PHASES[ageIdx];
-  let phase = phases[0];
-  for (const p of phases) {
-    if (p[0] <= day) phase = p;
+  let phaseIdx = 0;
+  for (let i = 0; i < phases.length; i++) {
+    if (phases[i][0] <= day) phaseIdx = i;
     else break;
   }
-  const [, diffIdx, mathList, readingList, logicList, unitLabel] = phase;
+  const phase = phases[phaseIdx];
+  const [startDay, rawDiffIdx, mathList, readingList, logicList, unitLabel] = phase;
+  // Ease into a harder phase over its first ~2 weeks instead of jumping straight to the
+  // new difficulty on day 1 of the phase, so the ramp feels gradual rather than a sudden step.
+  const prevDiffIdx = phaseIdx > 0 ? phases[phaseIdx - 1][1] : rawDiffIdx;
+  const daysIntoPhase = day - startDay;
+  const diffIdx = (daysIntoPhase < 14 && prevDiffIdx < rawDiffIdx) ? prevDiffIdx : rawDiffIdx;
   const mathAvail = mathList !== null ? mathList : APP_DATA.MATH_TOPICS.filter((t) => APP_DATA.MATH_TOPIC_MIN_AGE[t] <= ageIdx);
   const readingAvail = readingList !== null ? readingList : APP_DATA.READING_TOPICS.filter((t) => APP_DATA.READING_TOPIC_MIN_AGE[t] <= ageIdx);
   const logicAvail = logicList !== null ? logicList : APP_DATA.LOGIC_TOPICS.filter((t) => APP_DATA.LOGIC_TOPIC_MIN_AGE[t] <= ageIdx);
@@ -20,8 +26,13 @@ function dailyCurriculumTopics(ageIdx, day) {
   const [diffIdx, mathAvail, readingAvail, logicAvail, unitLabel] = getCurriculumPhase(ageIdx, day);
   function pick(avail, n) {
     if (!avail.length) return [];
-    n = Math.min(n, avail.length);
-    const start = (day * 3) % avail.length;
+    // Cap at half the pool (min 1) so a small topic list (e.g. 2 topics) rotates one
+    // topic per day instead of cramming the whole pool into every single day, which
+    // made consecutive days show identical topic coverage.
+    n = Math.min(n, avail.length, Math.max(1, Math.ceil(avail.length / 2)));
+    // day-1 so day 1 always starts at the first-listed (intended starting) topic,
+    // instead of a scrambled offset that could open on a later topic out of order.
+    const start = (day - 1) % avail.length;
     const seenLocal = new Set();
     const out = [];
     let i = 0;
@@ -94,6 +105,11 @@ class DailyCurriculumTracker {
     if (this.currentDay < 365) this.currentDay += 1;
     this.save();
   }
+
+  goToDay(day) {
+    this.currentDay = Math.max(1, Math.min(365, day || 1));
+    this.save();
+  }
 }
 
 const DAILY = new DailyCurriculumTracker();
@@ -137,6 +153,20 @@ function showDailyCurriculum() {
   }
 
   cardInner.appendChild(el("div", { class: "curriculum-day-heading", text: `Day ${day} of 365` }));
+
+  const jumpRow = el("div", { class: "count-row curriculum-jump-row" });
+  const prevBtn = button("◀", () => { DAILY.goToDay(DAILY.currentDay - 1); showDailyCurriculum(); }, "chip");
+  prevBtn.disabled = day <= 1;
+  jumpRow.appendChild(prevBtn);
+  jumpRow.appendChild(el("span", { text: "Jump to day:" }));
+  const dayInput = el("input", { type: "number", min: "1", max: "365", class: "count-input curriculum-day-input" });
+  dayInput.value = day;
+  jumpRow.appendChild(dayInput);
+  jumpRow.appendChild(button("Go", () => { DAILY.goToDay(parseInt(dayInput.value, 10)); showDailyCurriculum(); }, "chip"));
+  const nextBtn = button("▶", () => { DAILY.goToDay(DAILY.currentDay + 1); showDailyCurriculum(); }, "chip");
+  nextBtn.disabled = day >= 365;
+  jumpRow.appendChild(nextBtn);
+  cardInner.appendChild(jumpRow);
 
   const progressTrack = el("div", { class: "progress-track curriculum-progress" });
   const progressFill = el("div", { class: "progress-fill" });
@@ -194,7 +224,10 @@ function showDailyLesson() {
   root.appendChild(el("div", { class: "curriculum-unit-label curriculum-unit-label-standalone", text: `📘 ${unitLabel}` }));
 
   const container = el("div", { class: "lesson-container" });
-  renderLessonSections(container, subject, topic);
+  // Daily lessons only show the first (intro-level) section -- later sections in a
+  // topic's lesson (e.g. Place Value's "Big Numbers") are written for older tracks and
+  // shouldn't show up in a young child's guided daily lesson.
+  renderLessonSections(container, subject, topic, DAILY.ageIdx, diffIdx, 1);
   root.appendChild(container);
 
   const btnRow = el("div", { class: "next-row" });
