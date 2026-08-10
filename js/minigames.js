@@ -80,16 +80,22 @@ function showMiniGames() {
 // -- Make 10 to Add: work the decompose-to-make-ten strategy out step by step, typing each
 // piece in yourself, instead of just picking the final answer from a multiple-choice list.
 function makeTenProblem() {
-  const bigger = choice([7, 8, 9]);
-  const needed = 10 - bigger;
-  const smaller = randInt(needed + 1, 9); // +1 so there's always a real leftover to solve for
+  const a = choice([7, 8, 9]);
+  const neededForA = 10 - a;
+  const b = randInt(neededForA + 1, 9); // guarantees a + b > 10 regardless of which ends up the anchor
+  // Whichever of the two is actually closer to 10 stays whole -- not necessarily `a`, since
+  // `b` can land closer (e.g. a=8, b=9 should keep the 9 and split the 8, not the reverse).
+  const anchor = (10 - a) <= (10 - b) ? a : b;
+  const decompose = anchor === a ? b : a;
+  const needed = 10 - anchor;
+  const leftover = decompose - needed;
   // Which addend is closer to 10 (and so gets decomposed) shouldn't always land in the same
   // spot in the equation -- e.g. "3 + 9" should split the 3, same as "9 + 3" would.
   const anchorFirst = Math.random() < 0.5;
   return {
-    bigger, smaller, needed, leftover: smaller - needed, sum: bigger + smaller,
-    first: anchorFirst ? bigger : smaller,
-    second: anchorFirst ? smaller : bigger,
+    bigger: anchor, smaller: decompose, needed, leftover, sum: a + b,
+    first: anchorFirst ? anchor : decompose,
+    second: anchorFirst ? decompose : anchor,
   };
 }
 

@@ -110,11 +110,16 @@ function make10AdditionQ(ageIdx, diffIdx) {
   // minigames.js), not multiple choice -- `choices` stays only as a fallback for older
   // call sites (e.g. lesson "Try it yourself" snippets) that expect it.
   const biggerPool = diffIdx === 0 ? [8, 9] : [7, 8, 9];
-  const bigger = choice(biggerPool);
+  const a = choice(biggerPool);
+  const neededForA = 10 - a;
+  const b = randInt(neededForA + 1, 9); // guarantees a + b > 10 regardless of which ends up the anchor
+  // Whichever of the two is actually closer to 10 stays whole -- not necessarily `a`, since
+  // `b` can land closer (e.g. a=8, b=9 should keep the 9 and split the 8, not the reverse).
+  const bigger = (10 - a) <= (10 - b) ? a : b;
+  const smaller = bigger === a ? b : a;
   const neededToTen = 10 - bigger;
-  const smaller = randInt(neededToTen + 1, 9); // +1 so there's always a real leftover (1-10 picker has no "0")
   const leftover = smaller - neededToTen;
-  const sum = bigger + smaller;
+  const sum = a + b;
   // Which addend is closer to 10 (and so gets decomposed) shouldn't always be shown second --
   // e.g. "3 + 9" should still be about splitting the 3, same as "9 + 3" would be.
   const anchorFirst = Math.random() < 0.5;
