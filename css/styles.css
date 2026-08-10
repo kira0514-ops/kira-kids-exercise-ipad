@@ -415,6 +415,26 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .addtable-input-row { justify-content: center; margin-top: 10px; }
 .addtable-answer-input { max-width: 110px; text-align: center; font-size: 18px; }
 
+.maketen-card { max-width: 600px; }
+.maketen-equation { font-size: 26px; }
+.maketen-intro { text-align: center; margin: 8px 0 4px; }
+.maketen-step {
+  flex-wrap: wrap;
+  justify-content: center;
+  background: #F0F7FF;
+  border: 1px solid #B0D4F1;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 12px;
+}
+.maketen-step-label { flex: 1 1 100%; font-size: 14px; font-weight: bold; text-align: center; margin-bottom: 4px; }
+.maketen-input { max-width: 90px; text-align: center; font-size: 18px; }
+.maketen-step-feedback { flex: 1 1 100%; text-align: center; font-weight: bold; font-size: 13px; min-height: 18px; }
+.maketen-step-correct { color: #2E7D32; }
+.maketen-step-wrong { color: #C62828; }
+.maketen-hidden { display: none; }
+.maketen-done { text-align: center; font-size: 20px; margin-top: 14px; }
+
 @media (max-width: 700px) {
   .setup-layout { flex-direction: column; }
   .choices-grid { grid-template-columns: 1fr; }

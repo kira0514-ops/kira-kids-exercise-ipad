@@ -69,11 +69,143 @@ function showMiniGames() {
   root.appendChild(top);
 
   const grid = el("div", { class: "lesson-topic-grid" });
+  grid.appendChild(button("🔟 Make 10 to Add", showMakeTenGame, "choice"));
   for (const opKey of Object.keys(ADDTABLE_OPS)) {
     const op = ADDTABLE_OPS[opKey];
     grid.appendChild(button(`${op.icon} ${op.name} Table`, () => showAdditionTableMenu(opKey), "choice"));
   }
   root.appendChild(grid);
+}
+
+// -- Make 10 to Add: work the decompose-to-make-ten strategy out step by step, typing each
+// piece in yourself, instead of just picking the final answer from a multiple-choice list.
+function makeTenProblem() {
+  const bigger = choice([7, 8, 9]);
+  const needed = 10 - bigger;
+  const smaller = randInt(needed + 1, 9); // +1 so there's always a real leftover to solve for
+  return { bigger, smaller, needed, leftover: smaller - needed, sum: bigger + smaller };
+}
+
+function showMakeTenGame() {
+  applyThemeVars();
+  clearRoot();
+  const t = theme();
+
+  root.appendChild(headerBanner("🔟 Make 10 to Add"));
+
+  const top = el("div", { class: "quiz-top" });
+  const scoreLabel = el("span", { text: "⭐ Solved: 0" });
+  top.appendChild(scoreLabel);
+  top.appendChild(button("◀ Back", showMiniGames, "next"));
+  top.appendChild(button("🏠 Menu", showSetup, "quit"));
+  root.appendChild(top);
+
+  const card = el("div", { class: "card maketen-card" });
+  root.appendChild(card);
+
+  let score = 0;
+  let p, illusWrap;
+
+  function stepRow(labelText) {
+    const row = el("div", { class: "count-row maketen-step" });
+    row.appendChild(el("span", { class: "maketen-step-label", text: labelText }));
+    const input = el("input", { type: "number", class: "count-input maketen-input" });
+    const checkBtn = button("✅ Check", null, "next");
+    const feedback = el("span", { class: "maketen-step-feedback" });
+    row.appendChild(input);
+    row.appendChild(checkBtn);
+    row.appendChild(feedback);
+    return { row, input, checkBtn, feedback };
+  }
+
+  function lockStep(step, resultText) {
+    step.input.disabled = true;
+    step.checkBtn.disabled = true;
+    step.feedback.textContent = "✅ " + resultText;
+    step.feedback.className = "maketen-step-feedback maketen-step-correct";
+  }
+
+  function wrongFlash(step) {
+    step.feedback.textContent = "Not quite, try again!";
+    step.feedback.className = "maketen-step-feedback maketen-step-wrong";
+    step.input.value = "";
+    step.input.focus();
+  }
+
+  function nextProblem() {
+    p = makeTenProblem();
+    card.innerHTML = "";
+
+    card.appendChild(el("div", { class: "prompt maketen-equation", text: `${p.bigger} + ${p.smaller} = ?` }));
+
+    illusWrap = el("div", { class: "illustration-wrap" });
+    illusWrap.appendChild(drawMakeTen({ bigger: p.bigger, stage: 0 }, t));
+    card.appendChild(illusWrap);
+
+    card.appendChild(el("div", { class: "step-text maketen-intro", text:
+      `Work it out one step at a time. ${p.bigger} is close to 10 -- start there.` }));
+
+    const step1 = stepRow(`Step 1: How many more does ${p.bigger} need to make 10?`);
+    const step2 = stepRow(`Step 2: ${p.smaller} splits into ${p.needed} + what's left over?`);
+    const step3 = stepRow(`Step 3: 10 + the leftover = ?`);
+    step2.row.classList.add("maketen-hidden");
+    step3.row.classList.add("maketen-hidden");
+    card.appendChild(step1.row);
+    card.appendChild(step2.row);
+    card.appendChild(step3.row);
+
+    const doneMsg = el("div", { class: "score-msg maketen-done" });
+    card.appendChild(doneMsg);
+    const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
+    nextBtn.classList.add("maketen-hidden");
+    card.appendChild(nextBtn);
+
+    function checkStep1() {
+      const val = parseInt(step1.input.value, 10);
+      if (val === p.needed) {
+        lockStep(step1, `${p.bigger} + ${p.needed} = 10`);
+        illusWrap.innerHTML = "";
+        illusWrap.appendChild(drawMakeTen({ bigger: p.bigger, stage: 1 }, t));
+        step2.row.classList.remove("maketen-hidden");
+        step2.input.focus();
+      } else {
+        wrongFlash(step1);
+      }
+    }
+    function checkStep2() {
+      const val = parseInt(step2.input.value, 10);
+      if (val === p.leftover) {
+        lockStep(step2, `${p.needed} + ${p.leftover} = ${p.smaller}`);
+        illusWrap.innerHTML = "";
+        illusWrap.appendChild(drawMakeTen({ bigger: p.bigger, smaller: p.smaller, stage: 2 }, t));
+        step3.row.classList.remove("maketen-hidden");
+        step3.input.focus();
+      } else {
+        wrongFlash(step2);
+      }
+    }
+    function checkStep3() {
+      const val = parseInt(step3.input.value, 10);
+      if (val === p.sum) {
+        lockStep(step3, `10 + ${p.leftover} = ${p.sum}`);
+        doneMsg.textContent = `🎉 ${p.bigger} + ${p.smaller} = ${p.sum}!`;
+        nextBtn.classList.remove("maketen-hidden");
+      } else {
+        wrongFlash(step3);
+      }
+    }
+
+    step1.checkBtn.addEventListener("click", checkStep1);
+    step1.input.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStep1(); });
+    step2.checkBtn.addEventListener("click", checkStep2);
+    step2.input.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStep2(); });
+    step3.checkBtn.addEventListener("click", checkStep3);
+    step3.input.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStep3(); });
+
+    step1.input.focus();
+  }
+
+  nextProblem();
 }
 
 function showAdditionTableMenu(opKey) {

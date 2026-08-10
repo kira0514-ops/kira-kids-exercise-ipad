@@ -45,17 +45,20 @@ function drawDotsAdd(illus, theme) {
 }
 
 function drawMakeTen(illus, theme) {
-  // Ten-frame showing "bigger" filled in, then the "smaller" addend split into the
-  // piece that completes the ten (same color as bigger, dashed border to mark it as
-  // borrowed) and the leftover piece shown separately -- the visual version of the
-  // decompose-to-make-ten worksheet method.
-  const { bigger, smaller } = illus;
+  // Ten-frame showing "bigger" filled in, then (once revealed) the piece borrowed from
+  // "smaller" that completes the ten (dashed border) and the leftover piece shown
+  // separately -- the visual version of the decompose-to-make-ten worksheet method.
+  // `stage` supports progressive reveal for the interactive Make 10 game:
+  //   0 = only "bigger" filled; 1 = frame completed to ten; 2 (default) = ten + leftover.
+  const { bigger, smaller = 0 } = illus;
+  const stage = illus.stage != null ? illus.stage : 2;
   const needed = 10 - bigger;
-  const leftover = smaller - needed;
+  const leftover = stage >= 2 ? Math.max(0, smaller - needed) : 0;
   const r = 14, gap = 34, cols = 5;
   const frameW = cols * gap + 10, frameH = 2 * gap + 10;
   const leftoverW = Math.max(1, leftover) * gap + 20;
-  const width = frameW + 50 + leftoverW;
+  const showLeftoverSlot = stage >= 1;
+  const width = frameW + (showLeftoverSlot ? 50 + leftoverW : 0);
   const height = frameH + 50;
   const c = makeCanvas(width, height);
   const ctx = c.getContext("2d");
@@ -67,11 +70,12 @@ function drawMakeTen(illus, theme) {
   }
   ctx.beginPath(); ctx.moveTo(5, 5 + gap); ctx.lineTo(5 + frameW, 5 + gap); ctx.stroke();
 
+  const filledToTen = stage >= 1; // whether the borrowed cells (bigger..9) should render yet
   for (let i = 0; i < 10; i++) {
     const row = Math.floor(i / cols), col = i % cols;
     const cx = 5 + col * gap + gap / 2, cy = 5 + row * gap + gap / 2;
     const isBorrowed = i >= bigger;
-    if (i < bigger || isBorrowed) {
+    if (i < bigger || (isBorrowed && filledToTen)) {
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fillStyle = theme.choice_palette[0]; ctx.fill();
       ctx.setLineDash(isBorrowed ? [4, 3] : []);
@@ -82,7 +86,9 @@ function drawMakeTen(illus, theme) {
     }
   }
   ctx.fillStyle = theme.text; ctx.font = "bold 16px 'Segoe UI'"; ctx.textAlign = "center";
-  ctx.fillText("10", 5 + frameW / 2, frameH + 26);
+  ctx.fillText(filledToTen ? "10" : String(bigger), 5 + frameW / 2, frameH + 26);
+
+  if (!showLeftoverSlot) return c;
 
   ctx.font = "bold 22px 'Segoe UI'"; ctx.textBaseline = "middle";
   ctx.fillText("+", frameW + 25, frameH / 2 + 5);
