@@ -399,6 +399,27 @@ function showVerticalAdditionGame() {
     card.appendChild(el("div", { class: "step-text maketen-intro", text: "Tap a box, then tap or drag to a number to fill it in." }));
 
     const column = el("div", { class: "vadd-column" });
+
+    let carryDone = p.tens === 0;
+    let tensDone = p.tens === 0;
+    let onesDone = false;
+    const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
+    nextBtn.classList.add("maketen-hidden");
+    function checkAllDone() {
+      if (carryDone && tensDone && onesDone) nextBtn.classList.remove("maketen-hidden");
+    }
+
+    // A small carry box above the numbers, straddling the tens/ones columns -- the usual
+    // place a kid jots the carried digit down before even starting to add, ahead of writing
+    // out the full answer below the line.
+    let carryBoxUi = null;
+    if (p.tens > 0) {
+      const carryRow = el("div", { class: "vadd-carry-row" });
+      carryBoxUi = buildDragDigitBox(p.tens, "small", () => { carryDone = true; checkAllDone(); });
+      carryRow.appendChild(carryBoxUi.box);
+      column.appendChild(carryRow);
+    }
+
     // The +/- sign sits in its own fixed-width column to the left of the numbers, not glued
     // to the digit, so the ones-place digits (and the boxes below) actually line up in a
     // column instead of shifting around with the sign.
@@ -411,27 +432,7 @@ function showVerticalAdditionGame() {
     column.appendChild(operandRow("", p.a));
     column.appendChild(operandRow("+", p.b));
 
-    let carryDone = p.tens === 0;
-    let tensDone = p.tens === 0;
-    let onesDone = false;
-    const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
-    nextBtn.classList.add("maketen-hidden");
-    function checkAllDone() {
-      if (carryDone && tensDone && onesDone) nextBtn.classList.remove("maketen-hidden");
-    }
-
     card.appendChild(column);
-
-    // A small carry box above the line, straddling the boundary between the tens and ones
-    // columns -- the usual place a kid writes the carried digit before writing out the full
-    // answer below the line.
-    let carryBoxUi = null;
-    if (p.tens > 0) {
-      const carryRow = el("div", { class: "vadd-carry-row" });
-      carryBoxUi = buildDragDigitBox(p.tens, "small", () => { carryDone = true; checkAllDone(); });
-      carryRow.appendChild(carryBoxUi.box);
-      column.appendChild(carryRow);
-    }
 
     column.appendChild(el("div", { class: "vadd-line" }));
 
