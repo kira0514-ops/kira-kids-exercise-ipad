@@ -2,7 +2,7 @@
 // daily_curriculum_topics, DailyCurriculumTracker (localStorage instead of a JSON file),
 // and the show_daily_curriculum / show_daily_lesson / start_daily_curriculum screens.
 
-function getCurriculumPhase(ageIdx, day) {
+function getCurriculumPhase(ageIdx, day, trackYear = 1) {
   const phases = APP_DATA.CURRICULUM_PHASES[ageIdx];
   let phaseIdx = 0;
   for (let i = 0; i < phases.length; i++) {
@@ -15,15 +15,21 @@ function getCurriculumPhase(ageIdx, day) {
   // new difficulty on day 1 of the phase, so the ramp feels gradual rather than a sudden step.
   const prevDiffIdx = phaseIdx > 0 ? phases[phaseIdx - 1][1] : rawDiffIdx;
   const daysIntoPhase = day - startDay;
-  const diffIdx = (daysIntoPhase < 14 && prevDiffIdx < rawDiffIdx) ? prevDiffIdx : rawDiffIdx;
+  let diffIdx = (daysIntoPhase < 14 && prevDiffIdx < rawDiffIdx) ? prevDiffIdx : rawDiffIdx;
+  // Each age track spans several real-world years (e.g. Preschool covers ages 3-5), so a
+  // child cycles through the same 365-day track more than once before the next track is
+  // actually age-appropriate. Every repeat lap should feel noticeably harder than the last
+  // instead of serving up identical content, so nudge the difficulty up per lap (capped at
+  // Extreme) rather than only ever ramping within a single lap.
+  diffIdx = Math.min(3, diffIdx + (trackYear - 1));
   const mathAvail = mathList !== null ? mathList : APP_DATA.MATH_TOPICS.filter((t) => APP_DATA.MATH_TOPIC_MIN_AGE[t] <= ageIdx);
   const readingAvail = readingList !== null ? readingList : APP_DATA.READING_TOPICS.filter((t) => APP_DATA.READING_TOPIC_MIN_AGE[t] <= ageIdx);
   const logicAvail = logicList !== null ? logicList : APP_DATA.LOGIC_TOPICS.filter((t) => APP_DATA.LOGIC_TOPIC_MIN_AGE[t] <= ageIdx);
   return [diffIdx, mathAvail, readingAvail, logicAvail, unitLabel];
 }
 
-function dailyCurriculumTopics(ageIdx, day) {
-  const [diffIdx, mathAvail, readingAvail, logicAvail, unitLabel] = getCurriculumPhase(ageIdx, day);
+function dailyCurriculumTopics(ageIdx, day, trackYear = 1) {
+  const [diffIdx, mathAvail, readingAvail, logicAvail, unitLabel] = getCurriculumPhase(ageIdx, day, trackYear);
   function pick(avail, n) {
     if (!avail.length) return [];
     // Cap at half the pool (min 1) so a small topic list (e.g. 2 topics) rotates one
@@ -53,6 +59,7 @@ class DailyCurriculumTracker {
     this.profileId = "default";
     this.ageIdx = 1;
     this.currentDay = 1;
+    this.trackYear = 1;
     this.completedDays = new Set();
     this.load();
   }
@@ -74,17 +81,20 @@ class DailyCurriculumTracker {
       const data = raw ? JSON.parse(raw) : {};
       this.ageIdx = data.age_idx ?? 1;
       this.currentDay = data.current_day ?? 1;
+      this.trackYear = data.track_year ?? 1;
       this.completedDays = new Set(data.completed_days || []);
     } catch (e) {
       this.ageIdx = 1;
       this.currentDay = 1;
+      this.trackYear = 1;
       this.completedDays = new Set();
     }
   }
 
   save() {
     try {
-      const data = { age_idx: this.ageIdx, current_day: this.currentDay, completed_days: Array.from(this.completedDays).sort((a, b) => a - b) };
+      const data = { age_idx: this.ageIdx, current_day: this.currentDay, track_year: this.trackYear,
+        completed_days: Array.from(this.completedDays).sort((a, b) => a - b) };
       localStorage.setItem(this.storageKey(), JSON.stringify(data));
     } catch (e) {
       // a failed save should never crash the app
@@ -95,6 +105,7 @@ class DailyCurriculumTracker {
     if (ageIdx !== this.ageIdx) {
       this.ageIdx = ageIdx;
       this.currentDay = 1;
+      this.trackYear = 1;
       this.completedDays = new Set();
       this.save();
     }
@@ -108,6 +119,15 @@ class DailyCurriculumTracker {
 
   goToDay(day) {
     this.currentDay = Math.max(1, Math.min(365, day || 1));
+    this.save();
+  }
+
+  // Same age track, one real-world year later -- restart at day 1 but a notch harder,
+  // instead of jumping to a different (age-inappropriate) track or repeating identically.
+  restartTrackHarder() {
+    this.trackYear += 1;
+    this.currentDay = 1;
+    this.completedDays = new Set();
     this.save();
   }
 }
@@ -144,21 +164,26 @@ function showDailyCurriculum() {
   const day = DAILY.currentDay;
   if (day > 365) {
     const ageIcons = ["🧸", "🎒", "🎓"];
+    const trackLabel = APP_DATA.AGE_GROUPS[DAILY.ageIdx];
     const nextAgeIdx = DAILY.ageIdx + 1;
     const hasNextLevel = nextAgeIdx < APP_DATA.AGE_GROUPS.length;
     cardInner.appendChild(el("div", { class: "lesson-section-title", text: "🎉 Curriculum Complete!" }));
+    cardInner.appendChild(el("div", { class: "step-text", text:
+      `${ageIcons[DAILY.ageIdx]} You finished Year ${DAILY.trackYear} of the ${trackLabel} track! ` +
+      `Since this track spans a few real ages, doing it again next year should feel like a step up, ` +
+      `not the same thing twice.` }));
+    cardInner.appendChild(button(`🔁 Start Year ${DAILY.trackYear + 1} of ${trackLabel} (harder)`,
+      () => { DAILY.restartTrackHarder(); showDailyCurriculum(); }, "start"));
     if (hasNextLevel) {
       const nextLabel = APP_DATA.AGE_GROUPS[nextAgeIdx];
       cardInner.appendChild(el("div", { class: "step-text", text:
-        `${ageIcons[DAILY.ageIdx]} You finished all 365 days of the ${APP_DATA.AGE_GROUPS[DAILY.ageIdx]} track! ` +
-        `A year has passed and they're ready for more of a challenge — advance to the next track ` +
-        `whenever they turn the corresponding age.` }));
-      cardInner.appendChild(button(`⬆️ Advance to ${ageIcons[nextAgeIdx]} ${nextLabel}`,
-        () => { DAILY.setAge(nextAgeIdx); showDailyCurriculum(); }, "start"));
+        "Growing faster than a typical pace? You can move up to the next track early instead:" }));
+      cardInner.appendChild(button(`⬆️ Move up to ${ageIcons[nextAgeIdx]} ${nextLabel} now`,
+        () => { DAILY.setAge(nextAgeIdx); showDailyCurriculum(); }, "next"));
     } else {
       cardInner.appendChild(el("div", { class: "step-text", text:
-        "🏆 You finished all 365 days of every age track — the whole curriculum! Keep practicing with " +
-        "the regular quiz modes from the Menu, or revisit any day using Jump to day once you restart a track." }));
+        "🏆 This is already the oldest track, so Extreme difficulty is the ceiling — or switch to the " +
+        "regular quiz modes from the Menu for more variety." }));
     }
     cardBorder.appendChild(cardInner);
     root.appendChild(cardBorder);
@@ -166,6 +191,7 @@ function showDailyCurriculum() {
   }
 
   cardInner.appendChild(el("div", { class: "curriculum-day-heading", text: `Day ${day} of 365` }));
+  cardInner.appendChild(el("div", { class: "note", text: `Year ${DAILY.trackYear} of ${APP_DATA.AGE_GROUPS[DAILY.ageIdx]}` }));
 
   const jumpRow = el("div", { class: "count-row curriculum-jump-row" });
   const prevBtn = button("◀", () => { DAILY.goToDay(DAILY.currentDay - 1); showDailyCurriculum(); }, "chip");
@@ -188,7 +214,7 @@ function showDailyCurriculum() {
   cardInner.appendChild(progressTrack);
   cardInner.appendChild(el("div", { class: "note", text: `${DAILY.completedDays.size} days completed so far` }));
 
-  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] = dailyCurriculumTopics(DAILY.ageIdx, day);
+  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] = dailyCurriculumTopics(DAILY.ageIdx, day, DAILY.trackYear);
 
   cardInner.appendChild(el("div", { class: "curriculum-unit-label", text: `📘 ${unitLabel}` }));
 
@@ -221,7 +247,7 @@ function showDailyLesson() {
   const t = theme();
 
   const day = DAILY.currentDay;
-  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] = dailyCurriculumTopics(DAILY.ageIdx, day);
+  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] = dailyCurriculumTopics(DAILY.ageIdx, day, DAILY.trackYear);
   let subject, topic;
   if (mathTopics.length) { subject = "Math"; topic = mathTopics[0]; }
   else if (readingTopics.length) { subject = "Reading / Spelling"; topic = readingTopics[0]; }
@@ -251,7 +277,7 @@ function showDailyLesson() {
 function startDailyCurriculum() {
   const ageIdx = DAILY.ageIdx;
   const day = DAILY.currentDay;
-  const [diffIdx, mathTopics, readingTopics, logicTopics] = dailyCurriculumTopics(ageIdx, day);
+  const [diffIdx, mathTopics, readingTopics, logicTopics] = dailyCurriculumTopics(ageIdx, day, DAILY.trackYear);
   const topicSlots = [
     ...mathTopics.map((t) => ["Math", t, mathQuestion]),
     ...readingTopics.map((t) => ["Reading / Spelling", t, readingQuestion]),
