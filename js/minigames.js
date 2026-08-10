@@ -89,8 +89,8 @@ function showAdditionTableMenu(opKey) {
 
   const card = el("div", { class: "card" });
   const desc = opKey === "division"
-    ? "Level 1: the full table is shown — tap the cell where the highlighted divisor row and quotient column meet.\n" +
-      "Level 2: you're given the dividend and the divisor — type in the quotient yourself.\n" +
+    ? "Level 1: you're given the dividend and the divisor row — tap the matching cell in that row.\n" +
+      "Level 2: same, but type in the quotient yourself instead of tapping.\n" +
       "Speed Round: answer as many as you can before time runs out!"
     : "Level 1: the full table is shown — tap the cell where the highlighted row and column meet.\n" +
       "Level 2: the table is blank — type in the answer yourself.\n" +
@@ -154,6 +154,7 @@ function shuffledAddTableTargets() {
 // -- Level 1: tap the intersecting cell in a fully-filled table --------------------------
 function showAddTableLevel1(opKey) {
   const op = ADDTABLE_OPS[opKey];
+  const isDivision = opKey === "division";
   applyThemeVars();
   clearRoot();
 
@@ -188,8 +189,12 @@ function showAddTableLevel1(opKey) {
     target = remaining[remaining.length - 1];
     const [r, c] = target;
     rowHeaderEls[r].classList.add("addtable-highlight");
-    colHeaderEls[c].classList.add("addtable-highlight");
-    promptEl.textContent = op.findPrompt(r, c);
+    // Division only reveals the divisor (row) -- highlighting the quotient (column) too
+    // would make this an identical task to Multiplication's "tap where they meet". Instead
+    // the prompt states the dividend directly and the kid searches the row for that value,
+    // which is a genuinely different (and genuinely division) task.
+    if (!isDivision) colHeaderEls[c].classList.add("addtable-highlight");
+    promptEl.textContent = isDivision ? op.typePrompt(r, c) : op.findPrompt(r, c);
     scoreEl.textContent = `Found: ${score} / ${total}`;
   }
 
