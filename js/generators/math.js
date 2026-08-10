@@ -111,7 +111,10 @@ function make10AdditionQ(ageIdx, diffIdx) {
   const neededToTen = 10 - bigger;
   const smaller = randInt(neededToTen, 9);
   const answer = bigger + smaller;
-  const prompt = `${bigger} + ${smaller} = ?`;
+  // Which addend is closer to 10 (and so gets decomposed) shouldn't always be shown second --
+  // e.g. "3 + 9" should still be about splitting the 3, same as "9 + 3" would be.
+  const anchorFirst = Math.random() < 0.5;
+  const prompt = anchorFirst ? `${bigger} + ${smaller} = ?` : `${smaller} + ${bigger} = ?`;
   const choices = numericChoices(answer, 0, 20);
   return { prompt, choices, answer, illustration: { type: "make_ten", bigger, smaller } };
 }

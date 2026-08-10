@@ -434,6 +434,8 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .maketen-step-wrong { color: #C62828; }
 .maketen-hidden { display: none; }
 .maketen-done { text-align: center; font-size: 20px; margin-top: 14px; }
+.maketen-choose-row { justify-content: center; margin: 8px 0; }
+.maketen-choose-row .btn { font-size: 20px; min-width: 60px; }
 
 .maketen-tree { position: relative; margin: 0 auto; }
 .maketen-branch-svg { position: absolute; top: 0; left: 0; color: var(--text); pointer-events: none; }

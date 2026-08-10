@@ -83,7 +83,14 @@ function makeTenProblem() {
   const bigger = choice([7, 8, 9]);
   const needed = 10 - bigger;
   const smaller = randInt(needed + 1, 9); // +1 so there's always a real leftover to solve for
-  return { bigger, smaller, needed, leftover: smaller - needed, sum: bigger + smaller };
+  // Which addend is closer to 10 (and so gets decomposed) shouldn't always land in the same
+  // spot in the equation -- e.g. "3 + 9" should split the 3, same as "9 + 3" would.
+  const anchorFirst = Math.random() < 0.5;
+  return {
+    bigger, smaller, needed, leftover: smaller - needed, sum: bigger + smaller,
+    first: anchorFirst ? bigger : smaller,
+    second: anchorFirst ? smaller : bigger,
+  };
 }
 
 // Builds the branch-and-two-boxes tree as real (clickable) DOM elements rather than a
@@ -151,15 +158,32 @@ function showMakeTenGame() {
     p = makeTenProblem();
     card.innerHTML = "";
 
-    card.appendChild(el("div", { class: "prompt maketen-equation", text: `${p.bigger} + ${p.smaller} = ?` }));
+    card.appendChild(el("div", { class: "prompt maketen-equation", text: `${p.first} + ${p.second} = ?` }));
 
-    card.appendChild(el("div", { class: "step-text maketen-intro", text:
-      `Tap a box and pick a number. Split ${p.smaller} into the piece that makes ${p.bigger} a ten, and what's left over.` }));
+    // The kid identifies which addend to decompose themselves first -- reminded, if they
+    // get it wrong, that the one already close to 10 stays whole and the other one splits.
+    const chooseWrap = el("div", { class: "maketen-choose" });
+    chooseWrap.appendChild(el("div", { class: "step-text maketen-intro", text: "Which number should we split to make a ten?" }));
+    const chooseRow = el("div", { class: "chip-row maketen-choose-row" });
+    const chooseFeedback = el("div", { class: "maketen-step-feedback" });
+    [p.first, p.second].forEach((val) => {
+      const cbtn = button(String(val), () => handleChoose(val), "chip");
+      chooseRow.appendChild(cbtn);
+    });
+    chooseWrap.appendChild(chooseRow);
+    chooseWrap.appendChild(chooseFeedback);
+    card.appendChild(chooseWrap);
+
+    const restWrap = el("div", { class: "maketen-hidden" });
+    card.appendChild(restWrap);
+
+    restWrap.appendChild(el("div", { class: "step-text maketen-intro", text:
+      `Right! ${p.bigger} stays close to 10, so we split ${p.smaller}. Tap a box and pick a number.` }));
 
     const { wrap: treeWrap, leftBox, rightBox } = buildMakeTenTree();
     const treeOuter = el("div", { class: "illustration-wrap" });
     treeOuter.appendChild(treeWrap);
-    card.appendChild(treeOuter);
+    restWrap.appendChild(treeOuter);
 
     const pickerWrap = el("div", { class: "maketen-picker maketen-hidden" });
     const pickerLabel = el("div", { class: "maketen-picker-label" });
@@ -172,19 +196,29 @@ function showMakeTenGame() {
     }
     pickerWrap.appendChild(pickerLabel);
     pickerWrap.appendChild(pickerGrid);
-    card.appendChild(pickerWrap);
+    restWrap.appendChild(pickerWrap);
 
-    card.appendChild(createScratchpad(() => {}));
+    restWrap.appendChild(createScratchpad(() => {}));
 
     const step3 = stepRow(`Once both boxes are right: 10 + the leftover = ?`);
     step3.row.classList.add("maketen-hidden");
-    card.appendChild(step3.row);
+    restWrap.appendChild(step3.row);
 
     const doneMsg = el("div", { class: "score-msg maketen-done" });
-    card.appendChild(doneMsg);
+    restWrap.appendChild(doneMsg);
     const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
     nextBtn.classList.add("maketen-hidden");
-    card.appendChild(nextBtn);
+    restWrap.appendChild(nextBtn);
+
+    function handleChoose(val) {
+      if (val === p.smaller) {
+        chooseWrap.classList.add("maketen-hidden");
+        restWrap.classList.remove("maketen-hidden");
+      } else {
+        chooseFeedback.textContent = `Not quite -- ${p.bigger} is already close to 10, so keep it whole and split ${p.smaller} instead.`;
+        chooseFeedback.className = "maketen-step-feedback maketen-step-wrong";
+      }
+    }
 
     let activeSide = null; // "left" | "right" | null
 
