@@ -402,12 +402,26 @@ function showVerticalAdditionGame() {
     column.appendChild(el("div", { class: "vadd-operand", text: String(p.a) }));
     column.appendChild(el("div", { class: "vadd-operand", text: `+ ${p.b}` }));
 
+    let carryDone = p.tens === 0;
     let tensDone = p.tens === 0;
     let onesDone = false;
     const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
     nextBtn.classList.add("maketen-hidden");
     function checkAllDone() {
-      if (tensDone && onesDone) nextBtn.classList.remove("maketen-hidden");
+      if (carryDone && tensDone && onesDone) nextBtn.classList.remove("maketen-hidden");
+    }
+
+    card.appendChild(column);
+
+    // A small carry box above the line, straddling the boundary between the tens and ones
+    // columns -- the usual place a kid writes the carried digit before writing out the full
+    // answer below the line.
+    let carryBoxUi = null;
+    if (p.tens > 0) {
+      const carryRow = el("div", { class: "vadd-carry-row" });
+      carryBoxUi = buildDragDigitBox(p.tens, "small", () => { carryDone = true; checkAllDone(); });
+      carryRow.appendChild(carryBoxUi.box);
+      column.appendChild(carryRow);
     }
 
     column.appendChild(el("div", { class: "vadd-line" }));
@@ -415,7 +429,6 @@ function showVerticalAdditionGame() {
     // Both digits sit side by side below the line, tens box left of ones box, reading
     // left-to-right as the answer normally would (e.g. "1" then "0" for 10).
     const answerRow = el("div", { class: "vadd-answer-row" });
-    card.appendChild(column);
 
     let tensBoxUi = null;
     if (p.tens > 0) {
@@ -426,6 +439,7 @@ function showVerticalAdditionGame() {
     answerRow.appendChild(onesBoxUi.box);
     column.appendChild(answerRow);
 
+    if (carryBoxUi) card.appendChild(carryBoxUi.strip);
     if (tensBoxUi) card.appendChild(tensBoxUi.strip);
     card.appendChild(onesBoxUi.strip);
 
