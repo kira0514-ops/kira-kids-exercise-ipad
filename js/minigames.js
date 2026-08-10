@@ -139,7 +139,7 @@ function showMakeTenGame() {
     card.appendChild(el("div", { class: "prompt maketen-equation", text: `${p.bigger} + ${p.smaller} = ?` }));
 
     illusWrap = el("div", { class: "illustration-wrap" });
-    illusWrap.appendChild(drawMakeTen({ bigger: p.bigger, stage: 0 }, t));
+    illusWrap.appendChild(drawMakeTen({ left: null, right: null }, t));
     card.appendChild(illusWrap);
 
     card.appendChild(el("div", { class: "step-text maketen-intro", text:
@@ -165,7 +165,7 @@ function showMakeTenGame() {
       if (val === p.needed) {
         lockStep(step1, `${p.bigger} + ${p.needed} = 10`);
         illusWrap.innerHTML = "";
-        illusWrap.appendChild(drawMakeTen({ bigger: p.bigger, stage: 1 }, t));
+        illusWrap.appendChild(drawMakeTen({ left: p.needed, right: null }, t));
         step2.row.classList.remove("maketen-hidden");
         step2.input.focus();
       } else {
@@ -177,7 +177,7 @@ function showMakeTenGame() {
       if (val === p.leftover) {
         lockStep(step2, `${p.needed} + ${p.leftover} = ${p.smaller}`);
         illusWrap.innerHTML = "";
-        illusWrap.appendChild(drawMakeTen({ bigger: p.bigger, smaller: p.smaller, stage: 2 }, t));
+        illusWrap.appendChild(drawMakeTen({ left: p.needed, right: p.leftover }, t));
         step3.row.classList.remove("maketen-hidden");
         step3.input.focus();
       } else {

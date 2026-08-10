@@ -45,64 +45,45 @@ function drawDotsAdd(illus, theme) {
 }
 
 function drawMakeTen(illus, theme) {
-  // Ten-frame showing "bigger" filled in, then (once revealed) the piece borrowed from
-  // "smaller" that completes the ten (dashed border) and the leftover piece shown
-  // separately -- the visual version of the decompose-to-make-ten worksheet method.
-  // `stage` supports progressive reveal for the interactive Make 10 game:
-  //   0 = only "bigger" filled; 1 = frame completed to ten; 2 (default) = ten + leftover.
-  const { bigger, smaller = 0 } = illus;
-  const stage = illus.stage != null ? illus.stage : 2;
-  const needed = 10 - bigger;
-  const leftover = stage >= 2 ? Math.max(0, smaller - needed) : 0;
-  const r = 14, gap = 34, cols = 5;
-  const frameW = cols * gap + 10, frameH = 2 * gap + 10;
-  const leftoverW = Math.max(1, leftover) * gap + 20;
-  const showLeftoverSlot = stage >= 1;
-  const width = frameW + (showLeftoverSlot ? 50 + leftoverW : 0);
-  const height = frameH + 50;
+  // Decompose tree: a point branches down into two boxes, matching the classic "make 10"
+  // worksheet layout -- the smaller addend splits into the piece that completes ten (left
+  // box) and the leftover (right box). Pass explicit `left`/`right` (null = still blank,
+  // for the interactive game's progressive reveal); falls back to computing both filled
+  // in from `bigger`/`smaller` for static lesson/quiz illustrations of a worked example.
+  let { left, right } = illus;
+  if (left === undefined && right === undefined) {
+    const needed = 10 - illus.bigger;
+    left = needed;
+    right = illus.smaller - needed;
+  }
+  const boxSize = 64, gap = 40, boxTop = 60;
+  const width = boxSize * 2 + gap + 20;
+  const height = boxTop + boxSize + 10;
   const c = makeCanvas(width, height);
   const ctx = c.getContext("2d");
+  const apexX = width / 2, apexY = 6;
+  const leftBoxX = 10, rightBoxX = 10 + boxSize + gap;
 
-  ctx.strokeStyle = theme.text; ctx.lineWidth = 2;
-  ctx.strokeRect(5, 5, frameW, frameH);
-  for (let i = 1; i < cols; i++) {
-    ctx.beginPath(); ctx.moveTo(5 + i * gap, 5); ctx.lineTo(5 + i * gap, 5 + frameH); ctx.stroke();
-  }
-  ctx.beginPath(); ctx.moveTo(5, 5 + gap); ctx.lineTo(5 + frameW, 5 + gap); ctx.stroke();
+  ctx.strokeStyle = theme.text; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(apexX, apexY);
+  ctx.lineTo(leftBoxX + boxSize / 2, boxTop);
+  ctx.moveTo(apexX, apexY);
+  ctx.lineTo(rightBoxX + boxSize / 2, boxTop);
+  ctx.stroke();
 
-  const filledToTen = stage >= 1; // whether the borrowed cells (bigger..9) should render yet
-  for (let i = 0; i < 10; i++) {
-    const row = Math.floor(i / cols), col = i % cols;
-    const cx = 5 + col * gap + gap / 2, cy = 5 + row * gap + gap / 2;
-    const isBorrowed = i >= bigger;
-    if (i < bigger || (isBorrowed && filledToTen)) {
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = theme.choice_palette[0]; ctx.fill();
-      ctx.setLineDash(isBorrowed ? [4, 3] : []);
-      ctx.strokeStyle = isBorrowed ? theme.choice_palette[1] : theme.text;
-      ctx.lineWidth = isBorrowed ? 2.5 : 1;
-      ctx.stroke();
-      ctx.setLineDash([]);
+  function drawBox(x, value) {
+    ctx.strokeStyle = theme.text; ctx.lineWidth = 2.5;
+    ctx.strokeRect(x, boxTop, boxSize, boxSize);
+    if (value != null) {
+      ctx.fillStyle = theme.text;
+      ctx.font = "bold 26px 'Segoe UI'";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(value), x + boxSize / 2, boxTop + boxSize / 2);
     }
   }
-  ctx.fillStyle = theme.text; ctx.font = "bold 16px 'Segoe UI'"; ctx.textAlign = "center";
-  ctx.fillText(filledToTen ? "10" : String(bigger), 5 + frameW / 2, frameH + 26);
-
-  if (!showLeftoverSlot) return c;
-
-  ctx.font = "bold 22px 'Segoe UI'"; ctx.textBaseline = "middle";
-  ctx.fillText("+", frameW + 25, frameH / 2 + 5);
-
-  const leftoverX = frameW + 50;
-  for (let i = 0; i < leftover; i++) {
-    const col = i % cols;
-    const cx = leftoverX + col * gap + gap / 2, cy = 5 + gap / 2;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = theme.choice_palette[1]; ctx.fill();
-    ctx.strokeStyle = theme.text; ctx.lineWidth = 1; ctx.stroke();
-  }
-  ctx.fillStyle = theme.text; ctx.font = "bold 16px 'Segoe UI'"; ctx.textAlign = "center";
-  ctx.fillText(String(leftover), leftoverX + (Math.max(1, leftover) * gap) / 2, frameH + 26);
+  drawBox(leftBoxX, left);
+  drawBox(rightBoxX, right);
   return c;
 }
 
