@@ -399,8 +399,10 @@ button.btn-choice { padding: 16px; font-size: 16px; }
   min-height: 26px;
   transition: background 0.15s, color 0.15s, transform 0.15s;
 }
-.addtable-corner { background: transparent; }
-.addtable-header { background: var(--grad2); color: white; }
+.addtable-corner { background: transparent; font-size: 15px; }
+.addtable-header { color: white; }
+.addtable-header-col { background: var(--grad2); }
+.addtable-header-row { background: var(--grad1); }
 .addtable-header.addtable-highlight { background: #FFC107; color: #3E2723; transform: scale(1.1); }
 .addtable-data { background: white; border: 1px solid #e1e4e9; color: var(--text); }
 .addtable-data-tappable { cursor: pointer; }
