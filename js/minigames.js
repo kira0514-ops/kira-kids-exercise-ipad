@@ -86,10 +86,39 @@ function makeTenProblem() {
   return { bigger, smaller, needed, leftover: smaller - needed, sum: bigger + smaller };
 }
 
+// Builds the branch-and-two-boxes tree as real (clickable) DOM elements rather than a
+// canvas, so each box can be tapped to open a 1-10 number picker instead of typing.
+function buildMakeTenTree() {
+  const boxSize = 70, gap = 50;
+  const width = boxSize * 2 + gap;
+  const wrap = el("div", { class: "maketen-tree", style: `width:${width}px; height:130px;` });
+
+  const svgNs = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNs, "svg");
+  svg.setAttribute("width", String(width));
+  svg.setAttribute("height", "60");
+  svg.setAttribute("class", "maketen-branch-svg");
+  const apexX = width / 2;
+  for (const targetX of [boxSize / 2, width - boxSize / 2]) {
+    const line = document.createElementNS(svgNs, "line");
+    line.setAttribute("x1", String(apexX)); line.setAttribute("y1", "4");
+    line.setAttribute("x2", String(targetX)); line.setAttribute("y2", "58");
+    line.setAttribute("stroke", "currentColor"); line.setAttribute("stroke-width", "2.5");
+    svg.appendChild(line);
+  }
+  wrap.appendChild(svg);
+
+  const leftBox = el("button", { class: "maketen-box", style: "left:0;", type: "button" });
+  const rightBox = el("button", { class: "maketen-box", style: `left:${boxSize + gap}px;`, type: "button" });
+  wrap.appendChild(leftBox);
+  wrap.appendChild(rightBox);
+
+  return { wrap, leftBox, rightBox };
+}
+
 function showMakeTenGame() {
   applyThemeVars();
   clearRoot();
-  const t = theme();
 
   root.appendChild(headerBanner("🔟 Make 10 to Add"));
 
@@ -104,7 +133,7 @@ function showMakeTenGame() {
   root.appendChild(card);
 
   let score = 0;
-  let p, illusWrap;
+  let p;
 
   function stepRow(labelText) {
     const row = el("div", { class: "count-row maketen-step" });
@@ -118,40 +147,35 @@ function showMakeTenGame() {
     return { row, input, checkBtn, feedback };
   }
 
-  function lockStep(step, resultText) {
-    step.input.disabled = true;
-    step.checkBtn.disabled = true;
-    step.feedback.textContent = "✅ " + resultText;
-    step.feedback.className = "maketen-step-feedback maketen-step-correct";
-  }
-
-  function wrongFlash(step) {
-    step.feedback.textContent = "Not quite, try again!";
-    step.feedback.className = "maketen-step-feedback maketen-step-wrong";
-    step.input.value = "";
-    step.input.focus();
-  }
-
   function nextProblem() {
     p = makeTenProblem();
     card.innerHTML = "";
 
     card.appendChild(el("div", { class: "prompt maketen-equation", text: `${p.bigger} + ${p.smaller} = ?` }));
 
-    illusWrap = el("div", { class: "illustration-wrap" });
-    illusWrap.appendChild(drawMakeTen({ left: null, right: null }, t));
-    card.appendChild(illusWrap);
-
     card.appendChild(el("div", { class: "step-text maketen-intro", text:
-      `Work it out one step at a time. ${p.bigger} is close to 10 -- start there.` }));
+      `Tap a box and pick a number. Split ${p.smaller} into the piece that makes ${p.bigger} a ten, and what's left over.` }));
 
-    const step1 = stepRow(`Step 1: How many more does ${p.bigger} need to make 10?`);
-    const step2 = stepRow(`Step 2: ${p.smaller} splits into ${p.needed} + what's left over?`);
-    const step3 = stepRow(`Step 3: 10 + the leftover = ?`);
-    step2.row.classList.add("maketen-hidden");
+    const { wrap: treeWrap, leftBox, rightBox } = buildMakeTenTree();
+    const treeOuter = el("div", { class: "illustration-wrap" });
+    treeOuter.appendChild(treeWrap);
+    card.appendChild(treeOuter);
+
+    const pickerWrap = el("div", { class: "maketen-picker maketen-hidden" });
+    const pickerLabel = el("div", { class: "maketen-picker-label" });
+    const pickerGrid = el("div", { class: "maketen-picker-grid" });
+    const pickerBtns = [];
+    for (let n = 1; n <= 10; n++) {
+      const pbtn = button(String(n), () => handlePick(n), "chip");
+      pickerGrid.appendChild(pbtn);
+      pickerBtns.push(pbtn);
+    }
+    pickerWrap.appendChild(pickerLabel);
+    pickerWrap.appendChild(pickerGrid);
+    card.appendChild(pickerWrap);
+
+    const step3 = stepRow(`Once both boxes are right: 10 + the leftover = ?`);
     step3.row.classList.add("maketen-hidden");
-    card.appendChild(step1.row);
-    card.appendChild(step2.row);
     card.appendChild(step3.row);
 
     const doneMsg = el("div", { class: "score-msg maketen-done" });
@@ -160,49 +184,58 @@ function showMakeTenGame() {
     nextBtn.classList.add("maketen-hidden");
     card.appendChild(nextBtn);
 
-    function checkStep1() {
-      const val = parseInt(step1.input.value, 10);
-      if (val === p.needed) {
-        lockStep(step1, `${p.bigger} + ${p.needed} = 10`);
-        illusWrap.innerHTML = "";
-        illusWrap.appendChild(drawMakeTen({ left: p.needed, right: null }, t));
-        step2.row.classList.remove("maketen-hidden");
-        step2.input.focus();
+    let activeSide = null; // "left" | "right" | null
+
+    function openPicker(side) {
+      activeSide = side;
+      pickerLabel.textContent = side === "left"
+        ? `How many more does ${p.bigger} need to make 10?`
+        : `${p.smaller} − ${p.needed} = what's left over?`;
+      pickerWrap.classList.remove("maketen-hidden");
+      pickerWrap.scrollIntoView({ block: "nearest" });
+    }
+
+    leftBox.addEventListener("click", () => { if (!leftBox.classList.contains("maketen-box-correct")) openPicker("left"); });
+    rightBox.addEventListener("click", () => { if (!rightBox.classList.contains("maketen-box-correct")) openPicker("right"); });
+
+    function handlePick(n) {
+      if (!activeSide) return;
+      const box = activeSide === "left" ? leftBox : rightBox;
+      const expected = activeSide === "left" ? p.needed : p.leftover;
+      if (n === expected) {
+        box.textContent = String(n);
+        box.classList.add("maketen-box-correct");
+        pickerWrap.classList.add("maketen-hidden");
+        activeSide = null;
+        if (leftBox.classList.contains("maketen-box-correct") && rightBox.classList.contains("maketen-box-correct")) {
+          step3.row.classList.remove("maketen-hidden");
+          step3.input.focus();
+        }
       } else {
-        wrongFlash(step1);
+        const wrongBtn = pickerBtns[n - 1];
+        wrongBtn.classList.add("choice-wrong");
+        setTimeout(() => wrongBtn.classList.remove("choice-wrong"), 400);
       }
     }
-    function checkStep2() {
-      const val = parseInt(step2.input.value, 10);
-      if (val === p.leftover) {
-        lockStep(step2, `${p.needed} + ${p.leftover} = ${p.smaller}`);
-        illusWrap.innerHTML = "";
-        illusWrap.appendChild(drawMakeTen({ left: p.needed, right: p.leftover }, t));
-        step3.row.classList.remove("maketen-hidden");
-        step3.input.focus();
-      } else {
-        wrongFlash(step2);
-      }
-    }
+
     function checkStep3() {
       const val = parseInt(step3.input.value, 10);
       if (val === p.sum) {
-        lockStep(step3, `10 + ${p.leftover} = ${p.sum}`);
+        step3.input.disabled = true;
+        step3.checkBtn.disabled = true;
+        step3.feedback.textContent = `✅ 10 + ${p.leftover} = ${p.sum}`;
+        step3.feedback.className = "maketen-step-feedback maketen-step-correct";
         doneMsg.textContent = `🎉 ${p.bigger} + ${p.smaller} = ${p.sum}!`;
         nextBtn.classList.remove("maketen-hidden");
       } else {
-        wrongFlash(step3);
+        step3.feedback.textContent = "Not quite, try again!";
+        step3.feedback.className = "maketen-step-feedback maketen-step-wrong";
+        step3.input.value = "";
+        step3.input.focus();
       }
     }
-
-    step1.checkBtn.addEventListener("click", checkStep1);
-    step1.input.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStep1(); });
-    step2.checkBtn.addEventListener("click", checkStep2);
-    step2.input.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStep2(); });
     step3.checkBtn.addEventListener("click", checkStep3);
     step3.input.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStep3(); });
-
-    step1.input.focus();
   }
 
   nextProblem();
