@@ -70,6 +70,7 @@ function showMiniGames() {
 
   const grid = el("div", { class: "lesson-topic-grid" });
   grid.appendChild(button("🔟 Make 10 to Add", showMakeTenGame, "choice"));
+  grid.appendChild(button("➕ Vertical Addition", showVerticalAdditionGame, "choice"));
   for (const opKey of Object.keys(ADDTABLE_OPS)) {
     const op = ADDTABLE_OPS[opKey];
     grid.appendChild(button(`${op.icon} ${op.name} Table`, () => showAdditionTableMenu(opKey), "choice"));
@@ -287,6 +288,146 @@ function showMakeTenGame() {
     nextBtn.classList.add("maketen-hidden");
 
     card.appendChild(buildMakeTenInteractive(p, () => nextBtn.classList.remove("maketen-hidden")));
+    card.appendChild(nextBtn);
+  }
+
+  nextProblem();
+}
+
+// -- Vertical Addition: classic stacked "4 / +5 / __" column addition, answered by tapping
+// or dragging through a vertical 0-9 strip instead of typing on a keyboard. Two-digit sums
+// get a second, smaller box for the tens digit (always 0 or 1 here, since both addends are
+// single digits) in addition to the normal ones-digit box.
+function verticalAdditionProblem() {
+  const a = randInt(0, 9);
+  const b = randInt(0, 9);
+  const sum = a + b;
+  return { a, b, sum, tens: Math.floor(sum / 10), ones: sum % 10 };
+}
+
+// A tap-or-drag digit box: tapping it reveals a vertical strip of 0-9; picking a digit is
+// either a plain tap on one, or a press-and-drag down (or up) through the strip released on
+// the desired number -- either way is just a pointerdown/pointerup pair on the strip.
+function buildDragDigitBox(expected, variant, onCorrect) {
+  const box = el("button", { class: `vadd-box${variant === "small" ? " vadd-box-small" : ""}`, type: "button", text: "?" });
+  const strip = el("div", { class: "vadd-strip vadd-hidden" });
+  const digitEls = [];
+  for (let n = 0; n <= 9; n++) {
+    const d = el("div", { class: "vadd-strip-digit", text: String(n) });
+    strip.appendChild(d);
+    digitEls.push(d);
+  }
+
+  let dragging = false;
+  let highlightedIdx = null;
+  let locked = false;
+
+  function highlight(idx) {
+    highlightedIdx = idx;
+    digitEls.forEach((d, i) => d.classList.toggle("vadd-strip-active", i === idx));
+  }
+
+  function idxFromPoint(x, y) {
+    const target = document.elementFromPoint(x, y);
+    return digitEls.indexOf(target);
+  }
+
+  function closeStrip() {
+    strip.classList.add("vadd-hidden");
+    highlight(null);
+  }
+
+  function selectDigit(n) {
+    if (n === expected) {
+      box.textContent = String(n);
+      box.classList.add("vadd-box-correct");
+      locked = true;
+      closeStrip();
+      onCorrect();
+    } else {
+      box.classList.add("choice-wrong");
+      setTimeout(() => box.classList.remove("choice-wrong"), 400);
+      closeStrip();
+    }
+  }
+
+  box.addEventListener("click", () => { if (!locked) strip.classList.remove("vadd-hidden"); });
+
+  strip.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    strip.setPointerCapture(e.pointerId);
+    const i = idxFromPoint(e.clientX, e.clientY);
+    if (i >= 0) highlight(i);
+  });
+  strip.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const i = idxFromPoint(e.clientX, e.clientY);
+    if (i >= 0) highlight(i);
+  });
+  strip.addEventListener("pointerup", () => {
+    if (!dragging) return;
+    dragging = false;
+    if (highlightedIdx != null) selectDigit(highlightedIdx);
+  });
+  strip.addEventListener("pointercancel", () => { dragging = false; });
+
+  return { box, strip };
+}
+
+function showVerticalAdditionGame() {
+  applyThemeVars();
+  clearRoot();
+
+  root.appendChild(headerBanner("➕ Vertical Addition"));
+
+  const top = el("div", { class: "quiz-top" });
+  const scoreLabel = el("span", { text: "⭐ Solved: 0" });
+  top.appendChild(scoreLabel);
+  top.appendChild(button("◀ Back", showMiniGames, "next"));
+  top.appendChild(button("🏠 Menu", showSetup, "quit"));
+  root.appendChild(top);
+
+  const card = el("div", { class: "card vadd-card" });
+  root.appendChild(card);
+
+  let score = 0;
+
+  function nextProblem() {
+    const p = verticalAdditionProblem();
+    card.innerHTML = "";
+
+    card.appendChild(el("div", { class: "step-text maketen-intro", text: "Tap a box, then tap or drag to a number to fill it in." }));
+
+    const column = el("div", { class: "vadd-column" });
+    column.appendChild(el("div", { class: "vadd-operand", text: String(p.a) }));
+    column.appendChild(el("div", { class: "vadd-operand", text: `+ ${p.b}` }));
+
+    let tensDone = p.tens === 0;
+    let onesDone = false;
+    const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
+    nextBtn.classList.add("maketen-hidden");
+    function checkAllDone() {
+      if (tensDone && onesDone) nextBtn.classList.remove("maketen-hidden");
+    }
+
+    if (p.tens > 0) {
+      const tensRow = el("div", { class: "vadd-tens-row" });
+      const tensBoxUi = buildDragDigitBox(p.tens, "small", () => { tensDone = true; checkAllDone(); });
+      tensRow.appendChild(tensBoxUi.box);
+      column.appendChild(tensRow);
+      card.appendChild(column);
+      card.appendChild(tensBoxUi.strip);
+    } else {
+      card.appendChild(column);
+    }
+
+    column.appendChild(el("div", { class: "vadd-line" }));
+    const onesRow = el("div", { class: "vadd-ones-row" });
+    const onesBoxUi = buildDragDigitBox(p.ones, "normal", () => { onesDone = true; checkAllDone(); });
+    onesRow.appendChild(onesBoxUi.box);
+    column.appendChild(onesRow);
+    card.appendChild(onesBoxUi.strip);
+
     card.appendChild(nextBtn);
   }
 
