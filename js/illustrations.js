@@ -44,6 +44,62 @@ function drawDotsAdd(illus, theme) {
   return c;
 }
 
+function drawMakeTen(illus, theme) {
+  // Ten-frame showing "bigger" filled in, then the "smaller" addend split into the
+  // piece that completes the ten (same color as bigger, dashed border to mark it as
+  // borrowed) and the leftover piece shown separately -- the visual version of the
+  // decompose-to-make-ten worksheet method.
+  const { bigger, smaller } = illus;
+  const needed = 10 - bigger;
+  const leftover = smaller - needed;
+  const r = 14, gap = 34, cols = 5;
+  const frameW = cols * gap + 10, frameH = 2 * gap + 10;
+  const leftoverW = Math.max(1, leftover) * gap + 20;
+  const width = frameW + 50 + leftoverW;
+  const height = frameH + 50;
+  const c = makeCanvas(width, height);
+  const ctx = c.getContext("2d");
+
+  ctx.strokeStyle = theme.text; ctx.lineWidth = 2;
+  ctx.strokeRect(5, 5, frameW, frameH);
+  for (let i = 1; i < cols; i++) {
+    ctx.beginPath(); ctx.moveTo(5 + i * gap, 5); ctx.lineTo(5 + i * gap, 5 + frameH); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(5, 5 + gap); ctx.lineTo(5 + frameW, 5 + gap); ctx.stroke();
+
+  for (let i = 0; i < 10; i++) {
+    const row = Math.floor(i / cols), col = i % cols;
+    const cx = 5 + col * gap + gap / 2, cy = 5 + row * gap + gap / 2;
+    const isBorrowed = i >= bigger;
+    if (i < bigger || isBorrowed) {
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = theme.choice_palette[0]; ctx.fill();
+      ctx.setLineDash(isBorrowed ? [4, 3] : []);
+      ctx.strokeStyle = isBorrowed ? theme.choice_palette[1] : theme.text;
+      ctx.lineWidth = isBorrowed ? 2.5 : 1;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+  ctx.fillStyle = theme.text; ctx.font = "bold 16px 'Segoe UI'"; ctx.textAlign = "center";
+  ctx.fillText("10", 5 + frameW / 2, frameH + 26);
+
+  ctx.font = "bold 22px 'Segoe UI'"; ctx.textBaseline = "middle";
+  ctx.fillText("+", frameW + 25, frameH / 2 + 5);
+
+  const leftoverX = frameW + 50;
+  for (let i = 0; i < leftover; i++) {
+    const col = i % cols;
+    const cx = leftoverX + col * gap + gap / 2, cy = 5 + gap / 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = theme.choice_palette[1]; ctx.fill();
+    ctx.strokeStyle = theme.text; ctx.lineWidth = 1; ctx.stroke();
+  }
+  ctx.fillStyle = theme.text; ctx.font = "bold 16px 'Segoe UI'"; ctx.textAlign = "center";
+  ctx.fillText(String(leftover), leftoverX + (Math.max(1, leftover) * gap) / 2, frameH + 26);
+  return c;
+}
+
 function drawDotsSub(illus, theme) {
   const { a, b } = illus;
   const perRow = 10, gap = 22;
@@ -738,6 +794,7 @@ function drawChart(chart, theme) {
 
 const ILLUSTRATION_DRAWERS = {
   dots_add: drawDotsAdd,
+  make_ten: drawMakeTen,
   dots_sub: drawDotsSub,
   array: drawArray,
   grouping: drawGrouping,

@@ -102,6 +102,20 @@ function additionQ(ageIdx, diffIdx) {
   return result;
 }
 
+function make10AdditionQ(ageIdx, diffIdx) {
+  // "Make 10" strategy: pick an addend close to ten, borrow just enough from the other
+  // addend to complete it, then add whatever's left over -- mirrors the classic
+  // decompose-to-make-ten worksheet method instead of counting on from either number.
+  const biggerPool = diffIdx === 0 ? [8, 9] : [7, 8, 9];
+  const bigger = choice(biggerPool);
+  const neededToTen = 10 - bigger;
+  const smaller = randInt(neededToTen, 9);
+  const answer = bigger + smaller;
+  const prompt = `${bigger} + ${smaller} = ?`;
+  const choices = numericChoices(answer, 0, 20);
+  return { prompt, choices, answer, illustration: { type: "make_ten", bigger, smaller } };
+}
+
 function subtractionQ(ageIdx, diffIdx) {
   const [a, b] = getSubOperands(ageIdx, diffIdx);
   const answer = a - b;
@@ -770,6 +784,7 @@ function equationsQ(ageIdx, diffIdx) {
 
 const MATH_TOPIC_FUNCS = {
   Addition: additionQ,
+  "Make 10 Addition": make10AdditionQ,
   Subtraction: subtractionQ,
   Multiplication: multiplicationQ,
   Division: divisionQ,
