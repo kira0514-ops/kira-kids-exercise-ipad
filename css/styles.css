@@ -464,8 +464,7 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .vadd-column { display: inline-flex; flex-direction: column; align-items: flex-end; margin: 10px auto; }
 .vadd-operand { font-size: 32px; font-weight: bold; min-width: 70px; text-align: right; padding: 2px 6px; }
 .vadd-line { width: 100%; border-top: 3px solid var(--text); margin: 4px 0; }
-.vadd-tens-row { display: flex; justify-content: flex-end; padding-right: 6px; }
-.vadd-ones-row { display: flex; justify-content: flex-end; padding: 4px 6px 0; }
+.vadd-answer-row { display: flex; justify-content: flex-end; align-items: flex-end; gap: 6px; padding: 4px 6px 0; }
 .vadd-box {
   background: white;
   border: 2.5px solid var(--text);
@@ -478,7 +477,7 @@ button.btn-choice { padding: 16px; font-size: 16px; }
   height: 56px;
   font-size: 26px;
 }
-.vadd-box-small { width: 34px; height: 34px; font-size: 16px; border-radius: 8px; margin-bottom: 4px; }
+.vadd-box-small { width: 34px; height: 34px; font-size: 16px; border-radius: 8px; }
 .vadd-box-correct { background: #C8E6C9; border-color: #2E7D32; color: #1B5E20; cursor: default; }
 .vadd-strip {
   display: flex;

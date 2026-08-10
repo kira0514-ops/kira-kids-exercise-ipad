@@ -410,22 +410,23 @@ function showVerticalAdditionGame() {
       if (tensDone && onesDone) nextBtn.classList.remove("maketen-hidden");
     }
 
-    if (p.tens > 0) {
-      const tensRow = el("div", { class: "vadd-tens-row" });
-      const tensBoxUi = buildDragDigitBox(p.tens, "small", () => { tensDone = true; checkAllDone(); });
-      tensRow.appendChild(tensBoxUi.box);
-      column.appendChild(tensRow);
-      card.appendChild(column);
-      card.appendChild(tensBoxUi.strip);
-    } else {
-      card.appendChild(column);
-    }
-
     column.appendChild(el("div", { class: "vadd-line" }));
-    const onesRow = el("div", { class: "vadd-ones-row" });
+
+    // Both digits sit side by side below the line, tens box left of ones box, reading
+    // left-to-right as the answer normally would (e.g. "1" then "0" for 10).
+    const answerRow = el("div", { class: "vadd-answer-row" });
+    card.appendChild(column);
+
+    let tensBoxUi = null;
+    if (p.tens > 0) {
+      tensBoxUi = buildDragDigitBox(p.tens, "small", () => { tensDone = true; checkAllDone(); });
+      answerRow.appendChild(tensBoxUi.box);
+    }
     const onesBoxUi = buildDragDigitBox(p.ones, "normal", () => { onesDone = true; checkAllDone(); });
-    onesRow.appendChild(onesBoxUi.box);
-    column.appendChild(onesRow);
+    answerRow.appendChild(onesBoxUi.box);
+    column.appendChild(answerRow);
+
+    if (tensBoxUi) card.appendChild(tensBoxUi.strip);
     card.appendChild(onesBoxUi.strip);
 
     card.appendChild(nextBtn);
