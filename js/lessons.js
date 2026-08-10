@@ -26,8 +26,12 @@ function generateForSection(subject, topic, spec, learnerAgeIdx, learnerDiffIdx)
   // Practice questions always match the learner's own age/difficulty, not the lesson's
   // hardcoded spec -- otherwise e.g. a Kindergartner reading a Place Value lesson would
   // get Upper Elementary-level practice questions baked into that section.
-  const ageIdx = learnerAgeIdx != null ? learnerAgeIdx : spec.age;
-  const diffIdx = learnerDiffIdx != null ? learnerDiffIdx : spec.diff;
+  let ageIdx = learnerAgeIdx != null ? learnerAgeIdx : spec.age;
+  let diffIdx = learnerDiffIdx != null ? learnerDiffIdx : spec.diff;
+  // Every other call site resolves Extreme through resolveExtreme() before reaching a topic
+  // generator; skipping it here let (Preschool, Extreme) reach generators whose per-age
+  // operand-range tables only go up to Hard, indexing past the end and yielding NaN.
+  [ageIdx, diffIdx] = resolveExtreme(ageIdx, diffIdx);
   const rule = spec.predicate_rule || null;
   const tries = spec.tries || 20;
   const n = spec.n || 2;
