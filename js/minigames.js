@@ -299,10 +299,26 @@ function showMakeTenGame() {
 // get a second, smaller box for the tens digit (always 0 or 1 here, since both addends are
 // single digits) in addition to the normal ones-digit box.
 function verticalAdditionProblem() {
-  const a = randInt(0, 9);
-  const b = randInt(0, 9);
-  const sum = a + b;
-  return { a, b, sum, tens: Math.floor(sum / 10), ones: sum % 10 };
+  const a = randInt(10, 99);
+  const b = randInt(10, 99);
+  // Real column addition, right to left, with carries chained between columns -- not just a
+  // single-digit shortcut. digitsA/digitsB/resultDigits are all ones-first (index 0 = ones,
+  // index 1 = tens, ...). carryIn[i] is what carries INTO column i from column i-1 (0 for
+  // the ones column, since nothing carries into it).
+  const digitsOf = (n) => String(n).split("").reverse().map(Number);
+  const digitsA = digitsOf(a), digitsB = digitsOf(b);
+  const numCols = Math.max(digitsA.length, digitsB.length);
+  const resultDigits = [];
+  const carryIn = [];
+  let carry = 0;
+  for (let i = 0; i < numCols; i++) {
+    carryIn[i] = carry;
+    const colSum = (digitsA[i] || 0) + (digitsB[i] || 0) + carry;
+    resultDigits[i] = colSum % 10;
+    carry = Math.floor(colSum / 10);
+  }
+  if (carry > 0) resultDigits[numCols] = carry; // e.g. 99 + 99 needs a new hundreds digit
+  return { a, b, sum: a + b, digitsA, digitsB, resultDigits, carryIn };
 }
 
 // A tap-or-drag digit box: tapping it reveals a vertical strip of 0-9; picking a digit is
@@ -398,61 +414,77 @@ function showVerticalAdditionGame() {
 
     card.appendChild(el("div", { class: "step-text maketen-intro", text: "Tap a box, then tap or drag to a number to fill it in." }));
 
-    const column = el("div", { class: "vadd-column" });
+    // Real CSS grid, one column per place value (plus a narrow sign column on the left) --
+    // every row (carry, both addends, the line, the answer) shares the exact same column
+    // boundaries, so nothing can drift out of alignment the way ad-hoc padding did.
+    const totalCols = p.resultDigits.length; // may be one more than either addend's digit count (e.g. 99+99 -> 3)
+    const grid = el("div", { class: "vadd-grid" });
+    grid.style.gridTemplateColumns = `24px repeat(${totalCols}, 44px)`;
+    card.appendChild(grid);
 
-    let carryDone = p.tens === 0;
-    let tensDone = p.tens === 0;
-    let onesDone = false;
+    const strips = [];
     const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
     nextBtn.classList.add("maketen-hidden");
-    function checkAllDone() {
-      if (carryDone && tensDone && onesDone) nextBtn.classList.remove("maketen-hidden");
+    let remaining = 0;
+    function markDone() { remaining--; if (remaining <= 0) nextBtn.classList.remove("maketen-hidden"); }
+
+    function cell(row, col, extraClass) {
+      return el("div", { class: `vadd-cell${extraClass ? " " + extraClass : ""}`, style: `grid-row:${row}; grid-column:${col};` });
+    }
+    // Column `col` (1-indexed, 2..totalCols+1, left to right) holds place value `idx`
+    // (0 = ones, 1 = tens, ...) -- the rightmost digit column is always the ones place.
+    function placeIndex(col) { return totalCols - (col - 1); }
+
+    // Row 1: carry-in indicators, shown above every column that actually receives a carry
+    // from the column addition to its right (never above the ones column -- nothing carries
+    // into it -- and never above a column that just IS the final overflow carry).
+    for (let col = 2; col <= totalCols + 1; col++) {
+      const idx = placeIndex(col);
+      const carryVal = p.carryIn[idx];
+      if (carryVal > 0) {
+        remaining++;
+        const ui = buildDragDigitBox(carryVal, "small", markDone);
+        const c = cell(1, col);
+        c.appendChild(ui.box);
+        grid.appendChild(c);
+        strips.push(ui.strip);
+      } else {
+        grid.appendChild(cell(1, col));
+      }
     }
 
-    // A small carry box above the numbers, straddling the tens/ones columns -- the usual
-    // place a kid jots the carried digit down before even starting to add, ahead of writing
-    // out the full answer below the line.
-    let carryBoxUi = null;
-    if (p.tens > 0) {
-      const carryRow = el("div", { class: "vadd-carry-row" });
-      carryBoxUi = buildDragDigitBox(p.tens, "small", () => { carryDone = true; checkAllDone(); });
-      carryRow.appendChild(carryBoxUi.box);
-      column.appendChild(carryRow);
+    // Rows 2 & 3: the two addends, right-aligned into the same place-value columns, with the
+    // "+" living in its own sign column so it never shifts the digits themselves.
+    grid.appendChild(cell(2, 1));
+    const signCell = cell(3, 1, "vadd-sign");
+    signCell.textContent = "+";
+    grid.appendChild(signCell);
+    for (const [row, digits] of [[2, p.digitsA], [3, p.digitsB]]) {
+      for (let col = 2; col <= totalCols + 1; col++) {
+        const idx = placeIndex(col);
+        const c = cell(row, col, "vadd-num");
+        if (idx < digits.length) c.textContent = String(digits[idx]);
+        grid.appendChild(c);
+      }
     }
 
-    // The +/- sign sits in its own fixed-width column to the left of the numbers, not glued
-    // to the digit, so the ones-place digits (and the boxes below) actually line up in a
-    // column instead of shifting around with the sign.
-    function operandRow(sign, value) {
-      const row = el("div", { class: "vadd-operand-row" });
-      row.appendChild(el("span", { class: "vadd-sign", text: sign }));
-      row.appendChild(el("span", { class: "vadd-num", text: String(value) }));
-      return row;
+    // Row 4: the line, spanning every column including the sign column.
+    const line = el("div", { class: "vadd-line", style: `grid-row:4; grid-column:1 / ${totalCols + 2};` });
+    grid.appendChild(line);
+
+    // Row 5: the answer, one box per place value -- always required, even a "0" digit.
+    grid.appendChild(cell(5, 1));
+    for (let col = 2; col <= totalCols + 1; col++) {
+      const idx = placeIndex(col);
+      remaining++;
+      const ui = buildDragDigitBox(p.resultDigits[idx], "normal", markDone);
+      const c = cell(5, col);
+      c.appendChild(ui.box);
+      grid.appendChild(c);
+      strips.push(ui.strip);
     }
-    column.appendChild(operandRow("", p.a));
-    column.appendChild(operandRow("+", p.b));
 
-    card.appendChild(column);
-
-    column.appendChild(el("div", { class: "vadd-line" }));
-
-    // Both digits sit side by side below the line, tens box left of ones box, reading
-    // left-to-right as the answer normally would (e.g. "1" then "0" for 10).
-    const answerRow = el("div", { class: "vadd-answer-row" });
-
-    let tensBoxUi = null;
-    if (p.tens > 0) {
-      tensBoxUi = buildDragDigitBox(p.tens, "normal", () => { tensDone = true; checkAllDone(); });
-      answerRow.appendChild(tensBoxUi.box);
-    }
-    const onesBoxUi = buildDragDigitBox(p.ones, "normal", () => { onesDone = true; checkAllDone(); });
-    answerRow.appendChild(onesBoxUi.box);
-    column.appendChild(answerRow);
-
-    if (carryBoxUi) card.appendChild(carryBoxUi.strip);
-    if (tensBoxUi) card.appendChild(tensBoxUi.strip);
-    card.appendChild(onesBoxUi.strip);
-
+    for (const strip of strips) card.appendChild(strip);
     card.appendChild(nextBtn);
   }
 

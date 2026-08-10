@@ -461,13 +461,13 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .maketen-picker-grid .btn { min-width: 42px; padding: 8px 10px; }
 
 .vadd-card { max-width: 400px; text-align: center; }
-.vadd-column { display: inline-flex; flex-direction: column; align-items: flex-end; margin: 10px auto; }
-.vadd-operand-row { display: flex; align-items: baseline; justify-content: flex-end; }
-.vadd-sign { width: 26px; font-size: 28px; font-weight: bold; text-align: left; }
-.vadd-num { min-width: 56px; font-size: 32px; font-weight: bold; text-align: right; padding-right: 6px; }
-.vadd-line { width: 100%; border-top: 3px solid var(--text); margin: 4px 0; }
-.vadd-carry-row { display: flex; justify-content: flex-end; padding-right: 48px; }
-.vadd-answer-row { display: flex; justify-content: flex-end; align-items: flex-end; gap: 6px; padding: 4px 6px 0; }
+/* grid rows: 1 = carry-in, 2 = addend A, 3 = addend B, 4 = line, 5 = answer.
+   grid columns: 1 = sign, 2..N+1 = place values, most-significant (left) to ones (right). */
+.vadd-grid { display: grid; row-gap: 4px; column-gap: 4px; margin: 10px auto; width: max-content; }
+.vadd-cell { display: flex; align-items: center; justify-content: center; min-height: 30px; }
+.vadd-sign { justify-content: flex-start; font-size: 22px; font-weight: bold; }
+.vadd-num { font-size: 24px; font-weight: bold; }
+.vadd-line { border-top: 3px solid var(--text); align-self: center; width: 100%; }
 .vadd-box {
   background: white;
   border: 2.5px solid var(--text);
@@ -476,11 +476,11 @@ button.btn-choice { padding: 16px; font-size: 16px; }
   font-weight: bold;
   color: var(--text);
   cursor: pointer;
-  width: 56px;
-  height: 56px;
-  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
 }
-.vadd-box-small { width: 34px; height: 34px; font-size: 16px; border-radius: 8px; }
+.vadd-box-small { width: 28px; height: 28px; font-size: 14px; border-radius: 8px; }
 .vadd-box-correct { background: #C8E6C9; border-color: #2E7D32; color: #1B5E20; cursor: default; }
 .vadd-strip {
   display: flex;
