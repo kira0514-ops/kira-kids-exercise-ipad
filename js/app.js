@@ -357,43 +357,55 @@ function showQuestion() {
   readAloudBtn.classList.add("read-aloud-btn");
   card.appendChild(readAloudBtn);
 
-  const visual = drawQVisual(q, t);
-  if (visual) {
-    const wrap = el("div", { class: "illustration-wrap" });
-    wrap.appendChild(visual);
-    card.appendChild(wrap);
-  }
-
-  const requiresScratchpad = q.subject === "Math" &&
-    ((q.diffIdx ?? state.diffIdx) >= 2 || (q.ageIdx ?? state.ageIdx) === 0);
-  if (requiresScratchpad) {
-    card.appendChild(createScratchpad((hasInk) => {
-      buttons.forEach((b) => { b.disabled = !hasInk; });
-    }));
-  }
-  root.appendChild(card);
-
-  const choicesGrid = el("div", { class: "choices-grid" });
-  const choiceStrs = q.choices.map(String);
-  const buttons = [];
-  choiceStrs.forEach((cs, i) => {
-    const btn = button(cs, null, "choice");
-    btn.disabled = requiresScratchpad;
-    btn.addEventListener("click", () => onChoice(cs, btn, buttons, q));
-    buttons.push(btn);
-    choicesGrid.appendChild(btn);
-  });
-  root.appendChild(choicesGrid);
-
   const feedback = el("div", { class: "feedback", id: "quiz-feedback" });
-  root.appendChild(feedback);
-
   const nextRow = el("div", { class: "next-row" });
   const nextBtn = button(state.currentIndex + 1 < state.questions.length ? "Next ▶" : "See Results ▶",
     nextQuestion, "next");
   nextBtn.disabled = true;
   nextBtn.id = "quiz-next-btn";
   nextRow.appendChild(nextBtn);
+
+  if (q.interactive === "make_ten") {
+    // Worked-out decompose-boxes exercise instead of multiple choice -- it can only ever be
+    // "finished" once actually solved correctly, so completion always counts as correct.
+    card.appendChild(buildMakeTenInteractive(q, () => {
+      state.score += 1;
+      feedback.textContent = "Correct! ✅";
+      feedback.className = "feedback feedback-correct";
+      nextBtn.disabled = false;
+    }));
+    root.appendChild(card);
+  } else {
+    const visual = drawQVisual(q, t);
+    if (visual) {
+      const wrap = el("div", { class: "illustration-wrap" });
+      wrap.appendChild(visual);
+      card.appendChild(wrap);
+    }
+
+    const requiresScratchpad = q.subject === "Math" &&
+      ((q.diffIdx ?? state.diffIdx) >= 2 || (q.ageIdx ?? state.ageIdx) === 0);
+    if (requiresScratchpad) {
+      card.appendChild(createScratchpad((hasInk) => {
+        buttons.forEach((b) => { b.disabled = !hasInk; });
+      }));
+    }
+    root.appendChild(card);
+
+    const choicesGrid = el("div", { class: "choices-grid" });
+    const choiceStrs = q.choices.map(String);
+    const buttons = [];
+    choiceStrs.forEach((cs, i) => {
+      const btn = button(cs, null, "choice");
+      btn.disabled = requiresScratchpad;
+      btn.addEventListener("click", () => onChoice(cs, btn, buttons, q));
+      buttons.push(btn);
+      choicesGrid.appendChild(btn);
+    });
+    root.appendChild(choicesGrid);
+  }
+
+  root.appendChild(feedback);
   root.appendChild(nextRow);
 }
 

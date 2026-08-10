@@ -123,6 +123,137 @@ function buildMakeTenTree() {
   return { wrap, leftBox, rightBox };
 }
 
+// Builds one interactive Make-10 exercise (choose-the-number-to-split, decompose boxes,
+// scratchpad, final sum) for a single problem `p` ({bigger, smaller, needed, leftover, sum,
+// first, second}). Calls onComplete() once fully solved. Shared by the standalone Mini Game
+// loop (showMakeTenGame) and by quiz/curriculum questions (app.js's showQuestion), since a
+// "Make 10 Addition" question needs this same worked-out UI instead of multiple choice.
+function buildMakeTenInteractive(p, onComplete) {
+  const wrap = el("div", {});
+
+  // The kid identifies which addend to decompose themselves first -- reminded, if they get
+  // it wrong, that the one already close to 10 stays whole and the other one splits.
+  const chooseWrap = el("div", { class: "maketen-choose" });
+  chooseWrap.appendChild(el("div", { class: "step-text maketen-intro", text: "Which number should we split to make a ten?" }));
+  const chooseRow = el("div", { class: "chip-row maketen-choose-row" });
+  const chooseFeedback = el("div", { class: "maketen-step-feedback" });
+  [p.first, p.second].forEach((val) => {
+    const cbtn = button(String(val), () => handleChoose(val), "chip");
+    chooseRow.appendChild(cbtn);
+  });
+  chooseWrap.appendChild(chooseRow);
+  chooseWrap.appendChild(chooseFeedback);
+  wrap.appendChild(chooseWrap);
+
+  const restWrap = el("div", { class: "maketen-hidden" });
+  wrap.appendChild(restWrap);
+
+  restWrap.appendChild(el("div", { class: "step-text maketen-intro", text:
+    `Right! ${p.bigger} stays close to 10, so we split ${p.smaller}. Tap a box and pick a number.` }));
+
+  const { wrap: treeWrap, leftBox, rightBox } = buildMakeTenTree();
+  const treeOuter = el("div", { class: "illustration-wrap" });
+  treeOuter.appendChild(treeWrap);
+  restWrap.appendChild(treeOuter);
+
+  const pickerWrap = el("div", { class: "maketen-picker maketen-hidden" });
+  const pickerLabel = el("div", { class: "maketen-picker-label" });
+  const pickerGrid = el("div", { class: "maketen-picker-grid" });
+  const pickerBtns = [];
+  for (let n = 1; n <= 10; n++) {
+    const pbtn = button(String(n), () => handlePick(n), "chip");
+    pickerGrid.appendChild(pbtn);
+    pickerBtns.push(pbtn);
+  }
+  pickerWrap.appendChild(pickerLabel);
+  pickerWrap.appendChild(pickerGrid);
+  restWrap.appendChild(pickerWrap);
+
+  const scratchpadSlot = el("div", {});
+  restWrap.appendChild(scratchpadSlot);
+
+  const step3Row = el("div", { class: "count-row maketen-step maketen-hidden" });
+  step3Row.appendChild(el("span", { class: "maketen-step-label", text: "Once both boxes are right: 10 + the leftover = ?" }));
+  const step3Input = el("input", { type: "number", class: "count-input maketen-input" });
+  const step3CheckBtn = button("✅ Check", null, "next");
+  const step3Feedback = el("span", { class: "maketen-step-feedback" });
+  step3Row.appendChild(step3Input);
+  step3Row.appendChild(step3CheckBtn);
+  step3Row.appendChild(step3Feedback);
+  restWrap.appendChild(step3Row);
+
+  const doneMsg = el("div", { class: "score-msg maketen-done" });
+  restWrap.appendChild(doneMsg);
+
+  function handleChoose(val) {
+    if (val === p.smaller) {
+      chooseWrap.classList.add("maketen-hidden");
+      restWrap.classList.remove("maketen-hidden");
+      // Built only once restWrap is actually visible -- creating it while still hidden
+      // (display:none) measures its canvas at 0x0 and leaves it permanently unusable.
+      scratchpadSlot.appendChild(createScratchpad(() => {}));
+    } else {
+      chooseFeedback.textContent = `Not quite -- ${p.bigger} is already close to 10, so keep it whole and split ${p.smaller} instead.`;
+      chooseFeedback.className = "maketen-step-feedback maketen-step-wrong";
+    }
+  }
+
+  let activeSide = null; // "left" | "right" | null
+
+  function openPicker(side) {
+    activeSide = side;
+    pickerLabel.textContent = side === "left"
+      ? `How many more does ${p.bigger} need to make 10?`
+      : `${p.smaller} − ${p.needed} = what's left over?`;
+    pickerWrap.classList.remove("maketen-hidden");
+    pickerWrap.scrollIntoView({ block: "nearest" });
+  }
+
+  leftBox.addEventListener("click", () => { if (!leftBox.classList.contains("maketen-box-correct")) openPicker("left"); });
+  rightBox.addEventListener("click", () => { if (!rightBox.classList.contains("maketen-box-correct")) openPicker("right"); });
+
+  function handlePick(n) {
+    if (!activeSide) return;
+    const box = activeSide === "left" ? leftBox : rightBox;
+    const expected = activeSide === "left" ? p.needed : p.leftover;
+    if (n === expected) {
+      box.textContent = String(n);
+      box.classList.add("maketen-box-correct");
+      pickerWrap.classList.add("maketen-hidden");
+      activeSide = null;
+      if (leftBox.classList.contains("maketen-box-correct") && rightBox.classList.contains("maketen-box-correct")) {
+        step3Row.classList.remove("maketen-hidden");
+        step3Input.focus();
+      }
+    } else {
+      const wrongBtn = pickerBtns[n - 1];
+      wrongBtn.classList.add("choice-wrong");
+      setTimeout(() => wrongBtn.classList.remove("choice-wrong"), 400);
+    }
+  }
+
+  function checkStep3() {
+    const val = parseInt(step3Input.value, 10);
+    if (val === p.sum) {
+      step3Input.disabled = true;
+      step3CheckBtn.disabled = true;
+      step3Feedback.textContent = `✅ 10 + ${p.leftover} = ${p.sum}`;
+      step3Feedback.className = "maketen-step-feedback maketen-step-correct";
+      doneMsg.textContent = `🎉 ${p.bigger} + ${p.smaller} = ${p.sum}!`;
+      onComplete();
+    } else {
+      step3Feedback.textContent = "Not quite, try again!";
+      step3Feedback.className = "maketen-step-feedback maketen-step-wrong";
+      step3Input.value = "";
+      step3Input.focus();
+    }
+  }
+  step3CheckBtn.addEventListener("click", checkStep3);
+  step3Input.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStep3(); });
+
+  return wrap;
+}
+
 function showMakeTenGame() {
   applyThemeVars();
   clearRoot();
@@ -140,142 +271,17 @@ function showMakeTenGame() {
   root.appendChild(card);
 
   let score = 0;
-  let p;
-
-  function stepRow(labelText) {
-    const row = el("div", { class: "count-row maketen-step" });
-    row.appendChild(el("span", { class: "maketen-step-label", text: labelText }));
-    const input = el("input", { type: "number", class: "count-input maketen-input" });
-    const checkBtn = button("✅ Check", null, "next");
-    const feedback = el("span", { class: "maketen-step-feedback" });
-    row.appendChild(input);
-    row.appendChild(checkBtn);
-    row.appendChild(feedback);
-    return { row, input, checkBtn, feedback };
-  }
 
   function nextProblem() {
-    p = makeTenProblem();
+    const p = makeTenProblem();
     card.innerHTML = "";
-
     card.appendChild(el("div", { class: "prompt maketen-equation", text: `${p.first} + ${p.second} = ?` }));
 
-    // The kid identifies which addend to decompose themselves first -- reminded, if they
-    // get it wrong, that the one already close to 10 stays whole and the other one splits.
-    const chooseWrap = el("div", { class: "maketen-choose" });
-    chooseWrap.appendChild(el("div", { class: "step-text maketen-intro", text: "Which number should we split to make a ten?" }));
-    const chooseRow = el("div", { class: "chip-row maketen-choose-row" });
-    const chooseFeedback = el("div", { class: "maketen-step-feedback" });
-    [p.first, p.second].forEach((val) => {
-      const cbtn = button(String(val), () => handleChoose(val), "chip");
-      chooseRow.appendChild(cbtn);
-    });
-    chooseWrap.appendChild(chooseRow);
-    chooseWrap.appendChild(chooseFeedback);
-    card.appendChild(chooseWrap);
-
-    const restWrap = el("div", { class: "maketen-hidden" });
-    card.appendChild(restWrap);
-
-    restWrap.appendChild(el("div", { class: "step-text maketen-intro", text:
-      `Right! ${p.bigger} stays close to 10, so we split ${p.smaller}. Tap a box and pick a number.` }));
-
-    const { wrap: treeWrap, leftBox, rightBox } = buildMakeTenTree();
-    const treeOuter = el("div", { class: "illustration-wrap" });
-    treeOuter.appendChild(treeWrap);
-    restWrap.appendChild(treeOuter);
-
-    const pickerWrap = el("div", { class: "maketen-picker maketen-hidden" });
-    const pickerLabel = el("div", { class: "maketen-picker-label" });
-    const pickerGrid = el("div", { class: "maketen-picker-grid" });
-    const pickerBtns = [];
-    for (let n = 1; n <= 10; n++) {
-      const pbtn = button(String(n), () => handlePick(n), "chip");
-      pickerGrid.appendChild(pbtn);
-      pickerBtns.push(pbtn);
-    }
-    pickerWrap.appendChild(pickerLabel);
-    pickerWrap.appendChild(pickerGrid);
-    restWrap.appendChild(pickerWrap);
-
-    const scratchpadSlot = el("div", {});
-    restWrap.appendChild(scratchpadSlot);
-
-    const step3 = stepRow(`Once both boxes are right: 10 + the leftover = ?`);
-    step3.row.classList.add("maketen-hidden");
-    restWrap.appendChild(step3.row);
-
-    const doneMsg = el("div", { class: "score-msg maketen-done" });
-    restWrap.appendChild(doneMsg);
     const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
     nextBtn.classList.add("maketen-hidden");
-    restWrap.appendChild(nextBtn);
 
-    function handleChoose(val) {
-      if (val === p.smaller) {
-        chooseWrap.classList.add("maketen-hidden");
-        restWrap.classList.remove("maketen-hidden");
-        // Built only once restWrap is actually visible -- creating it while still hidden
-        // (display:none) measures its canvas at 0x0 and leaves it permanently unusable.
-        scratchpadSlot.appendChild(createScratchpad(() => {}));
-      } else {
-        chooseFeedback.textContent = `Not quite -- ${p.bigger} is already close to 10, so keep it whole and split ${p.smaller} instead.`;
-        chooseFeedback.className = "maketen-step-feedback maketen-step-wrong";
-      }
-    }
-
-    let activeSide = null; // "left" | "right" | null
-
-    function openPicker(side) {
-      activeSide = side;
-      pickerLabel.textContent = side === "left"
-        ? `How many more does ${p.bigger} need to make 10?`
-        : `${p.smaller} − ${p.needed} = what's left over?`;
-      pickerWrap.classList.remove("maketen-hidden");
-      pickerWrap.scrollIntoView({ block: "nearest" });
-    }
-
-    leftBox.addEventListener("click", () => { if (!leftBox.classList.contains("maketen-box-correct")) openPicker("left"); });
-    rightBox.addEventListener("click", () => { if (!rightBox.classList.contains("maketen-box-correct")) openPicker("right"); });
-
-    function handlePick(n) {
-      if (!activeSide) return;
-      const box = activeSide === "left" ? leftBox : rightBox;
-      const expected = activeSide === "left" ? p.needed : p.leftover;
-      if (n === expected) {
-        box.textContent = String(n);
-        box.classList.add("maketen-box-correct");
-        pickerWrap.classList.add("maketen-hidden");
-        activeSide = null;
-        if (leftBox.classList.contains("maketen-box-correct") && rightBox.classList.contains("maketen-box-correct")) {
-          step3.row.classList.remove("maketen-hidden");
-          step3.input.focus();
-        }
-      } else {
-        const wrongBtn = pickerBtns[n - 1];
-        wrongBtn.classList.add("choice-wrong");
-        setTimeout(() => wrongBtn.classList.remove("choice-wrong"), 400);
-      }
-    }
-
-    function checkStep3() {
-      const val = parseInt(step3.input.value, 10);
-      if (val === p.sum) {
-        step3.input.disabled = true;
-        step3.checkBtn.disabled = true;
-        step3.feedback.textContent = `✅ 10 + ${p.leftover} = ${p.sum}`;
-        step3.feedback.className = "maketen-step-feedback maketen-step-correct";
-        doneMsg.textContent = `🎉 ${p.bigger} + ${p.smaller} = ${p.sum}!`;
-        nextBtn.classList.remove("maketen-hidden");
-      } else {
-        step3.feedback.textContent = "Not quite, try again!";
-        step3.feedback.className = "maketen-step-feedback maketen-step-wrong";
-        step3.input.value = "";
-        step3.input.focus();
-      }
-    }
-    step3.checkBtn.addEventListener("click", checkStep3);
-    step3.input.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStep3(); });
+    card.appendChild(buildMakeTenInteractive(p, () => nextBtn.classList.remove("maketen-hidden")));
+    card.appendChild(nextBtn);
   }
 
   nextProblem();

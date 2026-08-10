@@ -106,17 +106,27 @@ function make10AdditionQ(ageIdx, diffIdx) {
   // "Make 10" strategy: pick an addend close to ten, borrow just enough from the other
   // addend to complete it, then add whatever's left over -- mirrors the classic
   // decompose-to-make-ten worksheet method instead of counting on from either number.
+  // Renders as the interactive decompose-boxes exercise (see buildMakeTenInteractive in
+  // minigames.js), not multiple choice -- `choices` stays only as a fallback for older
+  // call sites (e.g. lesson "Try it yourself" snippets) that expect it.
   const biggerPool = diffIdx === 0 ? [8, 9] : [7, 8, 9];
   const bigger = choice(biggerPool);
   const neededToTen = 10 - bigger;
-  const smaller = randInt(neededToTen, 9);
-  const answer = bigger + smaller;
+  const smaller = randInt(neededToTen + 1, 9); // +1 so there's always a real leftover (1-10 picker has no "0")
+  const leftover = smaller - neededToTen;
+  const sum = bigger + smaller;
   // Which addend is closer to 10 (and so gets decomposed) shouldn't always be shown second --
   // e.g. "3 + 9" should still be about splitting the 3, same as "9 + 3" would be.
   const anchorFirst = Math.random() < 0.5;
-  const prompt = anchorFirst ? `${bigger} + ${smaller} = ?` : `${smaller} + ${bigger} = ?`;
-  const choices = numericChoices(answer, 0, 20);
-  return { prompt, choices, answer, illustration: { type: "make_ten", bigger, smaller } };
+  const first = anchorFirst ? bigger : smaller;
+  const second = anchorFirst ? smaller : bigger;
+  const prompt = `${first} + ${second} = ?`;
+  const choices = numericChoices(sum, 0, 20);
+  return {
+    prompt, choices, answer: sum,
+    illustration: { type: "make_ten", bigger, smaller },
+    interactive: "make_ten", bigger, smaller, needed: neededToTen, leftover, sum, first, second,
+  };
 }
 
 function subtractionQ(ageIdx, diffIdx) {
