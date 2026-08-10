@@ -419,7 +419,7 @@ function showVerticalAdditionGame() {
 
     let tensBoxUi = null;
     if (p.tens > 0) {
-      tensBoxUi = buildDragDigitBox(p.tens, "small", () => { tensDone = true; checkAllDone(); });
+      tensBoxUi = buildDragDigitBox(p.tens, "normal", () => { tensDone = true; checkAllDone(); });
       answerRow.appendChild(tensBoxUi.box);
     }
     const onesBoxUi = buildDragDigitBox(p.ones, "normal", () => { onesDone = true; checkAllDone(); });
