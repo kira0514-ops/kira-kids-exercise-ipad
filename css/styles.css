@@ -401,8 +401,12 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 }
 .addtable-corner { background: transparent; font-size: 15px; }
 .addtable-header { color: white; }
-.addtable-header-col { background: var(--grad2); }
-.addtable-header-row { background: var(--grad1); }
+/* Fixed colors (not the theme's --grad1/--grad2) so the two axes stay consistently
+   blue/purple regardless of which theme (Rainbow/Matchbox Cars/Minecraft) is selected --
+   some themes' grad colors are much harder to tell apart at a glance (e.g. Matchbox Cars'
+   red/yellow) than a dedicated blue/purple pair. */
+.addtable-header-col { background: #29B6F6; }
+.addtable-header-row { background: #7C4DFF; }
 .addtable-header.addtable-highlight { background: #FFC107; color: #3E2723; transform: scale(1.1); }
 .addtable-data { background: white; border: 1px solid #e1e4e9; color: var(--text); }
 .addtable-data-tappable { cursor: pointer; }
