@@ -143,10 +143,23 @@ function showDailyCurriculum() {
 
   const day = DAILY.currentDay;
   if (day > 365) {
+    const ageIcons = ["🧸", "🎒", "🎓"];
+    const nextAgeIdx = DAILY.ageIdx + 1;
+    const hasNextLevel = nextAgeIdx < APP_DATA.AGE_GROUPS.length;
     cardInner.appendChild(el("div", { class: "lesson-section-title", text: "🎉 Curriculum Complete!" }));
-    cardInner.appendChild(el("div", { class: "step-text", text:
-      "You finished all 365 days for this age track. Pick another age track above, or keep " +
-      "practicing with the regular quiz modes from the Menu." }));
+    if (hasNextLevel) {
+      const nextLabel = APP_DATA.AGE_GROUPS[nextAgeIdx];
+      cardInner.appendChild(el("div", { class: "step-text", text:
+        `${ageIcons[DAILY.ageIdx]} You finished all 365 days of the ${APP_DATA.AGE_GROUPS[DAILY.ageIdx]} track! ` +
+        `A year has passed and they're ready for more of a challenge — advance to the next track ` +
+        `whenever they turn the corresponding age.` }));
+      cardInner.appendChild(button(`⬆️ Advance to ${ageIcons[nextAgeIdx]} ${nextLabel}`,
+        () => { DAILY.setAge(nextAgeIdx); showDailyCurriculum(); }, "start"));
+    } else {
+      cardInner.appendChild(el("div", { class: "step-text", text:
+        "🏆 You finished all 365 days of every age track — the whole curriculum! Keep practicing with " +
+        "the regular quiz modes from the Menu, or revisit any day using Jump to day once you restart a track." }));
+    }
     cardBorder.appendChild(cardInner);
     root.appendChild(cardBorder);
     return;
