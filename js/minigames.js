@@ -399,8 +399,17 @@ function showVerticalAdditionGame() {
     card.appendChild(el("div", { class: "step-text maketen-intro", text: "Tap a box, then tap or drag to a number to fill it in." }));
 
     const column = el("div", { class: "vadd-column" });
-    column.appendChild(el("div", { class: "vadd-operand", text: String(p.a) }));
-    column.appendChild(el("div", { class: "vadd-operand", text: `+ ${p.b}` }));
+    // The +/- sign sits in its own fixed-width column to the left of the numbers, not glued
+    // to the digit, so the ones-place digits (and the boxes below) actually line up in a
+    // column instead of shifting around with the sign.
+    function operandRow(sign, value) {
+      const row = el("div", { class: "vadd-operand-row" });
+      row.appendChild(el("span", { class: "vadd-sign", text: sign }));
+      row.appendChild(el("span", { class: "vadd-num", text: String(value) }));
+      return row;
+    }
+    column.appendChild(operandRow("", p.a));
+    column.appendChild(operandRow("+", p.b));
 
     let carryDone = p.tens === 0;
     let tensDone = p.tens === 0;
