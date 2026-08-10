@@ -198,7 +198,8 @@ function showMakeTenGame() {
     pickerWrap.appendChild(pickerGrid);
     restWrap.appendChild(pickerWrap);
 
-    restWrap.appendChild(createScratchpad(() => {}));
+    const scratchpadSlot = el("div", {});
+    restWrap.appendChild(scratchpadSlot);
 
     const step3 = stepRow(`Once both boxes are right: 10 + the leftover = ?`);
     step3.row.classList.add("maketen-hidden");
@@ -214,6 +215,9 @@ function showMakeTenGame() {
       if (val === p.smaller) {
         chooseWrap.classList.add("maketen-hidden");
         restWrap.classList.remove("maketen-hidden");
+        // Built only once restWrap is actually visible -- creating it while still hidden
+        // (display:none) measures its canvas at 0x0 and leaves it permanently unusable.
+        scratchpadSlot.appendChild(createScratchpad(() => {}));
       } else {
         chooseFeedback.textContent = `Not quite -- ${p.bigger} is already close to 10, so keep it whole and split ${p.smaller} instead.`;
         chooseFeedback.className = "maketen-step-feedback maketen-step-wrong";
