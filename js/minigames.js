@@ -174,6 +174,8 @@ function showMakeTenGame() {
     pickerWrap.appendChild(pickerGrid);
     card.appendChild(pickerWrap);
 
+    card.appendChild(createScratchpad(() => {}));
+
     const step3 = stepRow(`Once both boxes are right: 10 + the leftover = ?`);
     step3.row.classList.add("maketen-hidden");
     card.appendChild(step3.row);
