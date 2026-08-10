@@ -280,9 +280,11 @@ function showSetup() {
   right.appendChild(button("📆 365-Day Curriculum", showDailyCurriculum, "next"));
   right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("📇 Phonics Flashcards", startPhonicsFlashcards, "next"));
+  right.appendChild(el("div", { style: "height:10px" }));
+  right.appendChild(button("🎮 Mini Math Games", showMiniGames, "next"));
   const note = el("p", { class: "note",
     text: "Every feature is fully working: Math, Reading, Logic, Lessons, the 365-Day " +
-      "Curriculum, and Phonics Flashcards (word difficulty matches the age group above)." });
+      "Curriculum, Phonics Flashcards, and Mini Math Games (word difficulty matches the age group above)." });
   right.appendChild(note);
 
   layout.appendChild(left);
