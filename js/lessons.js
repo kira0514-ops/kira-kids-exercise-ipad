@@ -54,6 +54,14 @@ function renderPracticeQuestion(parent, q) {
   const t = theme();
   const box = el("div", { class: "practice-box" });
   box.appendChild(el("div", { class: "practice-prompt", text: String(q.prompt) }));
+  if (q.speak) {
+    // Some practice questions (Spell the Word, Sentence Builder) rely on hearing the answer
+    // rather than reading it in the prompt -- without this, they'd be unsolvable here since
+    // this fallback view has no other audio/interactive path to reveal the target.
+    const speakBtn = button("🔊 Read Aloud", () => speak(String(q.speak)), "next");
+    speakBtn.classList.add("read-aloud-btn");
+    box.appendChild(speakBtn);
+  }
   const visual = drawQVisual(q, t);
   if (visual) {
     const wrap = el("div", { class: "illustration-wrap" });

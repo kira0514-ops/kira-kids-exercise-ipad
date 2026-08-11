@@ -553,6 +553,38 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .spell-tile:active { transform: translateY(1px); }
 .spell-tile-used { visibility: hidden; }
 
+.sentence-wrap { text-align: center; margin: 10px auto; max-width: 560px; }
+.sentence-answer {
+  min-height: 54px;
+  background: white;
+  border: 2.5px dashed var(--grad2);
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.sentence-placeholder { color: #999; font-size: 14px; font-style: italic; }
+.sentence-answer-correct { background: #C8E6C9; border-color: #2E7D32; border-style: solid; }
+.sentence-answer-wrong { background: #FFCDD2; border-color: #C62828; border-style: solid; }
+.sentence-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.sentence-tile {
+  padding: 10px 14px;
+  background: white;
+  border: 2.5px solid var(--text);
+  border-radius: 10px;
+  font-family: var(--font-family);
+  font-weight: bold;
+  font-size: 16px;
+  color: var(--text);
+  cursor: pointer;
+}
+.sentence-tile:active { transform: translateY(1px); }
+.sentence-tile-placed { background: var(--grad1); color: white; border-color: var(--grad1); }
+
 @media (max-width: 700px) {
   .setup-layout { flex-direction: column; }
   .choices-grid { grid-template-columns: 1fr; }

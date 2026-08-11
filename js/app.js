@@ -365,7 +365,8 @@ function showQuestion() {
   nextBtn.id = "quiz-next-btn";
   nextRow.appendChild(nextBtn);
 
-  if (q.interactive === "make_ten" || q.interactive === "vertical_column" || q.interactive === "vertical_subtract" || q.interactive === "spell_word") {
+  const INTERACTIVE_TYPES = ["make_ten", "vertical_column", "vertical_subtract", "spell_word", "sentence_builder"];
+  if (INTERACTIVE_TYPES.includes(q.interactive)) {
     // Worked-out box exercise instead of multiple choice -- it can only ever be "finished"
     // once actually solved correctly, so completion always counts as correct.
     const onSolved = () => {
@@ -377,7 +378,8 @@ function showQuestion() {
     const interactive = q.interactive === "make_ten" ? buildMakeTenInteractive(q, onSolved)
       : q.interactive === "vertical_column" ? buildVerticalColumnInteractive(q, q.sign, onSolved)
       : q.interactive === "vertical_subtract" ? buildVerticalSubtractionInteractive(q, onSolved)
-      : buildSpellWordInteractive(q.word, q.emoji, onSolved);
+      : q.interactive === "spell_word" ? buildSpellWordInteractive(q.word, q.emoji, onSolved)
+      : buildSentenceBuilderInteractive(q.words, onSolved);
     card.appendChild(interactive);
     root.appendChild(card);
   } else {

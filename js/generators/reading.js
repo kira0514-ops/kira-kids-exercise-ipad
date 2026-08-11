@@ -179,6 +179,24 @@ function spellWordQ(ageIdx, diffIdx) {
   };
 }
 
+// Sentence-level counterpart to Spell the Word: hear a whole sentence, then tap its words
+// (shuffled) into the answer area in order. Split into a short/long tier by word count within
+// each age's pool, same pattern readingComprehensionQ uses for its passages.
+function sentenceBuilderQ(ageIdx, diffIdx) {
+  const pool = APP_DATA.SENTENCE_BUILDER_SENTENCES[ageIdx];
+  const byLength = pool.slice().sort((a, b) => a.split(" ").length - b.split(" ").length);
+  const half = Math.floor(byLength.length / 2);
+  const tier = diffIdx >= 2 && half ? byLength.slice(half) : half ? byLength.slice(0, half) : byLength;
+  const poolKey = `sentence_builder_${ageIdx}`;
+  const sentence = SEEN.pickUnseen(poolKey, tier, (s) => s);
+  return {
+    prompt: "🔊 Tap \"Read Aloud\" to hear the sentence, then build it in order!",
+    speak: sentence,
+    choices: makeChoices(sentence, pool), answer: sentence,
+    interactive: "sentence_builder", words: sentence.split(" "), sentence,
+  };
+}
+
 const READING_TOPIC_FUNCS = {
   Phonics: phonicsQ,
   "First Letter": firstLetterQ,
@@ -190,6 +208,7 @@ const READING_TOPIC_FUNCS = {
   Antonyms: antonymQ,
   "Reading Comprehension": readingComprehensionQ,
   "Spell the Word": spellWordQ,
+  "Sentence Builder": sentenceBuilderQ,
 };
 
 // Tap-in-order letter tiles from a shuffled bank into blank boxes to spell `word`. No drag
@@ -255,6 +274,70 @@ function buildSpellWordInteractive(word, emoji, onComplete) {
     return tile;
   });
 
+  return wrap;
+}
+
+// Word-level counterpart to buildSpellWordInteractive: tap shuffled word tiles into an answer
+// area to rebuild a sentence in order. Unlike single-letter spelling, a sentence has enough
+// tiles (5-14 words) that a single wrong tap shouldn't force starting over, so tapping a tile
+// already placed sends it back to the bank instead -- full reset only happens if every tile
+// gets placed and the result still isn't the target sentence. Re-renders both the answer area
+// and the bank from scratch on every change instead of moving DOM nodes by hand, which keeps
+// the (word, position) bookkeeping simple even when a sentence repeats the same word twice.
+function buildSentenceBuilderInteractive(words, onComplete) {
+  const wrap = el("div", { class: "sentence-wrap" });
+  const answerArea = el("div", { class: "sentence-answer" });
+  const bankRow = el("div", { class: "sentence-bank" });
+  wrap.appendChild(answerArea);
+  wrap.appendChild(bankRow);
+
+  let shuffled;
+  do { shuffled = shuffle(words.slice()); } while (shuffled.join(" ") === words.join(" ") && new Set(words).size > 1);
+
+  const tiles = shuffled.map((word, id) => ({ word, id }));
+  let placedIds = [];
+  let done = false;
+
+  function makeTileEl(t, placed) {
+    const tile = el("button", { class: `sentence-tile${placed ? " sentence-tile-placed" : ""}`, type: "button", text: t.word });
+    tile.addEventListener("click", () => {
+      if (done) return;
+      placedIds = placed ? placedIds.filter((id) => id !== t.id) : placedIds.concat(t.id);
+      render();
+      if (placedIds.length === tiles.length) checkComplete();
+    });
+    return tile;
+  }
+
+  function render() {
+    answerArea.innerHTML = "";
+    if (!placedIds.length) {
+      answerArea.appendChild(el("span", { class: "sentence-placeholder", text: "Tap the words below, in order..." }));
+    }
+    for (const id of placedIds) answerArea.appendChild(makeTileEl(tiles.find((t) => t.id === id), true));
+    bankRow.innerHTML = "";
+    for (const t of tiles) {
+      if (!placedIds.includes(t.id)) bankRow.appendChild(makeTileEl(t, false));
+    }
+  }
+
+  function checkComplete() {
+    const current = placedIds.map((id) => tiles.find((t) => t.id === id).word).join(" ");
+    if (current === words.join(" ")) {
+      done = true;
+      answerArea.classList.add("sentence-answer-correct");
+      onComplete();
+    } else {
+      answerArea.classList.add("sentence-answer-wrong");
+      setTimeout(() => {
+        answerArea.classList.remove("sentence-answer-wrong");
+        placedIds = [];
+        render();
+      }, 700);
+    }
+  }
+
+  render();
   return wrap;
 }
 
