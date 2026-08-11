@@ -585,6 +585,34 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .sentence-tile:active { transform: translateY(1px); }
 .sentence-tile-placed { background: var(--grad1); color: white; border-color: var(--grad1); }
 
+.numgrid-wrap { text-align: center; margin: 10px auto; }
+.numgrid-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  width: max-content;
+  margin: 10px auto;
+}
+.numgrid-cell {
+  width: 56px;
+  height: 56px;
+  background: white;
+  border: 2.5px solid var(--text);
+  border-radius: 10px;
+  font-family: var(--font-family);
+  font-weight: bold;
+  font-size: 18px;
+  color: var(--text);
+  cursor: pointer;
+}
+.numgrid-cell:active { transform: translateY(1px); }
+.numgrid-cell-correct { background: #C8E6C9; border-color: #2E7D32; color: #1B5E20; cursor: default; }
+.numgrid-cell-wrong { background: #FFCDD2; border-color: #C62828; color: #8B0000; cursor: default; opacity: 0.6; }
+
+@media (max-width: 700px) {
+  .numgrid-cell { width: 46px; height: 46px; font-size: 15px; }
+}
+
 @media (max-width: 700px) {
   .setup-layout { flex-direction: column; }
   .choices-grid { grid-template-columns: 1fr; }

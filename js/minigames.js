@@ -73,6 +73,7 @@ function showMiniGames() {
   grid.appendChild(button("➕ Vertical Addition", showVerticalAdditionGame, "choice"));
   grid.appendChild(button("➖ Vertical Subtraction", showVerticalSubtractionGame, "choice"));
   grid.appendChild(button("✖️ Vertical Multiplication", showVerticalMultiplicationGame, "choice"));
+  grid.appendChild(button("🔍 Answer Hunt", showNumberGridGame, "choice"));
   for (const opKey of Object.keys(ADDTABLE_OPS)) {
     const op = ADDTABLE_OPS[opKey];
     grid.appendChild(button(`${op.icon} ${op.name} Table`, () => showAdditionTableMenu(opKey), "choice"));
@@ -1001,6 +1002,129 @@ function showAddTableSpeedRound(opKey) {
     timerLabel.textContent = `⏱️ ${timeLeft}s`;
     if (timeLeft <= 0) endRound();
   }, 1000);
+
+  nextProblem();
+}
+
+// -- Answer Hunt: solve a formula, then find and tap its answer somewhere in a 5x5 grid of
+// mixed numbers. Reuses math.js's getAddOperands/getSubOperands/getMulOperands/getDivOperands
+// for age/difficulty-scaled operands -- same reasoning as verticalAdditionQ calling into
+// minigames.js: math.js loads before this file, so those functions already exist by the time
+// this ever actually runs (quiz-build time or a button tap), regardless of file load order.
+const NUMBER_GRID_SIZE = 5;
+
+function numberGridFormula(ageIdx, diffIdx) {
+  const opsAvailable = ageIdx === 0 ? ["+", "-"] : ageIdx === 1 ? ["+", "-", "×"] : ["+", "-", "×", "÷"];
+  const op = choice(opsAvailable);
+  let text, answer;
+  if (op === "+") { const [a, b] = getAddOperands(ageIdx, diffIdx); answer = a + b; text = `${a} + ${b}`; }
+  else if (op === "-") { const [a, b] = getSubOperands(ageIdx, diffIdx); answer = a - b; text = `${a} - ${b}`; }
+  else if (op === "×") { const [a, b] = getMulOperands(ageIdx, diffIdx); answer = a * b; text = `${a} × ${b}`; }
+  else { const [dividend, divisor, quotient] = getDivOperands(ageIdx, diffIdx); answer = quotient; text = `${dividend} ÷ ${divisor}`; }
+  return { prompt: `${text} = ?`, speak: `${text.replace("×", "times").replace("÷", "divided by")} equals what?`, answer };
+}
+
+// 24 distinct non-negative distractors plus the answer, scattered around it so the grid reads
+// as genuinely "mixed" (not a tidy ascending sequence) rather than pedagogically-tuned
+// near-misses -- this is a find-it search, not a multiple-choice question.
+function numberGridDistractors(rawAnswer) {
+  const target = NUMBER_GRID_SIZE * NUMBER_GRID_SIZE;
+  // Defensive: a NaN/non-finite answer (e.g. a caller passing an unresolved Preschool+Extreme
+  // combo straight in, skipping resolveExtreme) would otherwise make every candidate below
+  // NaN too, so nums.size could never grow past 1 -- an infinite loop, not just a wrong answer.
+  const answer = Number.isFinite(rawAnswer) ? rawAnswer : 0;
+  const spread = Math.max(6, Math.round(Math.abs(answer) * 0.5) + 4);
+  const nums = new Set([answer]);
+  let tries = 0;
+  while (nums.size < target && tries < 1000) {
+    tries++;
+    const delta = randInt(-spread, spread);
+    if (delta === 0) continue;
+    const cand = answer + delta;
+    if (cand < 0) continue;
+    nums.add(cand);
+  }
+  let widen = spread;
+  tries = 0;
+  while (nums.size < target && tries < 1000) {
+    tries++;
+    widen += 5;
+    nums.add(randInt(0, answer + widen));
+  }
+  // Last-resort fill (only reachable if the above still somehow falls short) guarantees
+  // termination and a full 25-cell grid no matter what.
+  let filler = 0;
+  while (nums.size < target) nums.add(answer + 1000 + filler++);
+  return shuffle(Array.from(nums));
+}
+
+function numberGridProblem(ageIdx, diffIdx) {
+  const f = numberGridFormula(ageIdx, diffIdx);
+  return { ...f, grid: numberGridDistractors(f.answer) };
+}
+
+// Tapping the right cell finishes the exercise (same "only ever finishes once actually
+// solved" rule as every other interactive exercise here); tapping a wrong one disables just
+// that cell so it can't be re-tapped, without ending the attempt -- narrows the search instead
+// of punishing a miss outright.
+function buildNumberGridInteractive(grid, answer, onComplete) {
+  const wrap = el("div", { class: "numgrid-wrap" });
+  const gridEl = el("div", { class: "numgrid-grid" });
+  wrap.appendChild(gridEl);
+  let done = false;
+  grid.forEach((n) => {
+    const cell = el("button", { class: "numgrid-cell", type: "button", text: String(n) });
+    cell.addEventListener("click", () => {
+      if (done || cell.disabled) return;
+      if (n === answer) {
+        done = true;
+        cell.classList.add("numgrid-cell-correct");
+        onComplete();
+      } else {
+        cell.disabled = true;
+        cell.classList.add("numgrid-cell-wrong");
+      }
+    });
+    gridEl.appendChild(cell);
+  });
+  return wrap;
+}
+
+function showNumberGridGame() {
+  applyThemeVars();
+  clearRoot();
+  root.appendChild(headerBanner("🔍 Answer Hunt"));
+
+  const top = el("div", { class: "quiz-top" });
+  const scoreLabel = el("span", { text: "⭐ Solved: 0" });
+  top.appendChild(scoreLabel);
+  top.appendChild(button("◀ Back", showMiniGames, "next"));
+  top.appendChild(button("🏠 Menu", showSetup, "quit"));
+  root.appendChild(top);
+
+  const card = el("div", { class: "card" });
+  root.appendChild(card);
+
+  let score = 0;
+
+  function nextProblem() {
+    // No age/difficulty context here (this is the standalone Mini Game, not the quiz/
+    // curriculum) -- Early Elementary Medium is a reasonable fixed default, same spirit as
+    // verticalAdditionProblem() defaulting to 2-digit operands with no args.
+    const p = numberGridProblem(1, 1);
+    card.innerHTML = "";
+    card.appendChild(el("div", { class: "prompt", text: p.prompt }));
+    const readAloudBtn = button("🔊 Read Aloud", () => speak(p.speak), "next");
+    readAloudBtn.classList.add("read-aloud-btn");
+    card.appendChild(readAloudBtn);
+    card.appendChild(el("div", { class: "step-text maketen-intro", text: "Work out the answer, then tap it in the grid!" }));
+
+    const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
+    nextBtn.classList.add("maketen-hidden");
+
+    card.appendChild(buildNumberGridInteractive(p.grid, p.answer, () => nextBtn.classList.remove("maketen-hidden")));
+    card.appendChild(nextBtn);
+  }
 
   nextProblem();
 }

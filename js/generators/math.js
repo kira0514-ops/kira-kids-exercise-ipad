@@ -200,6 +200,17 @@ function verticalMultiplicationQ(ageIdx, diffIdx) {
   };
 }
 
+// Solve a mixed +/-/x/÷ formula, then find and tap the answer in a 5x5 grid of scattered
+// numbers, instead of picking it from 4 choices. numberGridProblem() (minigames.js) already
+// scales the operation mix and operand ranges by age/difficulty via getAddOperands and friends.
+function numberGridQ(ageIdx, diffIdx) {
+  const p = numberGridProblem(ageIdx, diffIdx);
+  return {
+    prompt: p.prompt, speak: p.speak, choices: numericChoices(p.answer, 0, p.answer + Math.max(10, Math.floor(p.answer / 2)) + 5), answer: p.answer,
+    interactive: "number_grid", grid: p.grid,
+  };
+}
+
 function subtractionQ(ageIdx, diffIdx) {
   const [a, b] = getSubOperands(ageIdx, diffIdx);
   const answer = a - b;
@@ -875,6 +886,7 @@ const MATH_TOPIC_FUNCS = {
   "Vertical Subtraction": verticalSubtractionQ,
   Multiplication: multiplicationQ,
   "Vertical Multiplication": verticalMultiplicationQ,
+  "Answer Hunt": numberGridQ,
   Division: divisionQ,
   "Mixed Operations": mixedOperationsQ,
   "Place Value": placeValueQ,
