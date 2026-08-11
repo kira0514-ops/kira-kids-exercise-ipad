@@ -353,6 +353,7 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 
 .curriculum-intro { text-align: center; max-width: 500px; margin: 10px auto; }
 .curriculum-age-row { justify-content: center; margin-bottom: 10px; }
+.curriculum-diff-row { justify-content: center; margin-bottom: 14px; }
 .curriculum-card { max-width: 500px; margin: 10px auto; text-align: center; }
 .curriculum-day-heading { font-size: 24px; font-weight: bold; color: var(--grad1); padding-top: 10px; }
 .curriculum-jump-row { justify-content: center; margin-top: 4px; font-size: 13px; }

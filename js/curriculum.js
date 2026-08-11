@@ -28,8 +28,12 @@ function getCurriculumPhase(ageIdx, day, trackYear = 1) {
   return [diffIdx, mathAvail, readingAvail, logicAvail, unitLabel];
 }
 
-function dailyCurriculumTopics(ageIdx, day, trackYear = 1) {
-  const [diffIdx, mathAvail, readingAvail, logicAvail, unitLabel] = getCurriculumPhase(ageIdx, day, trackYear);
+function dailyCurriculumTopics(ageIdx, day, trackYear = 1, diffOverride = null) {
+  const [autoDiffIdx, mathAvail, readingAvail, logicAvail, unitLabel] = getCurriculumPhase(ageIdx, day, trackYear);
+  // A parent-chosen difficulty for this age track overrides the calendar-driven ramp -- the
+  // day still determines which topics show up (that's the curriculum's actual sequencing),
+  // only how hard each one is gets swapped out.
+  const diffIdx = diffOverride !== null ? diffOverride : autoDiffIdx;
   function pick(avail, n) {
     if (!avail.length) return [];
     // Cap at half the pool (min 1) so a small topic list (e.g. 2 topics) rotates one
@@ -61,6 +65,7 @@ class DailyCurriculumTracker {
     this.currentDay = 1;
     this.trackYear = 1;
     this.completedDays = new Set();
+    this.diffOverrides = {}; // ageIdx -> diffIdx override; absent means "Auto" (calendar ramp)
     this.load();
   }
 
@@ -83,18 +88,21 @@ class DailyCurriculumTracker {
       this.currentDay = data.current_day ?? 1;
       this.trackYear = data.track_year ?? 1;
       this.completedDays = new Set(data.completed_days || []);
+      this.diffOverrides = data.diff_overrides || {};
     } catch (e) {
       this.ageIdx = 1;
       this.currentDay = 1;
       this.trackYear = 1;
       this.completedDays = new Set();
+      this.diffOverrides = {};
     }
   }
 
   save() {
     try {
       const data = { age_idx: this.ageIdx, current_day: this.currentDay, track_year: this.trackYear,
-        completed_days: Array.from(this.completedDays).sort((a, b) => a - b) };
+        completed_days: Array.from(this.completedDays).sort((a, b) => a - b),
+        diff_overrides: this.diffOverrides };
       localStorage.setItem(this.storageKey(), JSON.stringify(data));
     } catch (e) {
       // a failed save should never crash the app
@@ -107,8 +115,21 @@ class DailyCurriculumTracker {
       this.currentDay = 1;
       this.trackYear = 1;
       this.completedDays = new Set();
+      // diffOverrides is kept -- it's keyed per age track, so switching tracks and back
+      // shouldn't lose a level a parent already dialed in for that track.
       this.save();
     }
+  }
+
+  // diffIdx null clears the override, falling back to the calendar-driven ramp for this track.
+  setDiffOverride(ageIdx, diffIdx) {
+    if (diffIdx === null) delete this.diffOverrides[ageIdx];
+    else this.diffOverrides[ageIdx] = diffIdx;
+    this.save();
+  }
+
+  diffOverrideFor(ageIdx) {
+    return this.diffOverrides[ageIdx] ?? null;
   }
 
   completeToday() {
@@ -157,6 +178,18 @@ function showDailyCurriculum() {
       i === DAILY.ageIdx ? "chip-selected" : "chip"));
   });
   root.appendChild(ageRow);
+
+  root.appendChild(el("p", { class: "note curriculum-intro",
+    text: "Difficulty normally ramps up automatically as the days go by -- pick a fixed level here instead if this track feels too easy (or too hard) for your child right now. This only changes how hard each day's questions are, not which topics show up." }));
+  const diffOverride = DAILY.diffOverrideFor(DAILY.ageIdx);
+  const diffOverrideRow = el("div", { class: "chip-row curriculum-diff-row" });
+  diffOverrideRow.appendChild(button("🔄 Auto", () => { DAILY.setDiffOverride(DAILY.ageIdx, null); showDailyCurriculum(); },
+    diffOverride === null ? "chip-selected" : "chip"));
+  APP_DATA.DIFFICULTIES.forEach((label, i) => {
+    diffOverrideRow.appendChild(button(label, () => { DAILY.setDiffOverride(DAILY.ageIdx, i); showDailyCurriculum(); },
+      diffOverride === i ? "chip-selected" : "chip"));
+  });
+  root.appendChild(diffOverrideRow);
 
   const cardBorder = el("div", { class: "lesson-card-border curriculum-card" });
   const cardInner = el("div", { class: "lesson-card-inner" });
@@ -214,7 +247,8 @@ function showDailyCurriculum() {
   cardInner.appendChild(progressTrack);
   cardInner.appendChild(el("div", { class: "note", text: `${DAILY.completedDays.size} days completed so far` }));
 
-  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] = dailyCurriculumTopics(DAILY.ageIdx, day, DAILY.trackYear);
+  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] =
+    dailyCurriculumTopics(DAILY.ageIdx, day, DAILY.trackYear, DAILY.diffOverrideFor(DAILY.ageIdx));
 
   cardInner.appendChild(el("div", { class: "curriculum-unit-label", text: `📘 ${unitLabel}` }));
 
@@ -247,7 +281,8 @@ function showDailyLesson() {
   const t = theme();
 
   const day = DAILY.currentDay;
-  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] = dailyCurriculumTopics(DAILY.ageIdx, day, DAILY.trackYear);
+  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] =
+    dailyCurriculumTopics(DAILY.ageIdx, day, DAILY.trackYear, DAILY.diffOverrideFor(DAILY.ageIdx));
   let subject, topic;
   if (mathTopics.length) { subject = "Math"; topic = mathTopics[0]; }
   else if (readingTopics.length) { subject = "Reading / Spelling"; topic = readingTopics[0]; }
@@ -277,7 +312,8 @@ function showDailyLesson() {
 function startDailyCurriculum() {
   const ageIdx = DAILY.ageIdx;
   const day = DAILY.currentDay;
-  const [diffIdx, mathTopics, readingTopics, logicTopics] = dailyCurriculumTopics(ageIdx, day, DAILY.trackYear);
+  const [diffIdx, mathTopics, readingTopics, logicTopics] =
+    dailyCurriculumTopics(ageIdx, day, DAILY.trackYear, DAILY.diffOverrideFor(ageIdx));
   const topicSlots = [
     ...mathTopics.map((t) => ["Math", t, mathQuestion]),
     ...readingTopics.map((t) => ["Reading / Spelling", t, readingQuestion]),
