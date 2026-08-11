@@ -322,7 +322,10 @@ function verticalColumnProblem(a, b, colFn) {
     resultDigits[i] = colVal % 10;
     carry = Math.floor(colVal / 10);
   }
-  if (carry > 0) resultDigits[numCols] = carry; // e.g. 99 + 99 needs a new hundreds digit
+  if (carry > 0) {
+    resultDigits[numCols] = carry; // e.g. 99 + 99 needs a new hundreds digit
+    carryIn[numCols] = carry; // carry box straddling the boundary into that new leading digit
+  }
   return { a, b, digitsA, digitsB, resultDigits, carryIn };
 }
 
@@ -443,9 +446,11 @@ function buildVerticalColumnInteractive(p, sign, onComplete) {
 
   // Row 1: carry-in indicators, shown above every column that actually receives a carry
   // from the column addition to its right (never above the ones column -- nothing carries
-  // into it -- and never above a column that just IS the final overflow carry). Each one
-  // straddles the boundary between its column and the one to its right (e.g. between the
-  // tens and ones columns for a carry out of the ones column), not centered on either.
+  // into it). This includes the leading overflow column when the sum reaches a new place
+  // value (e.g. a 2-digit + 2-digit sum of 100+) -- same treatment as any other column, so
+  // there's a small box between the hundreds and tens place too. Each one straddles the
+  // boundary between its column and the one to its right (e.g. between the tens and ones
+  // columns for a carry out of the ones column), not centered on either.
   for (let col = 2; col <= totalCols + 1; col++) {
     const idx = placeIndex(col);
     const carryVal = p.carryIn[idx];
