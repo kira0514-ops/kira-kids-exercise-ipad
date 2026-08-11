@@ -469,8 +469,10 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .vadd-num { font-size: 24px; font-weight: bold; }
 /* Shifts the small carry box right by half its own width (+half the column gap) so it
    straddles the boundary with the column to its right, instead of sitting centered on its
-   own column. */
-.vadd-carry-cell { justify-content: flex-end; margin-right: -16px; overflow: visible; }
+   own column. Needs its own stacking context (position+z-index) since the shift makes it
+   visually overlap the next column's cell, which would otherwise sit on top and steal
+   its clicks. */
+.vadd-carry-cell { justify-content: flex-end; margin-right: -16px; overflow: visible; position: relative; z-index: 2; }
 .vadd-line { border-top: 3px solid var(--text); align-self: center; width: 100%; }
 .vadd-box {
   background: white;
@@ -487,9 +489,10 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .vadd-box-small { width: 28px; height: 28px; font-size: 14px; border-radius: 8px; }
 .vadd-box-correct { background: #C8E6C9; border-color: #2E7D32; color: #1B5E20; cursor: default; }
 .vadd-strip {
-  display: flex;
-  flex-direction: column;
-  width: 70px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  width: 220px;
   margin: 8px auto;
   border: 2px solid var(--grad2);
   border-radius: 10px;
@@ -498,14 +501,16 @@ button.btn-choice { padding: 16px; font-size: 16px; }
   user-select: none;
 }
 .vadd-strip-digit {
-  padding: 10px 0;
+  padding: 14px 0;
   text-align: center;
   font-size: 20px;
   font-weight: bold;
   color: var(--text);
   border-bottom: 1px solid #eee;
+  border-right: 1px solid #eee;
 }
-.vadd-strip-digit:last-child { border-bottom: none; }
+.vadd-strip-digit:nth-child(5n) { border-right: none; }
+.vadd-strip-digit:nth-child(n+6) { border-bottom: none; }
 .vadd-strip-active { background: var(--grad1); color: white; }
 .vadd-hidden { display: none; }
 
