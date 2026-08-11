@@ -141,11 +141,22 @@ function make10AdditionQ(ageIdx, diffIdx) {
 // this one -- these generators only ever run later, at quiz-build time, by which point every
 // script has already loaded. `choices` stays only as a fallback for older call sites (e.g.
 // lesson "Try it yourself" snippets) that expect plain multiple choice.
+// How many digits each operand of a vertical-arithmetic problem gets, scaled by age/difficulty
+// the same way the regular (non-column) generators scale via getAddOperands/getMulOperands --
+// Early Elementary progresses 2 -> 2 -> 3 digits across Easy/Medium/Hard (Extreme bumps up to
+// Upper Elementary via resolveExtreme, so index 3 is never actually read for ageIdx 1), Upper
+// Elementary progresses 2 -> 3 -> 3 -> 4 across Easy/Medium/Hard/Extreme.
+const VCOL_DIGIT_TIERS = { 1: [2, 2, 3], 2: [2, 3, 3, 4] };
+function vColumnDigits(ageIdx, diffIdx) {
+  const tiers = VCOL_DIGIT_TIERS[ageIdx] || VCOL_DIGIT_TIERS[1];
+  return tiers[Math.min(diffIdx, tiers.length - 1)];
+}
+
 function verticalAdditionQ(ageIdx, diffIdx) {
-  const p = verticalAdditionProblem();
+  const p = verticalAdditionProblem(vColumnDigits(ageIdx, diffIdx));
   const answer = p.a + p.b;
   return {
-    prompt: `${p.a} + ${p.b} = ?`, choices: numericChoices(answer, 0, 300), answer,
+    prompt: `${p.a} + ${p.b} = ?`, choices: numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 5), answer,
     interactive: "vertical_column", sign: "+", ...p,
   };
 }
@@ -158,7 +169,7 @@ function verticalAdditionQ(ageIdx, diffIdx) {
 // would see ageIdx it can no longer tell "Preschool bumped up" apart from "genuinely Early
 // Elementary" -- the two look identical. Keying on the topic itself sidesteps that entirely.
 function verticalAdditionSingleDigitQ(ageIdx, diffIdx) {
-  const p = verticalAdditionProblem(true);
+  const p = verticalAdditionProblem(1);
   const answer = p.a + p.b;
   return {
     prompt: `${p.a} + ${p.b} = ?`, choices: numericChoices(answer, 0, 20), answer,
@@ -167,19 +178,24 @@ function verticalAdditionSingleDigitQ(ageIdx, diffIdx) {
 }
 
 function verticalSubtractionQ(ageIdx, diffIdx) {
-  const p = verticalSubtractionProblem();
+  const p = verticalSubtractionProblem(vColumnDigits(ageIdx, diffIdx));
   const answer = p.a - p.b;
   return {
-    prompt: `${p.a} - ${p.b} = ?`, choices: numericChoices(answer, 0, 99), answer,
+    prompt: `${p.a} - ${p.b} = ?`, choices: numericChoices(answer, 0, p.a), answer,
     interactive: "vertical_subtract", ...p,
   };
 }
 
 function verticalMultiplicationQ(ageIdx, diffIdx) {
-  const p = verticalMultiplicationProblem();
+  // Capped at 10, not just "a bit bigger": with 9 as the largest single digit, a multiplier
+  // of 11+ can push a column's carry to 10+ (e.g. 9x11 chained -> carry stabilizes at 10),
+  // which the carry box can't represent since it's a single 0-9 digit picker, same as every
+  // other box in this exercise -- that would render an unsolvable question.
+  const multiplierHi = diffIdx >= 2 ? 10 : 9;
+  const p = verticalMultiplicationProblem(vColumnDigits(ageIdx, diffIdx), multiplierHi);
   const answer = p.a * p.b;
   return {
-    prompt: `${p.a} × ${p.b} = ?`, choices: numericChoices(answer, 0, 900), answer,
+    prompt: `${p.a} × ${p.b} = ?`, choices: numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 5), answer,
     interactive: "vertical_column", sign: "×", ...p,
   };
 }

@@ -302,6 +302,14 @@ function showMakeTenGame() {
 // single digits) in addition to the normal ones-digit box.
 function digitsOfNum(n) { return String(n).split("").reverse().map(Number); } // ones-first
 
+// Smallest/largest n-digit number, e.g. randOfDigits(3) -> a random 100-999; n=1 is 0-9
+// (no leading-digit restriction, since a lone digit has nothing to be non-zero relative to).
+function randOfDigits(n) {
+  const lo = n <= 1 ? 0 : Math.pow(10, n - 1);
+  const hi = Math.pow(10, n) - 1;
+  return randInt(lo, hi);
+}
+
 // Shared right-to-left column arithmetic with carries chained between columns, used for both
 // addition and multiplication. colFn(aDigit, i) computes column i's raw value (before that
 // column's incoming carry is added) -- addition needs digitsB[i] (each operand contributes
@@ -329,19 +337,21 @@ function verticalColumnProblem(a, b, colFn) {
   return { a, b, digitsA, digitsB, resultDigits, carryIn };
 }
 
-function verticalAdditionProblem(single) {
-  // `single` gives single-digit + single-digit (0-9 each) instead of 2-digit + 2-digit --
-  // used for Preschool, where the engine naturally produces just one answer box normally
-  // and a second (carry) box only when the sum reaches 10+, matching the classic worksheet.
-  const a = single ? randInt(0, 9) : randInt(10, 99);
-  const b = single ? randInt(0, 9) : randInt(10, 99);
+function verticalAdditionProblem(digits) {
+  // `digits` sets both addends' digit count (1 = single-digit + single-digit, used for
+  // Preschool, where the engine naturally produces just one answer box normally and a second
+  // (carry) box only when the sum reaches 10+, matching the classic worksheet). Defaults to 2
+  // for callers with no age/difficulty context (the standalone Mini Game); quiz/curriculum
+  // callers pass a digit count scaled to age/difficulty -- see vColumnDigits() in math.js.
+  const d = digits || 2;
+  const a = randOfDigits(d), b = randOfDigits(d);
   const digitsB = digitsOfNum(b);
   return verticalColumnProblem(a, b, (aDigit, i) => aDigit + (digitsB[i] || 0));
 }
 
-function verticalMultiplicationProblem() {
-  const a = randInt(10, 99); // 2-digit
-  const b = randInt(2, 9); // single-digit multiplier, applied to every column of a
+function verticalMultiplicationProblem(digits, multiplierHi) {
+  const a = randOfDigits(digits || 2);
+  const b = randInt(2, multiplierHi || 9); // multiplier stays single-digit-ish, applied to every column of a
   return verticalColumnProblem(a, b, (aDigit) => aDigit * b);
 }
 
@@ -549,8 +559,9 @@ function showVerticalMultiplicationGame() {
 // the left, a column that can't subtract cleanly reduces the column to its LEFT by 1 (and
 // adds 10 to itself). digitsA/digitsB/resultDigits are ones-first; borrowIn[i] = 1 if column
 // i's own top digit had to be reduced by 1 to lend to the column on its right.
-function verticalSubtractionProblem() {
-  let a = randInt(10, 99), b = randInt(10, 99);
+function verticalSubtractionProblem(digits) {
+  const d = digits || 2;
+  let a = randOfDigits(d), b = randOfDigits(d);
   if (a < b) [a, b] = [b, a]; // keep it to non-negative results, appropriate for this level
   const digitsA = digitsOfNum(a), digitsB = digitsOfNum(b);
   const numCols = digitsA.length; // a >= b, so a never has fewer digits than b
