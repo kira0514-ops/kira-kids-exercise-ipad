@@ -585,7 +585,6 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .sentence-tile:active { transform: translateY(1px); }
 .sentence-tile-placed { background: var(--grad1); color: white; border-color: var(--grad1); }
 
-.numgrid-wrap { text-align: center; margin: 10px auto; }
 .numgrid-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

@@ -1006,125 +1006,155 @@ function showAddTableSpeedRound(opKey) {
   nextProblem();
 }
 
-// -- Answer Hunt: solve a formula, then find and tap its answer somewhere in a 5x5 grid of
-// mixed numbers. Reuses math.js's getAddOperands/getSubOperands/getMulOperands/getDivOperands
-// for age/difficulty-scaled operands -- same reasoning as verticalAdditionQ calling into
-// minigames.js: math.js loads before this file, so those functions already exist by the time
-// this ever actually runs (quiz-build time or a button tap), regardless of file load order.
+// -- Answer Hunt: a persistent 5x5 grid of 25 numbers, where every number is the answer to
+// one of this round's 25 formulas -- not decoys. One formula is shown at a time; solve it and
+// tap its answer anywhere in the grid, and the next formula appears, targeting a different
+// still-unfound number. The round keeps generating formulas until every one of the 25 numbers
+// has been tapped out. Standalone Mini Game only, with its own 3-level difficulty (independent
+// of the app's global age/difficulty system, since this isn't wired into the quiz/curriculum).
 const NUMBER_GRID_SIZE = 5;
+const NUMBER_GRID_LEVELS = {
+  easy: { label: "🟢 Easy", ops: ["+", "-"], addMax: 20 },
+  medium: { label: "🟡 Medium", ops: ["+", "-", "×"], addMax: 50, mulMax: 10 },
+  hard: { label: "🔴 Hard", ops: ["+", "-", "×", "÷"], addMax: 100, mulMax: 12 },
+};
 
-function numberGridFormula(ageIdx, diffIdx) {
-  const opsAvailable = ageIdx === 0 ? ["+", "-"] : ageIdx === 1 ? ["+", "-", "×"] : ["+", "-", "×", "÷"];
-  const op = choice(opsAvailable);
+function numberGridFormula(levelKey) {
+  const level = NUMBER_GRID_LEVELS[levelKey];
+  const op = choice(level.ops);
   let text, answer;
-  if (op === "+") { const [a, b] = getAddOperands(ageIdx, diffIdx); answer = a + b; text = `${a} + ${b}`; }
-  else if (op === "-") { const [a, b] = getSubOperands(ageIdx, diffIdx); answer = a - b; text = `${a} - ${b}`; }
-  else if (op === "×") { const [a, b] = getMulOperands(ageIdx, diffIdx); answer = a * b; text = `${a} × ${b}`; }
-  else { const [dividend, divisor, quotient] = getDivOperands(ageIdx, diffIdx); answer = quotient; text = `${dividend} ÷ ${divisor}`; }
+  if (op === "+") {
+    const a = randInt(1, level.addMax), b = randInt(1, level.addMax);
+    answer = a + b; text = `${a} + ${b}`;
+  } else if (op === "-") {
+    let a = randInt(1, level.addMax), b = randInt(1, level.addMax);
+    if (a < b) [a, b] = [b, a];
+    answer = a - b; text = `${a} - ${b}`;
+  } else if (op === "×") {
+    const a = randInt(2, level.mulMax), b = randInt(2, level.mulMax);
+    answer = a * b; text = `${a} × ${b}`;
+  } else {
+    const divisor = randInt(2, level.mulMax), quotient = randInt(2, level.mulMax);
+    answer = quotient; text = `${divisor * quotient} ÷ ${divisor}`;
+  }
   return { prompt: `${text} = ?`, speak: `${text.replace("×", "times").replace("÷", "divided by")} equals what?`, answer };
 }
 
-// 24 distinct non-negative distractors plus the answer, scattered around it so the grid reads
-// as genuinely "mixed" (not a tidy ascending sequence) rather than pedagogically-tuned
-// near-misses -- this is a find-it search, not a multiple-choice question.
-function numberGridDistractors(rawAnswer) {
-  const target = NUMBER_GRID_SIZE * NUMBER_GRID_SIZE;
-  // Defensive: a NaN/non-finite answer (e.g. a caller passing an unresolved Preschool+Extreme
-  // combo straight in, skipping resolveExtreme) would otherwise make every candidate below
-  // NaN too, so nums.size could never grow past 1 -- an infinite loop, not just a wrong answer.
-  const answer = Number.isFinite(rawAnswer) ? rawAnswer : 0;
-  const spread = Math.max(6, Math.round(Math.abs(answer) * 0.5) + 4);
-  const nums = new Set([answer]);
+// Pre-generates a full round's worth of formulas (one per grid cell) with guaranteed-unique
+// answers, so every grid number corresponds to exactly one formula and there's never an
+// ambiguous "which one did they mean" tap. Capped retries plus a guaranteed-terminating
+// fallback (never actually reachable at these ranges, but keeps this from ever hanging even if
+// a level's range were narrowed too far to fit 25 unique answers in the future).
+function numberGridRound(levelKey) {
+  const size = NUMBER_GRID_SIZE * NUMBER_GRID_SIZE;
+  const formulas = [];
+  const seenAnswers = new Set();
   let tries = 0;
-  while (nums.size < target && tries < 1000) {
+  while (formulas.length < size && tries < 3000) {
     tries++;
-    const delta = randInt(-spread, spread);
-    if (delta === 0) continue;
-    const cand = answer + delta;
-    if (cand < 0) continue;
-    nums.add(cand);
+    const f = numberGridFormula(levelKey);
+    if (seenAnswers.has(f.answer)) continue;
+    seenAnswers.add(f.answer);
+    formulas.push(f);
   }
-  let widen = spread;
-  tries = 0;
-  while (nums.size < target && tries < 1000) {
-    tries++;
-    widen += 5;
-    nums.add(randInt(0, answer + widen));
+  let nudge = 0;
+  while (formulas.length < size) {
+    let answer = 1000 + nudge++;
+    while (seenAnswers.has(answer)) answer++;
+    seenAnswers.add(answer);
+    formulas.push({ prompt: `${answer} = ?`, speak: String(answer), answer });
   }
-  // Last-resort fill (only reachable if the above still somehow falls short) guarantees
-  // termination and a full 25-cell grid no matter what.
-  let filler = 0;
-  while (nums.size < target) nums.add(answer + 1000 + filler++);
-  return shuffle(Array.from(nums));
-}
-
-function numberGridProblem(ageIdx, diffIdx) {
-  const f = numberGridFormula(ageIdx, diffIdx);
-  return { ...f, grid: numberGridDistractors(f.answer) };
-}
-
-// Tapping the right cell finishes the exercise (same "only ever finishes once actually
-// solved" rule as every other interactive exercise here); tapping a wrong one disables just
-// that cell so it can't be re-tapped, without ending the attempt -- narrows the search instead
-// of punishing a miss outright.
-function buildNumberGridInteractive(grid, answer, onComplete) {
-  const wrap = el("div", { class: "numgrid-wrap" });
-  const gridEl = el("div", { class: "numgrid-grid" });
-  wrap.appendChild(gridEl);
-  let done = false;
-  grid.forEach((n) => {
-    const cell = el("button", { class: "numgrid-cell", type: "button", text: String(n) });
-    cell.addEventListener("click", () => {
-      if (done || cell.disabled) return;
-      if (n === answer) {
-        done = true;
-        cell.classList.add("numgrid-cell-correct");
-        onComplete();
-      } else {
-        cell.disabled = true;
-        cell.classList.add("numgrid-cell-wrong");
-      }
-    });
-    gridEl.appendChild(cell);
-  });
-  return wrap;
+  return shuffle(formulas);
 }
 
 function showNumberGridGame() {
   applyThemeVars();
   clearRoot();
-  root.appendChild(headerBanner("🔍 Answer Hunt"));
+  root.appendChild(headerBanner("🔍 Answer Hunt", "Solve each formula, then tap its answer in the grid"));
 
   const top = el("div", { class: "quiz-top" });
-  const scoreLabel = el("span", { text: "⭐ Solved: 0" });
-  top.appendChild(scoreLabel);
   top.appendChild(button("◀ Back", showMiniGames, "next"));
+  top.appendChild(button("🏠 Menu", showSetup, "quit"));
+  root.appendChild(top);
+
+  const card = el("div", { class: "card" });
+  card.appendChild(el("div", { class: "step-text", text:
+    "Every number in the 5x5 grid is the answer to one of 25 formulas. Clear the whole board!" }));
+  const levelRow = el("div", { class: "chip-row" });
+  for (const key of ["easy", "medium", "hard"]) {
+    levelRow.appendChild(button(NUMBER_GRID_LEVELS[key].label, () => startNumberGridRound(key), "start"));
+  }
+  card.appendChild(levelRow);
+  root.appendChild(card);
+}
+
+function startNumberGridRound(levelKey) {
+  applyThemeVars();
+  clearRoot();
+  root.appendChild(headerBanner("🔍 Answer Hunt", NUMBER_GRID_LEVELS[levelKey].label));
+
+  const size = NUMBER_GRID_SIZE * NUMBER_GRID_SIZE;
+  const top = el("div", { class: "quiz-top" });
+  const scoreLabel = el("span", { text: `⭐ Found: 0 / ${size}` });
+  top.appendChild(scoreLabel);
+  top.appendChild(button("◀ Back", showNumberGridGame, "next"));
   top.appendChild(button("🏠 Menu", showSetup, "quit"));
   root.appendChild(top);
 
   const card = el("div", { class: "card" });
   root.appendChild(card);
 
-  let score = 0;
+  const formulas = numberGridRound(levelKey);
+  let formulaIdx = 0;
+  let found = 0;
 
-  function nextProblem() {
-    // No age/difficulty context here (this is the standalone Mini Game, not the quiz/
-    // curriculum) -- Early Elementary Medium is a reasonable fixed default, same spirit as
-    // verticalAdditionProblem() defaulting to 2-digit operands with no args.
-    const p = numberGridProblem(1, 1);
-    card.innerHTML = "";
-    card.appendChild(el("div", { class: "prompt", text: p.prompt }));
-    const readAloudBtn = button("🔊 Read Aloud", () => speak(p.speak), "next");
-    readAloudBtn.classList.add("read-aloud-btn");
-    card.appendChild(readAloudBtn);
-    card.appendChild(el("div", { class: "step-text maketen-intro", text: "Work out the answer, then tap it in the grid!" }));
+  const promptEl = el("div", { class: "prompt" });
+  const readAloudBtn = button("🔊 Read Aloud", () => speak(formulas[formulaIdx].speak), "next");
+  readAloudBtn.classList.add("read-aloud-btn");
+  const introEl = el("div", { class: "step-text maketen-intro", text: "Work out the answer, then tap it in the grid!" });
+  const gridEl = el("div", { class: "numgrid-grid" });
 
-    const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
-    nextBtn.classList.add("maketen-hidden");
+  card.appendChild(promptEl);
+  card.appendChild(readAloudBtn);
+  card.appendChild(introEl);
+  card.appendChild(gridEl);
 
-    card.appendChild(buildNumberGridInteractive(p.grid, p.answer, () => nextBtn.classList.remove("maketen-hidden")));
-    card.appendChild(nextBtn);
+  function renderFormula() {
+    promptEl.textContent = formulas[formulaIdx].prompt;
   }
 
-  nextProblem();
+  function showRoundComplete() {
+    card.innerHTML = "";
+    card.appendChild(el("div", { class: "lesson-section-title", text: "🎉 Board Cleared!" }));
+    card.appendChild(el("div", { class: "score-msg", text: `You found all ${size} answers!` }));
+    const btnRow = el("div", { class: "next-row" });
+    btnRow.appendChild(button("🔄 Play Again", () => startNumberGridRound(levelKey), "playagain"));
+    btnRow.appendChild(button("◀ Back", showNumberGridGame, "next"));
+    card.appendChild(btnRow);
+  }
+
+  // A wrong tap is only wrong for the CURRENT formula -- that same number may legitimately be
+  // a later formula's answer (every one of the 25 numbers belongs to some formula this round),
+  // so wrong taps just flash and stay tappable rather than getting disabled.
+  formulas.forEach((f) => {
+    const cell = el("button", { class: "numgrid-cell", type: "button", text: String(f.answer) });
+    cell.addEventListener("click", () => {
+      if (cell.disabled) return;
+      if (f.answer === formulas[formulaIdx].answer) {
+        cell.disabled = true;
+        cell.classList.add("numgrid-cell-correct");
+        found++;
+        scoreLabel.textContent = `⭐ Found: ${found} / ${size}`;
+        formulaIdx++;
+        if (found >= size) showRoundComplete();
+        else renderFormula();
+      } else {
+        cell.classList.add("numgrid-cell-wrong");
+        setTimeout(() => cell.classList.remove("numgrid-cell-wrong"), 400);
+      }
+    });
+    gridEl.appendChild(cell);
+  });
+
+  renderFormula();
 }
