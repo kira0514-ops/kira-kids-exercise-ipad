@@ -71,6 +71,8 @@ function showMiniGames() {
   const grid = el("div", { class: "lesson-topic-grid" });
   grid.appendChild(button("🔟 Make 10 to Add", showMakeTenGame, "choice"));
   grid.appendChild(button("➕ Vertical Addition", showVerticalAdditionGame, "choice"));
+  grid.appendChild(button("➖ Vertical Subtraction", showVerticalSubtractionGame, "choice"));
+  grid.appendChild(button("✖️ Vertical Multiplication", showVerticalMultiplicationGame, "choice"));
   for (const opKey of Object.keys(ADDTABLE_OPS)) {
     const op = ADDTABLE_OPS[opKey];
     grid.appendChild(button(`${op.icon} ${op.name} Table`, () => showAdditionTableMenu(opKey), "choice"));
@@ -298,27 +300,43 @@ function showMakeTenGame() {
 // or dragging through a vertical 0-9 strip instead of typing on a keyboard. Two-digit sums
 // get a second, smaller box for the tens digit (always 0 or 1 here, since both addends are
 // single digits) in addition to the normal ones-digit box.
-function verticalAdditionProblem() {
-  const a = randInt(10, 99);
-  const b = randInt(10, 99);
-  // Real column addition, right to left, with carries chained between columns -- not just a
-  // single-digit shortcut. digitsA/digitsB/resultDigits are all ones-first (index 0 = ones,
-  // index 1 = tens, ...). carryIn[i] is what carries INTO column i from column i-1 (0 for
-  // the ones column, since nothing carries into it).
-  const digitsOf = (n) => String(n).split("").reverse().map(Number);
-  const digitsA = digitsOf(a), digitsB = digitsOf(b);
-  const numCols = Math.max(digitsA.length, digitsB.length);
+function digitsOfNum(n) { return String(n).split("").reverse().map(Number); } // ones-first
+
+// Shared right-to-left column arithmetic with carries chained between columns, used for both
+// addition and multiplication. colFn(aDigit, i) computes column i's raw value (before that
+// column's incoming carry is added) -- addition needs digitsB[i] (each operand contributes
+// its own digit per column) while multiplication needs the *same* single-digit multiplier
+// applied to every column of `a`, so the two can't share one "combine these two digits"
+// signature. digitsA/digitsB/resultDigits are ones-first (index 0 = ones, index 1 = tens,
+// ...). carryIn[i] is what carries INTO column i from column i-1 (0 for the ones column,
+// since nothing carries into it).
+function verticalColumnProblem(a, b, colFn) {
+  const digitsA = digitsOfNum(a), digitsB = digitsOfNum(b);
+  const numCols = digitsA.length;
   const resultDigits = [];
   const carryIn = [];
   let carry = 0;
   for (let i = 0; i < numCols; i++) {
     carryIn[i] = carry;
-    const colSum = (digitsA[i] || 0) + (digitsB[i] || 0) + carry;
-    resultDigits[i] = colSum % 10;
-    carry = Math.floor(colSum / 10);
+    const colVal = colFn(digitsA[i] || 0, i) + carry;
+    resultDigits[i] = colVal % 10;
+    carry = Math.floor(colVal / 10);
   }
   if (carry > 0) resultDigits[numCols] = carry; // e.g. 99 + 99 needs a new hundreds digit
-  return { a, b, sum: a + b, digitsA, digitsB, resultDigits, carryIn };
+  return { a, b, digitsA, digitsB, resultDigits, carryIn };
+}
+
+function verticalAdditionProblem() {
+  const a = randInt(10, 99);
+  const b = randInt(10, 99);
+  const digitsB = digitsOfNum(b);
+  return verticalColumnProblem(a, b, (aDigit, i) => aDigit + (digitsB[i] || 0));
+}
+
+function verticalMultiplicationProblem() {
+  const a = randInt(10, 99); // 2-digit
+  const b = randInt(2, 9); // single-digit multiplier, applied to every column of a
+  return verticalColumnProblem(a, b, (aDigit) => aDigit * b);
 }
 
 // A tap-or-drag digit box: tapping it reveals a vertical strip of 0-9; picking a digit is
@@ -390,11 +408,14 @@ function buildDragDigitBox(expected, variant, onCorrect) {
   return { box, strip };
 }
 
-function showVerticalAdditionGame() {
+// Shared renderer for column arithmetic where the carry flows left (addition, multiplication
+// by a single digit) -- both produce {digitsA, digitsB, resultDigits, carryIn} from
+// verticalColumnProblem and render identically; only the header, sign, and generator differ.
+function showVerticalColumnGame({ headerTitle, sign, genFn }) {
   applyThemeVars();
   clearRoot();
 
-  root.appendChild(headerBanner("➕ Vertical Addition"));
+  root.appendChild(headerBanner(headerTitle));
 
   const top = el("div", { class: "quiz-top" });
   const scoreLabel = el("span", { text: "⭐ Solved: 0" });
@@ -409,7 +430,7 @@ function showVerticalAdditionGame() {
   let score = 0;
 
   function nextProblem() {
-    const p = verticalAdditionProblem();
+    const p = genFn();
     card.innerHTML = "";
 
     card.appendChild(el("div", { class: "step-text maketen-intro", text: "Tap a box, then tap or drag to a number to fill it in." }));
@@ -459,7 +480,7 @@ function showVerticalAdditionGame() {
     // "+" living in its own sign column so it never shifts the digits themselves.
     grid.appendChild(cell(2, 1));
     const signCell = cell(3, 1, "vadd-sign");
-    signCell.textContent = "+";
+    signCell.textContent = sign;
     grid.appendChild(signCell);
     for (const [row, digits] of [[2, p.digitsA], [3, p.digitsB]]) {
       for (let col = 2; col <= totalCols + 1; col++) {
@@ -475,6 +496,131 @@ function showVerticalAdditionGame() {
     grid.appendChild(line);
 
     // Row 5: the answer, one box per place value -- always required, even a "0" digit.
+    grid.appendChild(cell(5, 1));
+    for (let col = 2; col <= totalCols + 1; col++) {
+      const idx = placeIndex(col);
+      remaining++;
+      const ui = buildDragDigitBox(p.resultDigits[idx], "normal", markDone);
+      const c = cell(5, col);
+      c.appendChild(ui.box);
+      grid.appendChild(c);
+      strips.push(ui.strip);
+    }
+
+    for (const strip of strips) card.appendChild(strip);
+    card.appendChild(nextBtn);
+  }
+
+  nextProblem();
+}
+
+function showVerticalAdditionGame() {
+  showVerticalColumnGame({ headerTitle: "➕ Vertical Addition", sign: "+", genFn: verticalAdditionProblem });
+}
+
+function showVerticalMultiplicationGame() {
+  showVerticalColumnGame({ headerTitle: "✖️ Vertical Multiplication", sign: "×", genFn: verticalMultiplicationProblem });
+}
+
+// Subtraction borrows rather than carries: instead of overflow flowing INTO a new column to
+// the left, a column that can't subtract cleanly reduces the column to its LEFT by 1 (and
+// adds 10 to itself). digitsA/digitsB/resultDigits are ones-first; borrowIn[i] = 1 if column
+// i's own top digit had to be reduced by 1 to lend to the column on its right.
+function verticalSubtractionProblem() {
+  let a = randInt(10, 99), b = randInt(10, 99);
+  if (a < b) [a, b] = [b, a]; // keep it to non-negative results, appropriate for this level
+  const digitsA = digitsOfNum(a), digitsB = digitsOfNum(b);
+  const numCols = digitsA.length; // a >= b, so a never has fewer digits than b
+  const resultDigits = [];
+  const borrowIn = [];
+  let borrow = 0;
+  for (let i = 0; i < numCols; i++) {
+    borrowIn[i] = borrow;
+    let topVal = (digitsA[i] || 0) - borrow;
+    const botVal = digitsB[i] || 0;
+    if (topVal < botVal) { topVal += 10; borrow = 1; } else { borrow = 0; }
+    resultDigits[i] = topVal - botVal;
+  }
+  return { a, b, digitsA, digitsB, resultDigits, borrowIn };
+}
+
+function showVerticalSubtractionGame() {
+  applyThemeVars();
+  clearRoot();
+
+  root.appendChild(headerBanner("➖ Vertical Subtraction"));
+
+  const top = el("div", { class: "quiz-top" });
+  const scoreLabel = el("span", { text: "⭐ Solved: 0" });
+  top.appendChild(scoreLabel);
+  top.appendChild(button("◀ Back", showMiniGames, "next"));
+  top.appendChild(button("🏠 Menu", showSetup, "quit"));
+  root.appendChild(top);
+
+  const card = el("div", { class: "card vadd-card" });
+  root.appendChild(card);
+
+  let score = 0;
+
+  function nextProblem() {
+    const p = verticalSubtractionProblem();
+    card.innerHTML = "";
+
+    card.appendChild(el("div", { class: "step-text maketen-intro", text: "Tap a box, then tap or drag to a number to fill it in." }));
+
+    const totalCols = p.digitsA.length; // subtraction never needs an extra overflow column
+    const grid = el("div", { class: "vadd-grid" });
+    grid.style.gridTemplateColumns = `24px repeat(${totalCols}, 44px)`;
+    card.appendChild(grid);
+
+    const strips = [];
+    const nextBtn = button("▶ Next Problem", () => { score++; scoreLabel.textContent = `⭐ Solved: ${score}`; nextProblem(); }, "playagain");
+    nextBtn.classList.add("maketen-hidden");
+    let remaining = 0;
+    function markDone() { remaining--; if (remaining <= 0) nextBtn.classList.remove("maketen-hidden"); }
+
+    function cell(row, col, extraClass) {
+      return el("div", { class: `vadd-cell${extraClass ? " " + extraClass : ""}`, style: `grid-row:${row}; grid-column:${col};` });
+    }
+    function placeIndex(col) { return totalCols - (col - 1); }
+
+    // Row 1: borrow indicators, directly above the column whose OWN top digit had to be
+    // reduced by 1 (unlike addition's carry, which straddles into a different column, this
+    // modifies a digit that's already there, so it's centered, not shifted).
+    for (let col = 2; col <= totalCols + 1; col++) {
+      const idx = placeIndex(col);
+      if (p.borrowIn[idx] === 1) {
+        remaining++;
+        const reduced = p.digitsA[idx] - 1;
+        const ui = buildDragDigitBox(reduced, "small", markDone);
+        const c = cell(1, col);
+        c.appendChild(ui.box);
+        grid.appendChild(c);
+        strips.push(ui.strip);
+      } else {
+        grid.appendChild(cell(1, col));
+      }
+    }
+
+    // Rows 2 & 3: minuend then subtrahend, right-aligned, "-" in its own sign column.
+    grid.appendChild(cell(2, 1));
+    const signCell = cell(3, 1, "vadd-sign");
+    signCell.textContent = "-";
+    grid.appendChild(signCell);
+    for (const [row, digits] of [[2, p.digitsA], [3, p.digitsB]]) {
+      for (let col = 2; col <= totalCols + 1; col++) {
+        const idx = placeIndex(col);
+        const c = cell(row, col, "vadd-num");
+        if (idx < digits.length) c.textContent = String(digits[idx]);
+        grid.appendChild(c);
+      }
+    }
+
+    // Row 4: the line.
+    const line = el("div", { class: "vadd-line", style: `grid-row:4; grid-column:1 / ${totalCols + 2};` });
+    grid.appendChild(line);
+
+    // Row 5: the answer, one box per place value.
     grid.appendChild(cell(5, 1));
     for (let col = 2; col <= totalCols + 1; col++) {
       const idx = placeIndex(col);
