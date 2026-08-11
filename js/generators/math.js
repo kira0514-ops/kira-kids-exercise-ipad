@@ -134,6 +134,40 @@ function make10AdditionQ(ageIdx, diffIdx) {
   };
 }
 
+// These three wrap the standalone Mini Game generators/renderers (minigames.js) so the exact
+// same interactive column-arithmetic exercise (drag-to-pick digit boxes, carry/borrow
+// indicators) shows up in regular quizzes and the 365-Day Curriculum too, not just the Mini
+// Games hub. Safe to call minigames.js functions here even though that script loads after
+// this one -- these generators only ever run later, at quiz-build time, by which point every
+// script has already loaded. `choices` stays only as a fallback for older call sites (e.g.
+// lesson "Try it yourself" snippets) that expect plain multiple choice.
+function verticalAdditionQ(ageIdx, diffIdx) {
+  const p = verticalAdditionProblem();
+  const answer = p.a + p.b;
+  return {
+    prompt: `${p.a} + ${p.b} = ?`, choices: numericChoices(answer, 0, 300), answer,
+    interactive: "vertical_column", sign: "+", ...p,
+  };
+}
+
+function verticalSubtractionQ(ageIdx, diffIdx) {
+  const p = verticalSubtractionProblem();
+  const answer = p.a - p.b;
+  return {
+    prompt: `${p.a} - ${p.b} = ?`, choices: numericChoices(answer, 0, 99), answer,
+    interactive: "vertical_subtract", ...p,
+  };
+}
+
+function verticalMultiplicationQ(ageIdx, diffIdx) {
+  const p = verticalMultiplicationProblem();
+  const answer = p.a * p.b;
+  return {
+    prompt: `${p.a} × ${p.b} = ?`, choices: numericChoices(answer, 0, 900), answer,
+    interactive: "vertical_column", sign: "×", ...p,
+  };
+}
+
 function subtractionQ(ageIdx, diffIdx) {
   const [a, b] = getSubOperands(ageIdx, diffIdx);
   const answer = a - b;
@@ -803,8 +837,11 @@ function equationsQ(ageIdx, diffIdx) {
 const MATH_TOPIC_FUNCS = {
   Addition: additionQ,
   "Make 10 Addition": make10AdditionQ,
+  "Vertical Addition": verticalAdditionQ,
   Subtraction: subtractionQ,
+  "Vertical Subtraction": verticalSubtractionQ,
   Multiplication: multiplicationQ,
+  "Vertical Multiplication": verticalMultiplicationQ,
   Division: divisionQ,
   "Mixed Operations": mixedOperationsQ,
   "Place Value": placeValueQ,

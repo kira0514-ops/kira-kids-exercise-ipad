@@ -365,15 +365,19 @@ function showQuestion() {
   nextBtn.id = "quiz-next-btn";
   nextRow.appendChild(nextBtn);
 
-  if (q.interactive === "make_ten") {
-    // Worked-out decompose-boxes exercise instead of multiple choice -- it can only ever be
-    // "finished" once actually solved correctly, so completion always counts as correct.
-    card.appendChild(buildMakeTenInteractive(q, () => {
+  if (q.interactive === "make_ten" || q.interactive === "vertical_column" || q.interactive === "vertical_subtract") {
+    // Worked-out box exercise instead of multiple choice -- it can only ever be "finished"
+    // once actually solved correctly, so completion always counts as correct.
+    const onSolved = () => {
       state.score += 1;
       feedback.textContent = "Correct! ✅";
       feedback.className = "feedback feedback-correct";
       nextBtn.disabled = false;
-    }));
+    };
+    const interactive = q.interactive === "make_ten" ? buildMakeTenInteractive(q, onSolved)
+      : q.interactive === "vertical_column" ? buildVerticalColumnInteractive(q, q.sign, onSolved)
+      : buildVerticalSubtractionInteractive(q, onSolved);
+    card.appendChild(interactive);
     root.appendChild(card);
   } else {
     const visual = drawQVisual(q, t);
