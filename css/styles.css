@@ -467,6 +467,10 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .vadd-cell { display: flex; align-items: center; justify-content: center; min-height: 30px; }
 .vadd-sign { justify-content: flex-start; font-size: 22px; font-weight: bold; }
 .vadd-num { font-size: 24px; font-weight: bold; }
+/* Shifts the small carry box right by half its own width (+half the column gap) so it
+   straddles the boundary with the column to its right, instead of sitting centered on its
+   own column. */
+.vadd-carry-cell { justify-content: flex-end; margin-right: -16px; overflow: visible; }
 .vadd-line { border-top: 3px solid var(--text); align-self: center; width: 100%; }
 .vadd-box {
   background: white;

@@ -437,14 +437,16 @@ function showVerticalAdditionGame() {
 
     // Row 1: carry-in indicators, shown above every column that actually receives a carry
     // from the column addition to its right (never above the ones column -- nothing carries
-    // into it -- and never above a column that just IS the final overflow carry).
+    // into it -- and never above a column that just IS the final overflow carry). Each one
+    // straddles the boundary between its column and the one to its right (e.g. between the
+    // tens and ones columns for a carry out of the ones column), not centered on either.
     for (let col = 2; col <= totalCols + 1; col++) {
       const idx = placeIndex(col);
       const carryVal = p.carryIn[idx];
       if (carryVal > 0) {
         remaining++;
         const ui = buildDragDigitBox(carryVal, "small", markDone);
-        const c = cell(1, col);
+        const c = cell(1, col, "vadd-carry-cell");
         c.appendChild(ui.box);
         grid.appendChild(c);
         strips.push(ui.strip);
