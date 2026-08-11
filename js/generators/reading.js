@@ -163,6 +163,22 @@ function phonicsQ(ageIdx, diffIdx) {
   return phonicsBlendQ(diffIdx);
 }
 
+// Interactive counterpart to Unscramble: instead of picking the correctly-spelled word from
+// four options, the kid hears the word (Read Aloud) and/or sees its picture, then taps letter
+// tiles from a shuffled bank into blank boxes to actually spell it out -- same "build the
+// answer yourself" spirit as the vertical arithmetic exercises, just for words instead of
+// digits. Rendered by buildSpellWordInteractive() further down.
+function spellWordQ(ageIdx, diffIdx) {
+  const pool = wordPool(ageIdx, diffIdx);
+  const word = choice(pool);
+  return {
+    prompt: "🔊 Tap \"Read Aloud\" to hear the word, then spell it!",
+    speak: word,
+    choices: makeChoices(word, pool), answer: word,
+    interactive: "spell_word", word, emoji: APP_DATA.WORD_EMOJI[word] || null,
+  };
+}
+
 const READING_TOPIC_FUNCS = {
   Phonics: phonicsQ,
   "First Letter": firstLetterQ,
@@ -173,7 +189,74 @@ const READING_TOPIC_FUNCS = {
   Synonyms: synonymQ,
   Antonyms: antonymQ,
   "Reading Comprehension": readingComprehensionQ,
+  "Spell the Word": spellWordQ,
 };
+
+// Tap-in-order letter tiles from a shuffled bank into blank boxes to spell `word`. No drag
+// needed (unlike the vertical-arithmetic digit boxes) -- each tile is used exactly once, so a
+// plain tap is unambiguous. Validated only once every blank is filled, since a word's letters
+// can repeat (e.g. "letter") and there's no single unambiguous "next correct tile" to highlight
+// mid-word. Reuses the vadd-box visual language (white/bordered boxes, green "correct" state)
+// so it reads as the same family of exercise as the math ones.
+function buildSpellWordInteractive(word, emoji, onComplete) {
+  const wrap = el("div", { class: "spell-wrap" });
+
+  if (emoji) wrap.appendChild(el("div", { class: "spell-hint", text: emoji }));
+
+  const blanksRow = el("div", { class: "spell-blanks" });
+  const blanks = word.split("").map(() => {
+    const b = el("div", { class: "spell-blank" });
+    blanksRow.appendChild(b);
+    return b;
+  });
+  wrap.appendChild(blanksRow);
+
+  const bankRow = el("div", { class: "spell-bank" });
+  wrap.appendChild(bankRow);
+
+  // Guaranteed not already in the correct order (for words with more than one distinct
+  // arrangement), so the puzzle never starts pre-solved.
+  let letters;
+  do { letters = shuffle(word.split("")); } while (letters.join("") === word && new Set(word).size > 1);
+
+  let filled = [];
+  let done = false;
+
+  function reset() {
+    filled = [];
+    blanks.forEach((b) => { b.textContent = ""; b.classList.remove("spell-blank-filled"); });
+    tiles.forEach((t) => { t.disabled = false; t.classList.remove("spell-tile-used"); });
+  }
+
+  function checkComplete() {
+    if (filled.join("") === word) {
+      done = true;
+      blanks.forEach((b) => b.classList.add("spell-blank-correct"));
+      onComplete();
+    } else {
+      blanks.forEach((b) => b.classList.add("spell-blank-wrong"));
+      setTimeout(() => { blanks.forEach((b) => b.classList.remove("spell-blank-wrong")); reset(); }, 600);
+    }
+  }
+
+  const tiles = letters.map((ch) => {
+    const tile = el("button", { class: "spell-tile", type: "button", text: ch });
+    tile.addEventListener("click", () => {
+      if (done || tile.disabled) return;
+      tile.disabled = true;
+      tile.classList.add("spell-tile-used");
+      const idx = filled.length;
+      filled.push(ch);
+      blanks[idx].textContent = ch;
+      blanks[idx].classList.add("spell-blank-filled");
+      if (filled.length === word.length) checkComplete();
+    });
+    bankRow.appendChild(tile);
+    return tile;
+  });
+
+  return wrap;
+}
 
 function readingQuestion(ageIdx, diffIdx, topics) {
   [ageIdx, diffIdx] = resolveExtreme(ageIdx, diffIdx);

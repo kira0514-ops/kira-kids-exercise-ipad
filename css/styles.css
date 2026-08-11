@@ -515,6 +515,44 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .vadd-strip-active { background: var(--grad1); color: white; }
 .vadd-hidden { display: none; }
 
+.spell-wrap { text-align: center; margin: 10px auto; max-width: 420px; }
+.spell-hint { font-size: 48px; margin-bottom: 12px; }
+.spell-blanks { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 20px; }
+.spell-blank {
+  width: 40px;
+  height: 44px;
+  background: white;
+  border: none;
+  border-bottom: 3px solid var(--text);
+  font-family: var(--font-family);
+  font-weight: bold;
+  font-size: 24px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: lowercase;
+}
+.spell-blank-filled { border-bottom-color: var(--grad1); }
+.spell-blank-correct { background: #C8E6C9; border-bottom-color: #2E7D32; color: #1B5E20; border-radius: 8px 8px 0 0; }
+.spell-blank-wrong { background: #FFCDD2; border-bottom-color: #C62828; }
+.spell-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.spell-tile {
+  width: 44px;
+  height: 44px;
+  background: white;
+  border: 2.5px solid var(--text);
+  border-radius: 10px;
+  font-family: var(--font-family);
+  font-weight: bold;
+  font-size: 20px;
+  color: var(--text);
+  cursor: pointer;
+  text-transform: lowercase;
+}
+.spell-tile:active { transform: translateY(1px); }
+.spell-tile-used { visibility: hidden; }
+
 @media (max-width: 700px) {
   .setup-layout { flex-direction: column; }
   .choices-grid { grid-template-columns: 1fr; }
