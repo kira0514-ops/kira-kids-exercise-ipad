@@ -326,9 +326,12 @@ function verticalColumnProblem(a, b, colFn) {
   return { a, b, digitsA, digitsB, resultDigits, carryIn };
 }
 
-function verticalAdditionProblem() {
-  const a = randInt(10, 99);
-  const b = randInt(10, 99);
+function verticalAdditionProblem(single) {
+  // `single` gives single-digit + single-digit (0-9 each) instead of 2-digit + 2-digit --
+  // used for Preschool, where the engine naturally produces just one answer box normally
+  // and a second (carry) box only when the sum reaches 10+, matching the classic worksheet.
+  const a = single ? randInt(0, 9) : randInt(10, 99);
+  const b = single ? randInt(0, 9) : randInt(10, 99);
   const digitsB = digitsOfNum(b);
   return verticalColumnProblem(a, b, (aDigit, i) => aDigit + (digitsB[i] || 0));
 }

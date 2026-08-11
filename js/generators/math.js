@@ -150,6 +150,22 @@ function verticalAdditionQ(ageIdx, diffIdx) {
   };
 }
 
+// Preschool-appropriate version: single-digit + single-digit (still real column addition --
+// just one answer box normally, a second only when the sum reaches 10+), always, regardless
+// of age/difficulty passed in. Deliberately its own topic rather than a branch inside
+// verticalAdditionQ keyed on ageIdx=== 0: resolveExtreme() rewrites (Preschool, Extreme) to
+// (Early Elementary, Hard) *before* any topic generator runs, so by the time this function
+// would see ageIdx it can no longer tell "Preschool bumped up" apart from "genuinely Early
+// Elementary" -- the two look identical. Keying on the topic itself sidesteps that entirely.
+function verticalAdditionSingleDigitQ(ageIdx, diffIdx) {
+  const p = verticalAdditionProblem(true);
+  const answer = p.a + p.b;
+  return {
+    prompt: `${p.a} + ${p.b} = ?`, choices: numericChoices(answer, 0, 20), answer,
+    interactive: "vertical_column", sign: "+", ...p,
+  };
+}
+
 function verticalSubtractionQ(ageIdx, diffIdx) {
   const p = verticalSubtractionProblem();
   const answer = p.a - p.b;
@@ -838,6 +854,7 @@ const MATH_TOPIC_FUNCS = {
   Addition: additionQ,
   "Make 10 Addition": make10AdditionQ,
   "Vertical Addition": verticalAdditionQ,
+  "Vertical Addition (Single Digit)": verticalAdditionSingleDigitQ,
   Subtraction: subtractionQ,
   "Vertical Subtraction": verticalSubtractionQ,
   Multiplication: multiplicationQ,
