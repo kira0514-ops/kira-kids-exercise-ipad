@@ -750,9 +750,20 @@ function buildAddTableGrid(op, showValues, tappable) {
   return { grid, cellEls, rowHeaderEls, colHeaderEls };
 }
 
-function clearAddTableHighlight(rowHeaderEls, colHeaderEls) {
+function clearAddTableHighlight(rowHeaderEls, colHeaderEls, cellEls) {
   Object.values(rowHeaderEls).forEach((e) => e.classList.remove("addtable-highlight"));
   Object.values(colHeaderEls).forEach((e) => e.classList.remove("addtable-highlight"));
+  if (cellEls) Object.values(cellEls).forEach((e) => e.classList.remove("addtable-data-row-highlight", "addtable-data-col-highlight"));
+}
+
+// Faint-highlights every data cell in row `r` (and column `c`, unless isDivision -- division
+// only ever reveals the row, same reasoning as the header highlight above it) so the eye can
+// trace along the band to the target instead of just seeing two highlighted header labels.
+function highlightAddTableRowCol(cellEls, r, c, isDivision) {
+  for (let cc = 1; cc <= ADDTABLE_SIZE; cc++) cellEls[`${r}-${cc}`].classList.add("addtable-data-row-highlight");
+  if (!isDivision) {
+    for (let rr = 1; rr <= ADDTABLE_SIZE; rr++) cellEls[`${rr}-${c}`].classList.add("addtable-data-col-highlight");
+  }
 }
 
 function shuffledAddTableTargets() {
@@ -792,7 +803,7 @@ function showAddTableLevel1(opKey) {
   let score = 0;
 
   function nextTarget() {
-    clearAddTableHighlight(rowHeaderEls, colHeaderEls);
+    clearAddTableHighlight(rowHeaderEls, colHeaderEls, cellEls);
     if (remaining.length === 0) {
       promptEl.textContent = "🎉 You found every cell!";
       scoreEl.textContent = `Final score: ${score} / ${total}`;
@@ -806,6 +817,7 @@ function showAddTableLevel1(opKey) {
     // the prompt states the dividend directly and the kid searches the row for that value,
     // which is a genuinely different (and genuinely division) task.
     if (!isDivision) colHeaderEls[c].classList.add("addtable-highlight");
+    highlightAddTableRowCol(cellEls, r, c, isDivision);
     promptEl.textContent = isDivision ? op.typePrompt(r, c) : op.findPrompt(r, c);
     scoreEl.textContent = `Found: ${score} / ${total}`;
   }
@@ -868,7 +880,7 @@ function showAddTableLevel2(opKey) {
   let score = 0;
 
   function nextTarget() {
-    clearAddTableHighlight(rowHeaderEls, colHeaderEls);
+    clearAddTableHighlight(rowHeaderEls, colHeaderEls, cellEls);
     feedbackEl.textContent = "";
     feedbackEl.className = "feedback";
     answerInput.value = "";
@@ -885,6 +897,7 @@ function showAddTableLevel2(opKey) {
     // Division only reveals the divisor (row) -- highlighting the quotient (column) too
     // would hand the kid the answer, since typePrompt's dividend already comes from r*c.
     if (!isDivision) colHeaderEls[c].classList.add("addtable-highlight");
+    highlightAddTableRowCol(cellEls, r, c, isDivision);
     promptEl.textContent = op.typePrompt(r, c);
     scoreEl.textContent = `Filled: ${score} / ${total}`;
     answerInput.focus();
