@@ -679,6 +679,52 @@ button.btn-choice { padding: 16px; font-size: 16px; }
   .tenframe-cell { width: 40px; height: 40px; }
 }
 
+.fracbar-wrap { text-align: center; margin: 10px auto; max-width: 420px; }
+.fracbar-bar {
+  display: flex;
+  height: 64px;
+  border: 2.5px solid var(--text);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 10px auto 14px;
+}
+.fracbar-segment {
+  height: 100%;
+  background: white;
+  border-right: 2px solid var(--text);
+  cursor: pointer;
+}
+.fracbar-segment:last-child { border-right: none; }
+.fracbar-segment-shaded { background: var(--grad1); }
+.fracbar-bar-correct .fracbar-segment-shaded { background: #2E7D32; }
+.fracbar-counter { font-weight: bold; font-size: 16px; color: var(--text); margin-bottom: 4px; }
+
+.longdiv-wrap { text-align: center; margin: 10px auto; max-width: 420px; }
+.longdiv-header { font-size: 22px; font-weight: bold; color: var(--text); margin-bottom: 14px; }
+.longdiv-quotient-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 18px; }
+.longdiv-quotient-box {
+  width: 40px;
+  height: 44px;
+  background: white;
+  border: 2.5px dashed var(--grad2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--text);
+}
+.longdiv-quotient-box-filled { border-style: solid; background: #C8E6C9; border-color: #2E7D32; color: #1B5E20; }
+.longdiv-step-card { background: var(--start-bg, #f5f5f5); border-radius: 10px; padding: 14px; }
+.longdiv-step-text { font-size: 16px; font-weight: bold; color: var(--text); margin-bottom: 10px; }
+.longdiv-recap { font-size: 14px; color: var(--text); margin-top: 10px; }
+
+@media (max-width: 700px) {
+  .fracbar-bar { height: 48px; }
+  .longdiv-quotient-box { width: 32px; height: 36px; font-size: 18px; }
+}
+
 .numgrid-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

@@ -1002,6 +1002,147 @@ function buildTenFrameInteractive(target, onComplete) {
   return wrap;
 }
 
+// -- Elementary-level interactive exercises -----------------------------------------------
+
+// Shade segments of a bar to show a target fraction -- makes the fraction concrete instead of
+// abstract numerator/denominator symbols. Same explicit-Submit pattern as Ten-Frame Fill:
+// shading is arranging an answer, not committing to one, so reaching the right count doesn't
+// auto-finish the exercise.
+function fractionBarQ(ageIdx, diffIdx) {
+  const [lo, hi] = diffIdx >= 2 ? [4, 10] : [3, 6];
+  const denominator = randInt(lo, hi);
+  const numerator = randInt(1, denominator - 1);
+  return {
+    prompt: `Shade the bar to show ${numerator}/${denominator}`, speak: `Shade ${numerator} out of ${denominator}`,
+    choices: numericChoices(numerator, 0, denominator), answer: numerator,
+    interactive: "fraction_bar", numerator, denominator,
+  };
+}
+
+function buildFractionBarInteractive(numerator, denominator, onComplete) {
+  const wrap = el("div", { class: "fracbar-wrap" });
+  const bar = el("div", { class: "fracbar-bar" });
+  wrap.appendChild(bar);
+  const counterEl = el("div", { class: "fracbar-counter", text: `Shaded: 0 / ${denominator}` });
+  wrap.appendChild(counterEl);
+
+  let shaded = 0;
+  let done = false;
+
+  for (let i = 0; i < denominator; i++) {
+    const seg = el("button", { class: "fracbar-segment", type: "button" });
+    seg.style.width = `${100 / denominator}%`;
+    seg.addEventListener("click", () => {
+      if (done) return;
+      const isShaded = seg.classList.contains("fracbar-segment-shaded");
+      seg.classList.toggle("fracbar-segment-shaded");
+      shaded += isShaded ? -1 : 1;
+      counterEl.textContent = `Shaded: ${shaded} / ${denominator}`;
+    });
+    bar.appendChild(seg);
+  }
+
+  const feedbackEl = el("div", { class: "feedback" });
+  wrap.appendChild(feedbackEl);
+  const submitBtn = button("✅ Submit", () => {
+    if (done) return;
+    if (shaded === numerator) {
+      done = true;
+      bar.classList.add("fracbar-bar-correct");
+      submitBtn.disabled = true;
+      onComplete();
+    } else {
+      feedbackEl.textContent = "Not quite -- try again!";
+      feedbackEl.className = "feedback feedback-wrong";
+      setTimeout(() => { feedbackEl.textContent = ""; feedbackEl.className = "feedback"; }, 1200);
+    }
+  }, "start");
+  wrap.appendChild(submitBtn);
+
+  return wrap;
+}
+
+// Step-by-step long division: one quotient digit at a time, mirroring the standard algorithm
+// (bring down the next digit, how many times does the divisor go in, multiply, subtract) --
+// exactly what a kid does on paper, not just "here's the final answer, pick it from 4 choices."
+// Reuses buildDragDigitBox (the same 0-9 picker as the vertical arithmetic exercises) since
+// each step is a single discrete digit answer, not a multi-tap arrangement -- immediate
+// correct/wrong feedback per digit is the same convention vertical arithmetic already uses.
+function longDivisionSteps(dividend, divisor) {
+  const digits = String(dividend).split("").map(Number);
+  const steps = [];
+  let current = 0;
+  let started = false;
+  for (let i = 0; i < digits.length; i++) {
+    current = current * 10 + digits[i];
+    if (!started && current < divisor) continue; // still accumulating leading digits
+    started = true;
+    const quotientDigit = Math.floor(current / divisor);
+    const remainder = current % divisor;
+    steps.push({ workingValue: current, quotientDigit, remainder, product: quotientDigit * divisor });
+    current = remainder;
+  }
+  return steps;
+}
+
+function longDivisionQ(ageIdx, diffIdx) {
+  const divisor = randInt(2, diffIdx >= 2 ? 12 : 9);
+  let dividend, steps;
+  for (let tries = 0; tries < 200; tries++) {
+    const digitCount = diffIdx >= 2 ? choice([3, 4]) : 3;
+    dividend = digitCount === 3 ? randInt(100, 999) : randInt(1000, 9999);
+    steps = longDivisionSteps(dividend, divisor);
+    if (steps.length >= 2) break;
+  }
+  const quotient = Math.floor(dividend / divisor);
+  const remainder = dividend % divisor;
+  return {
+    prompt: `${dividend} ÷ ${divisor} = ?`, speak: `${dividend} divided by ${divisor}`,
+    choices: numericChoices(quotient, 0, quotient + Math.max(10, Math.floor(quotient / 2)) + 5), answer: quotient,
+    interactive: "long_division", dividend, divisor, steps, quotient, remainder,
+  };
+}
+
+function buildLongDivisionInteractive(dividend, divisor, steps, onComplete) {
+  const wrap = el("div", { class: "longdiv-wrap" });
+  wrap.appendChild(el("div", { class: "longdiv-header", text: `${dividend} ÷ ${divisor} = ?` }));
+
+  const quotientRow = el("div", { class: "longdiv-quotient-row" });
+  wrap.appendChild(quotientRow);
+  const quotientBoxes = steps.map(() => {
+    const box = el("div", { class: "longdiv-quotient-box" });
+    quotientRow.appendChild(box);
+    return box;
+  });
+
+  const stepCard = el("div", { class: "longdiv-step-card" });
+  wrap.appendChild(stepCard);
+
+  let stepIdx = 0;
+
+  function renderStep() {
+    stepCard.innerHTML = "";
+    const s = steps[stepIdx];
+    stepCard.appendChild(el("div", { class: "longdiv-step-text", text: `${s.workingValue} ÷ ${divisor} = ? (tap the digit)` }));
+    const ui = buildDragDigitBox(s.quotientDigit, "normal", () => {
+      quotientBoxes[stepIdx].textContent = String(s.quotientDigit);
+      quotientBoxes[stepIdx].classList.add("longdiv-quotient-box-filled");
+      stepCard.appendChild(el("div", { class: "longdiv-recap",
+        text: `${s.quotientDigit} × ${divisor} = ${s.product}. ${s.workingValue} - ${s.product} = ${s.remainder}` }));
+      stepIdx++;
+      setTimeout(() => {
+        if (stepIdx < steps.length) renderStep();
+        else onComplete();
+      }, 1100);
+    });
+    stepCard.appendChild(ui.box);
+    stepCard.appendChild(ui.strip);
+  }
+
+  renderStep();
+  return wrap;
+}
+
 const MATH_TOPIC_FUNCS = {
   Addition: additionQ,
   "Counting Tap": countingTapQ,
@@ -1014,9 +1155,11 @@ const MATH_TOPIC_FUNCS = {
   Multiplication: multiplicationQ,
   "Vertical Multiplication": verticalMultiplicationQ,
   Division: divisionQ,
+  "Long Division": longDivisionQ,
   "Mixed Operations": mixedOperationsQ,
   "Place Value": placeValueQ,
   Fractions: fractionsQ,
+  "Fraction Bar Builder": fractionBarQ,
   Decimals: decimalsQ,
   Percentages: percentagesQ,
   Geometry: geometryQ,

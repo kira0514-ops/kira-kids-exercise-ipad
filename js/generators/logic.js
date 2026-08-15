@@ -341,11 +341,50 @@ function buildPatternFillInteractive(sequence, bank, answer, onComplete) {
   return wrap;
 }
 
+// Interactive counterpart to Number Sequences: same "show 4, tap the 5th" idea as Pattern
+// Builder, just with numbers instead of pictures -- reuses buildPatternFillInteractive
+// directly since the mechanic (a row of tiles, one open blank, a tappable bank) doesn't care
+// whether the tile content is an emoji or a number. Duplicates numberSequencesQ's sequence
+// shapes on purpose rather than sharing code with it, so a change to one can't silently break
+// the other's already-verified behavior.
+function numberSequenceSolverQ(ageIdx, diffIdx) {
+  let seq, answer;
+  if (ageIdx === 0) {
+    const step = diffIdx < 2 ? randInt(1, 2) : randInt(1, 3);
+    const start = randInt(1, 5);
+    seq = Array.from({ length: 4 }, (_, i) => start + step * i);
+    answer = start + step * 4;
+  } else if (ageIdx === 1) {
+    const stepRange = [[1, 3], [2, 6], [5, 10], [10, 20]][diffIdx];
+    const step = randInt(...stepRange);
+    const start = randInt(1, 10);
+    seq = Array.from({ length: 4 }, (_, i) => start + step * i);
+    answer = start + step * 4;
+  } else if (diffIdx >= 2 && Math.random() < 0.4) {
+    const start = randInt(1, 5);
+    seq = Array.from({ length: 4 }, (_, i) => start * 2 ** i);
+    answer = start * 2 ** 4;
+  } else {
+    const stepRange = [[3, 6], [6, 9], [8, 15], [15, 30]][diffIdx];
+    const step = randInt(...stepRange);
+    const start = randInt(2, 20);
+    seq = Array.from({ length: 4 }, (_, i) => start + step * i);
+    answer = start + step * 4;
+  }
+  const bank = numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 5);
+  return {
+    prompt: "What comes next in the sequence?", speak: `${seq.join(", ")}, what comes next?`,
+    choices: bank, answer,
+    interactive: "number_sequence", sequence: seq, bank,
+  };
+}
+
 const LOGIC_TOPIC_FUNCS = {
   Patterns: patternsQ,
   "Pattern Builder": patternBuilderQ,
   "Odd One Out": oddOneOutQ,
   "Number Sequences": numberSequencesQ,
+  "Number Sequence Solver": numberSequenceSolverQ,
   Analogies: analogiesQ,
   "Chart Reading": chartReadingQ,
   "Who's Right?": whosRightQ,

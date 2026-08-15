@@ -365,7 +365,7 @@ function showQuestion() {
   nextBtn.id = "quiz-next-btn";
   nextRow.appendChild(nextBtn);
 
-  const INTERACTIVE_TYPES = ["make_ten", "vertical_column", "vertical_subtract", "spell_word", "sentence_builder", "pattern_fill", "counting_tap", "ten_frame"];
+  const INTERACTIVE_TYPES = ["make_ten", "vertical_column", "vertical_subtract", "spell_word", "sentence_builder", "pattern_fill", "counting_tap", "ten_frame", "number_sequence", "fraction_bar", "long_division"];
   if (INTERACTIVE_TYPES.includes(q.interactive)) {
     // Worked-out box exercise instead of multiple choice -- it can only ever be "finished"
     // once actually solved correctly, so completion always counts as correct.
@@ -382,7 +382,10 @@ function showQuestion() {
       : q.interactive === "sentence_builder" ? buildSentenceBuilderInteractive(q.words, onSolved)
       : q.interactive === "pattern_fill" ? buildPatternFillInteractive(q.sequence, q.bank, q.answer, onSolved)
       : q.interactive === "counting_tap" ? buildCountingTapInteractive(q.count, q.emoji, q.choices, onSolved)
-      : buildTenFrameInteractive(q.target, onSolved);
+      : q.interactive === "ten_frame" ? buildTenFrameInteractive(q.target, onSolved)
+      : q.interactive === "number_sequence" ? buildPatternFillInteractive(q.sequence, q.bank, q.answer, onSolved)
+      : q.interactive === "fraction_bar" ? buildFractionBarInteractive(q.numerator, q.denominator, onSolved)
+      : buildLongDivisionInteractive(q.dividend, q.divisor, q.steps, onSolved);
     card.appendChild(interactive);
     root.appendChild(card);
   } else {
