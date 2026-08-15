@@ -365,7 +365,7 @@ function showQuestion() {
   nextBtn.id = "quiz-next-btn";
   nextRow.appendChild(nextBtn);
 
-  const INTERACTIVE_TYPES = ["make_ten", "vertical_column", "vertical_subtract", "spell_word", "sentence_builder", "pattern_fill", "counting_tap", "ten_frame", "number_sequence", "fraction_bar", "equal_groups", "repeated_subtraction"];
+  const INTERACTIVE_TYPES = ["make_ten", "vertical_column", "vertical_subtract", "spell_word", "sentence_builder", "pattern_fill", "counting_tap", "ten_frame", "number_sequence", "fraction_bar", "equal_groups", "repeated_subtraction", "groups_multiply"];
   if (INTERACTIVE_TYPES.includes(q.interactive)) {
     // Worked-out box exercise instead of multiple choice -- it can only ever be "finished"
     // once actually solved correctly, so completion always counts as correct.
@@ -386,7 +386,8 @@ function showQuestion() {
       : q.interactive === "number_sequence" ? buildPatternFillInteractive(q.sequence, q.bank, q.answer, onSolved)
       : q.interactive === "fraction_bar" ? buildFractionBarInteractive(q.numerator, q.denominator, onSolved)
       : q.interactive === "equal_groups" ? buildEqualGroupsInteractive(q.dividend, q.divisor, q.quotient, q.emoji, onSolved)
-      : buildRepeatedSubtractionInteractive(q.dividend, q.divisor, q.quotient, q.choices, onSolved);
+      : q.interactive === "repeated_subtraction" ? buildRepeatedSubtractionInteractive(q.dividend, q.divisor, q.quotient, q.choices, onSolved)
+      : buildGroupsMultiplyInteractive(q.groups, q.perGroup, q.product, q.emoji, onSolved);
     card.appendChild(interactive);
     root.appendChild(card);
   } else {

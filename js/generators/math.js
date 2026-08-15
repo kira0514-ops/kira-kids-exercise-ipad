@@ -1230,6 +1230,138 @@ function buildEqualGroupsInteractive(dividend, divisor, quotient, emoji, onCompl
   return wrap;
 }
 
+// Multiplication's mirror of Equal Groups Sorter -- literally the same underlying model
+// ("N groups of M"), just asking for the product instead of the per-group count. Reuses
+// equalGroupsTier()'s ranges (the visual cap -- max ~24 tappable objects -- applies here just
+// as much) and every .eqgroups-* CSS class, so it looks and behaves as one consistent family
+// of exercise rather than a reskinned duplicate.
+function groupsMultiplyQ(ageIdx, diffIdx) {
+  const tier = equalGroupsTier(ageIdx, diffIdx);
+  const groups = randInt(tier.divisor[0], tier.divisor[1]);
+  const perGroup = randInt(tier.quotient[0], tier.quotient[1]);
+  const product = groups * perGroup;
+  const emoji = choice(COUNT_EMOJIS);
+  return {
+    prompt: `Build ${groups} groups of ${perGroup} ${emoji} each!`, speak: `Build ${groups} groups of ${perGroup}`,
+    choices: numericChoices(product, 0, product + Math.max(10, Math.floor(product / 2)) + 5), answer: product,
+    interactive: "groups_multiply", groups, perGroup, product, emoji,
+  };
+}
+
+function buildGroupsMultiplyInteractive(groups, perGroup, product, emoji, onComplete) {
+  const wrap = el("div", { class: "eqgroups-wrap" });
+  const poolRow = el("div", { class: "eqgroups-pool" });
+  wrap.appendChild(poolRow);
+  const binsRow = el("div", { class: "eqgroups-bins" });
+  wrap.appendChild(binsRow);
+
+  const bins = [];
+  for (let i = 0; i < groups; i++) {
+    const bin = el("div", { class: "eqgroups-bin" });
+    bin.appendChild(el("div", { class: "eqgroups-bin-label", text: `Group ${i + 1}` }));
+    const binItems = el("div", { class: "eqgroups-bin-items" });
+    bin.appendChild(binItems);
+    binsRow.appendChild(bin);
+    bins.push(binItems);
+  }
+
+  let nextBin = 0;
+  let placed = 0;
+  for (let i = 0; i < product; i++) {
+    const obj = el("button", { class: "eqgroups-object", type: "button", text: emoji });
+    obj.addEventListener("click", () => {
+      if (obj.disabled) return;
+      obj.disabled = true;
+      obj.classList.add("eqgroups-object-placed");
+      bins[nextBin].appendChild(el("span", { class: "eqgroups-bin-dot", text: emoji }));
+      nextBin = (nextBin + 1) % groups;
+      placed++;
+      if (placed === product) setTimeout(showEquationPhase, 500);
+    });
+    poolRow.appendChild(obj);
+  }
+
+  function showEquationPhase() {
+    poolRow.remove();
+    wrap.appendChild(el("div", { class: "eqgroups-recap", text: `${groups} groups of ${perGroup} is ${product}! Now write the equation:` }));
+
+    const eqRow = el("div", { class: "eqgroups-equation" });
+    wrap.appendChild(eqRow);
+    const blanks = [el("div", { class: "eqgroups-blank" }), el("div", { class: "eqgroups-blank" }), el("div", { class: "eqgroups-blank" })];
+    eqRow.appendChild(blanks[0]);
+    eqRow.appendChild(el("div", { class: "eqgroups-op", text: "×" }));
+    eqRow.appendChild(blanks[1]);
+    eqRow.appendChild(el("div", { class: "eqgroups-op", text: "=" }));
+    eqRow.appendChild(blanks[2]);
+    const correctSeq = [groups, perGroup, product];
+
+    const bankRow = el("div", { class: "eqgroups-bank" });
+    wrap.appendChild(bankRow);
+
+    const bankValues = new Set([groups, perGroup, product]);
+    let guard = 0;
+    while (bankValues.size < 5 && guard++ < 100) bankValues.add(randInt(1, product + 5));
+    const tiles = shuffle(Array.from(bankValues)).map((value, id) => ({ value, id }));
+    let placedIds = [];
+    let done = false;
+
+    function render() {
+      blanks.forEach((b, i) => {
+        const id = placedIds[i];
+        if (id != null) {
+          b.textContent = String(tiles.find((t) => t.id === id).value);
+          b.classList.add("eqgroups-blank-filled");
+        } else {
+          b.textContent = "";
+          b.classList.remove("eqgroups-blank-filled");
+        }
+      });
+      bankRow.innerHTML = "";
+      tiles.forEach((t) => {
+        if (placedIds.includes(t.id)) return;
+        const tile = el("button", { class: "eqgroups-tile", type: "button", text: String(t.value) });
+        tile.addEventListener("click", () => {
+          if (done || placedIds.length >= 3) return;
+          placedIds.push(t.id);
+          render();
+          if (placedIds.length === 3) checkComplete();
+        });
+        bankRow.appendChild(tile);
+      });
+    }
+
+    // Tapping the most recently placed blank undoes just that one -- backspace, not a full
+    // reset, same as Equal Groups Sorter.
+    blanks.forEach((b, i) => {
+      b.addEventListener("click", () => {
+        if (done || i !== placedIds.length - 1) return;
+        placedIds.pop();
+        render();
+      });
+    });
+
+    function checkComplete() {
+      const chosen = placedIds.map((id) => tiles.find((t) => t.id === id).value);
+      if (chosen[0] === correctSeq[0] && chosen[1] === correctSeq[1] && chosen[2] === correctSeq[2]) {
+        done = true;
+        blanks.forEach((b) => b.classList.add("eqgroups-blank-correct"));
+        onComplete();
+      } else {
+        blanks.forEach((b) => b.classList.add("eqgroups-blank-wrong"));
+        setTimeout(() => {
+          blanks.forEach((b) => b.classList.remove("eqgroups-blank-wrong"));
+          placedIds = [];
+          render();
+        }, 900);
+      }
+    }
+
+    render();
+  }
+
+  return wrap;
+}
+
 // Division Hops has no rendering constraint (it's just numbers, not individually-tappable
 // objects), so its own tier table can scale further than Equal Groups Sorter's -- capped only
 // by keeping the hop count from becoming tedious tapping (max 12 at Extreme).
@@ -1331,6 +1463,7 @@ const MATH_TOPIC_FUNCS = {
   Subtraction: subtractionQ,
   "Vertical Subtraction": verticalSubtractionQ,
   Multiplication: multiplicationQ,
+  "Groups Multiplier": groupsMultiplyQ,
   "Vertical Multiplication": verticalMultiplicationQ,
   Division: divisionQ,
   "Equal Groups Sorter": equalGroupsQ,
