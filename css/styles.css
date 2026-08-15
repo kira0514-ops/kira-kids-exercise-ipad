@@ -717,6 +717,20 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .eqgroups-bin-label { font-size: 12px; font-weight: bold; color: var(--text-secondary, #666); margin-bottom: 6px; }
 .eqgroups-bin-items { display: flex; flex-wrap: wrap; gap: 3px; min-height: 26px; justify-content: center; }
 .eqgroups-bin-dot { font-size: 18px; }
+.eqgroups-add-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 6px 4px;
+  background: white;
+  border: 2px solid var(--text);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text);
+  cursor: pointer;
+}
+.eqgroups-add-btn:active { transform: translateY(1px); }
+.eqgroups-add-btn-done { background: #C8E6C9; border-color: #2E7D32; color: #1B5E20; cursor: default; }
 .eqgroups-recap { font-size: 16px; font-weight: bold; color: var(--text); margin-top: 20px; margin-bottom: 16px; }
 .eqgroups-equation { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
 .eqgroups-blank {

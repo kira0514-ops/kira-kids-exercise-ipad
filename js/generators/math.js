@@ -1166,10 +1166,21 @@ function buildEqualGroupsInteractive(dividend, divisor, quotient, emoji, onCompl
     const bankRow = el("div", { class: "eqgroups-bank" });
     wrap.appendChild(bankRow);
 
-    const bankValues = new Set([dividend, divisor, quotient]);
+    // The 3 correct values go in as their own tiles even when two of them happen to be equal
+    // (e.g. 9 / 3 = 3 needs a "3" tile for the divisor slot AND a separate "3" tile for the
+    // quotient slot) -- deduping via a Set here would silently make the equation unsolvable
+    // whenever divisor === quotient, since only one "3" tile would exist for two slots that
+    // both need it.
+    const bankNums = [dividend, divisor, quotient];
+    const usedValues = new Set(bankNums);
     let guard = 0;
-    while (bankValues.size < 5 && guard++ < 100) bankValues.add(randInt(1, dividend + 5));
-    const tiles = shuffle(Array.from(bankValues)).map((value, id) => ({ value, id }));
+    while (bankNums.length < 5 && guard++ < 100) {
+      const candidate = randInt(1, dividend + 5);
+      if (usedValues.has(candidate)) continue;
+      usedValues.add(candidate);
+      bankNums.push(candidate);
+    }
+    const tiles = shuffle(bankNums).map((value, id) => ({ value, id }));
     let placedIds = [];
     let done = false;
 
@@ -1248,41 +1259,43 @@ function groupsMultiplyQ(ageIdx, diffIdx) {
   };
 }
 
+// Deliberately NOT a mirror of Equal Groups Sorter's pool-then-deal mechanic: that pool starts
+// with exactly `dividend` objects, which is fine there since the dividend is the GIVEN part of
+// a division problem, not the answer. Here `product` is the answer -- pre-rendering a pool of
+// exactly that many objects would let a kid just count the pool and skip the multiplication
+// entirely. Instead each bin gets its own "add" button and independently builds up to
+// `perGroup`, so the total is never visible as a count until the recap reveals it.
 function buildGroupsMultiplyInteractive(groups, perGroup, product, emoji, onComplete) {
   const wrap = el("div", { class: "eqgroups-wrap" });
-  const poolRow = el("div", { class: "eqgroups-pool" });
-  wrap.appendChild(poolRow);
   const binsRow = el("div", { class: "eqgroups-bins" });
   wrap.appendChild(binsRow);
 
-  const bins = [];
+  const binCounts = [];
+  let groupsFilled = 0;
   for (let i = 0; i < groups; i++) {
     const bin = el("div", { class: "eqgroups-bin" });
     bin.appendChild(el("div", { class: "eqgroups-bin-label", text: `Group ${i + 1}` }));
     const binItems = el("div", { class: "eqgroups-bin-items" });
     bin.appendChild(binItems);
+    const addBtn = el("button", { class: "eqgroups-add-btn", type: "button", text: `+ ${emoji}` });
+    bin.appendChild(addBtn);
     binsRow.appendChild(bin);
-    bins.push(binItems);
-  }
+    binCounts.push(0);
 
-  let nextBin = 0;
-  let placed = 0;
-  for (let i = 0; i < product; i++) {
-    const obj = el("button", { class: "eqgroups-object", type: "button", text: emoji });
-    obj.addEventListener("click", () => {
-      if (obj.disabled) return;
-      obj.disabled = true;
-      obj.classList.add("eqgroups-object-placed");
-      bins[nextBin].appendChild(el("span", { class: "eqgroups-bin-dot", text: emoji }));
-      nextBin = (nextBin + 1) % groups;
-      placed++;
-      if (placed === product) setTimeout(showEquationPhase, 500);
+    addBtn.addEventListener("click", () => {
+      if (binCounts[i] >= perGroup) return;
+      binItems.appendChild(el("span", { class: "eqgroups-bin-dot", text: emoji }));
+      binCounts[i]++;
+      if (binCounts[i] === perGroup) {
+        addBtn.disabled = true;
+        addBtn.classList.add("eqgroups-add-btn-done");
+        groupsFilled++;
+        if (groupsFilled === groups) setTimeout(showEquationPhase, 500);
+      }
     });
-    poolRow.appendChild(obj);
   }
 
   function showEquationPhase() {
-    poolRow.remove();
     wrap.appendChild(el("div", { class: "eqgroups-recap", text: `${groups} groups of ${perGroup} is ${product}! Now write the equation:` }));
 
     const eqRow = el("div", { class: "eqgroups-equation" });
@@ -1298,10 +1311,18 @@ function buildGroupsMultiplyInteractive(groups, perGroup, product, emoji, onComp
     const bankRow = el("div", { class: "eqgroups-bank" });
     wrap.appendChild(bankRow);
 
-    const bankValues = new Set([groups, perGroup, product]);
+    // Same duplicate-value fix as Equal Groups Sorter: the 3 correct values go in as their own
+    // tiles even when two coincide (e.g. 3 groups of 3 needs two separate "3" tiles).
+    const bankNums = [groups, perGroup, product];
+    const usedValues = new Set(bankNums);
     let guard = 0;
-    while (bankValues.size < 5 && guard++ < 100) bankValues.add(randInt(1, product + 5));
-    const tiles = shuffle(Array.from(bankValues)).map((value, id) => ({ value, id }));
+    while (bankNums.length < 5 && guard++ < 100) {
+      const candidate = randInt(1, product + 5);
+      if (usedValues.has(candidate)) continue;
+      usedValues.add(candidate);
+      bankNums.push(candidate);
+    }
+    const tiles = shuffle(bankNums).map((value, id) => ({ value, id }));
     let placedIds = [];
     let done = false;
 
