@@ -3,7 +3,14 @@
 // counterpart. Keep this in sync by hand whenever the Python generators change algorithm --
 // pure data changes (word banks etc.) instead flow through tools/extract_data.py -> data.js.
 
-const COUNT_EMOJIS = ["\u{1F34E}", "⭐", "\u{1F431}", "\u{1F697}", "\u{1F388}"];
+// Widened from the original 5 (apple, star, cat, car, balloon) -- with only 5 to choose from,
+// Counting Tap's object type repeated constantly even though the count itself was already
+// random each time, which read as "the same exercise" rather than a fresh one.
+const COUNT_EMOJIS = [
+  "\u{1F34E}", "⭐", "\u{1F431}", "\u{1F697}", "\u{1F388}",
+  "\u{1F34C}", "\u{1F436}", "\u{1F338}", "\u{1F381}", "\u{1F98B}",
+  "\u{1F41F}", "\u{1F36D}", "\u{1F9F8}", "\u{1F30D}", "\u{1F335}",
+];
 const NAMES = ["Mia", "Liam", "Ava", "Noah", "Zoe", "Ben", "Ivy", "Sam", "Leo", "Nina"];
 const ITEMS = ["apples", "stickers", "marbles", "balloons", "cookies", "pencils", "toy cars", "books", "coins", "crayons"];
 const ITEM_EMOJI = {

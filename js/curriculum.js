@@ -57,7 +57,10 @@ function dailyCurriculumTopics(ageIdx, day, trackYear = 1, diffOverride = null) 
     }
     return out;
   }
-  return [diffIdx, pick(mathAvail, 3), pick(readingAvail, 2), pick(logicAvail, 1), unitLabel];
+  // Logic used to always pick just 1 topic/day (vs. math's 3 and reading's 2), so every one
+  // of its ~5 daily question slots was the exact same topic -- the single most repetitive
+  // slice of a session. Matches reading's count now.
+  return [diffIdx, pick(mathAvail, 3), pick(readingAvail, 2), pick(logicAvail, 2), unitLabel];
 }
 
 const DAILY_STORAGE_KEY = "kidsExerciseGenerator.daily";
