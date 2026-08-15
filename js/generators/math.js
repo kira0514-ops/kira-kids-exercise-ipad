@@ -866,8 +866,124 @@ function equationsQ(ageIdx, diffIdx) {
     illustration: { type: "equation_balance", left, right: String(c) } };
 }
 
+// -- Preschool-only counting/quantity-sense exercises ------------------------------------
+// Both ignore ageIdx entirely (same reasoning as verticalAdditionSingleDigitQ): they're only
+// ever reached via an explicit Preschool curriculum phase list, which bypasses MIN_AGE
+// filtering, so ageIdx could arrive as anything resolveExtreme rewrote it to. Scaling only off
+// diffIdx keeps them safe regardless.
+
+// Tap each scattered object to count it (one-to-one correspondence -- the actual foundational
+// preschool skill, not yet touched by anything else in the app, which jumps straight to
+// already-formed-numeral arithmetic). Once every object has been tapped, a bank of nearby
+// numbers unlocks for the kid to tap the total.
+function countingTapQ(ageIdx, diffIdx) {
+  const [lo, hi] = diffIdx >= 2 ? [5, 10] : [1, 5];
+  const n = randInt(lo, hi);
+  const emoji = choice(COUNT_EMOJIS);
+  return {
+    prompt: "Tap each one to count, then tap the number!", speak: "Count them, then tap the number",
+    choices: numericChoices(n, 0, 10), answer: n,
+    interactive: "counting_tap", count: n, emoji,
+  };
+}
+
+// Classic ten-frame manipulative: tap cells to fill them (tap again to unfill, so a misclick
+// isn't a dead end) until the filled count matches the target -- validates the moment it does,
+// however the kid got there, since "how many cells are filled" is the whole task.
+function tenFrameFillQ(ageIdx, diffIdx) {
+  const [lo, hi] = diffIdx >= 2 ? [5, 10] : [1, 5];
+  const n = randInt(lo, hi);
+  return {
+    prompt: `Fill the ten-frame with ${n}!`, speak: `Fill the ten frame with ${n}`,
+    choices: numericChoices(n, 0, 10), answer: n,
+    interactive: "ten_frame", target: n,
+  };
+}
+
+// Objects stay tappable throughout (no "counted" lockout) so a kid who loses count can just
+// recount by re-tapping -- the running counter always reflects how many are currently marked,
+// same forgiving spirit as the ten-frame's tap-to-toggle. The number bank only responds once
+// every object has been marked, enforcing "count first, then answer" without silently eating
+// early taps (it's visibly dimmed via CSS until then).
+function buildCountingTapInteractive(count, emoji, choices, onComplete) {
+  const wrap = el("div", { class: "counting-wrap" });
+
+  const objectsRow = el("div", { class: "counting-objects" });
+  wrap.appendChild(objectsRow);
+  const counterEl = el("div", { class: "counting-counter", text: `Counted: 0 / ${count}` });
+  wrap.appendChild(counterEl);
+  const numberRow = el("div", { class: "counting-number-bank" });
+  wrap.appendChild(numberRow);
+
+  let tapped = 0;
+  let done = false;
+
+  for (let i = 0; i < count; i++) {
+    const obj = el("button", { class: "counting-object", type: "button", text: emoji });
+    obj.addEventListener("click", () => {
+      if (done) return;
+      const wasCounted = obj.classList.contains("counting-object-counted");
+      obj.classList.toggle("counting-object-counted");
+      tapped += wasCounted ? -1 : 1;
+      counterEl.textContent = `Counted: ${tapped} / ${count}`;
+      numberRow.classList.toggle("counting-number-bank-active", tapped === count);
+    });
+    objectsRow.appendChild(obj);
+  }
+
+  choices.forEach((num) => {
+    const tile = el("button", { class: "counting-number-tile", type: "button", text: String(num) });
+    tile.addEventListener("click", () => {
+      if (done || tapped !== count) return;
+      if (num === count) {
+        done = true;
+        tile.classList.add("counting-number-correct");
+        onComplete();
+      } else {
+        tile.classList.add("counting-number-wrong");
+        setTimeout(() => tile.classList.remove("counting-number-wrong"), 400);
+      }
+    });
+    numberRow.appendChild(tile);
+  });
+
+  return wrap;
+}
+
+function buildTenFrameInteractive(target, onComplete) {
+  const wrap = el("div", { class: "tenframe-wrap" });
+  const grid = el("div", { class: "tenframe-grid" });
+  wrap.appendChild(grid);
+  const counterEl = el("div", { class: "tenframe-counter", text: `Filled: 0 / ${target}` });
+  wrap.appendChild(counterEl);
+
+  let filled = 0;
+  let done = false;
+
+  for (let i = 0; i < 10; i++) {
+    const cell = el("button", { class: "tenframe-cell", type: "button" });
+    cell.addEventListener("click", () => {
+      if (done) return;
+      const isFilled = cell.classList.contains("tenframe-cell-filled");
+      cell.classList.toggle("tenframe-cell-filled");
+      filled += isFilled ? -1 : 1;
+      counterEl.textContent = `Filled: ${filled} / ${target}`;
+      if (filled === target) {
+        done = true;
+        grid.classList.add("tenframe-grid-correct");
+        onComplete();
+      }
+    });
+    grid.appendChild(cell);
+  }
+
+  return wrap;
+}
+
 const MATH_TOPIC_FUNCS = {
   Addition: additionQ,
+  "Counting Tap": countingTapQ,
+  "Ten-Frame Fill": tenFrameFillQ,
   "Make 10 Addition": make10AdditionQ,
   "Vertical Addition": verticalAdditionQ,
   "Vertical Addition (Single Digit)": verticalAdditionSingleDigitQ,
