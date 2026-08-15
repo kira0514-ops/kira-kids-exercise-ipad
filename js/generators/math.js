@@ -1073,10 +1073,36 @@ function buildFractionBarInteractive(numerator, denominator, onComplete) {
 // three blanks (dividend, divisor, quotient) with a shared number bank, filled in order left
 // to right like Sentence Builder, so getting the STRUCTURE of the equation right (which number
 // is the total, which is the group count) is as much the point as the arithmetic.
+// Equal Groups Sorter needs its OWN tier table, not a shared one with Division Hops --
+// every combination is constructed so divisor*quotient never exceeds 24 (an earlier version
+// tried to force-fit Division Hops' bigger ranges by clamping quotient's upper bound after the
+// fact, which broke silently whenever a tier's minimum quotient already exceeded the capped
+// max: randInt(lo, hi) with lo > hi just returns lo unclamped, so "Extreme" could still ask
+// for 30-45 objects). Progression here comes mainly from a wider divisor range (more groups to
+// track) since quotient has to stay small at every tier for the object count to fit on screen.
+const EQUAL_GROUPS_TIERS = {
+  1: [ // Early Elementary
+    { divisor: [2, 3], quotient: [2, 4] }, // Easy, max 12
+    { divisor: [2, 4], quotient: [3, 5] }, // Medium, max 20
+    { divisor: [3, 5], quotient: [3, 4] }, // Hard, max 20
+    { divisor: [3, 6], quotient: [3, 4] }, // Extreme, max 24
+  ],
+  2: [ // Upper Elementary
+    { divisor: [2, 4], quotient: [3, 4] }, // Easy, max 16
+    { divisor: [3, 5], quotient: [3, 4] }, // Medium, max 20
+    { divisor: [3, 6], quotient: [3, 4] }, // Hard, max 24
+    { divisor: [4, 6], quotient: [3, 4] }, // Extreme, max 24
+  ],
+};
+function equalGroupsTier(ageIdx, diffIdx) {
+  const tiers = EQUAL_GROUPS_TIERS[ageIdx] || EQUAL_GROUPS_TIERS[1];
+  return tiers[Math.min(diffIdx, tiers.length - 1)];
+}
+
 function equalGroupsQ(ageIdx, diffIdx) {
-  const divisor = randInt(diffIdx >= 2 ? 3 : 2, diffIdx >= 2 ? 6 : 4);
-  const maxQuotient = Math.max(2, Math.floor(20 / divisor));
-  const quotient = randInt(2, Math.min(maxQuotient, diffIdx >= 2 ? 8 : 5));
+  const tier = equalGroupsTier(ageIdx, diffIdx);
+  const divisor = randInt(tier.divisor[0], tier.divisor[1]);
+  const quotient = randInt(tier.quotient[0], tier.quotient[1]);
   const dividend = divisor * quotient;
   const emoji = choice(COUNT_EMOJIS);
   return {
@@ -1200,6 +1226,28 @@ function buildEqualGroupsInteractive(dividend, divisor, quotient, emoji, onCompl
   return wrap;
 }
 
+// Division Hops has no rendering constraint (it's just numbers, not individually-tappable
+// objects), so its own tier table can scale further than Equal Groups Sorter's -- capped only
+// by keeping the hop count from becoming tedious tapping (max 12 at Extreme).
+const DIVISION_HOPS_TIERS = {
+  1: [ // Early Elementary
+    { divisor: [2, 3], quotient: [2, 4] }, // Easy
+    { divisor: [2, 4], quotient: [3, 5] }, // Medium
+    { divisor: [3, 5], quotient: [4, 6] }, // Hard
+    { divisor: [3, 6], quotient: [5, 8] }, // Extreme
+  ],
+  2: [ // Upper Elementary
+    { divisor: [2, 4], quotient: [3, 6] }, // Easy
+    { divisor: [3, 6], quotient: [4, 8] }, // Medium
+    { divisor: [4, 7], quotient: [5, 9] }, // Hard
+    { divisor: [4, 9], quotient: [6, 12] }, // Extreme
+  ],
+};
+function divisionHopsTier(ageIdx, diffIdx) {
+  const tiers = DIVISION_HOPS_TIERS[ageIdx] || DIVISION_HOPS_TIERS[1];
+  return tiers[Math.min(diffIdx, tiers.length - 1)];
+}
+
 // Start at the dividend, tap "subtract" to take away the divisor each time, counting hops
 // until nothing's left -- "how many times can I take this away" is usually the most intuitive
 // entry point into division, no groups/sharing metaphor or column algorithm required. Once the
@@ -1207,8 +1255,9 @@ function buildEqualGroupsInteractive(dividend, divisor, quotient, emoji, onCompl
 // counting the hops and connecting that count to "the answer" are both required, not just
 // tapping subtract mindlessly).
 function repeatedSubtractionQ(ageIdx, diffIdx) {
-  const divisor = randInt(diffIdx >= 2 ? 3 : 2, diffIdx >= 2 ? 9 : 5);
-  const quotient = randInt(diffIdx >= 2 ? 3 : 2, diffIdx >= 2 ? 9 : 6);
+  const tier = divisionHopsTier(ageIdx, diffIdx);
+  const divisor = randInt(tier.divisor[0], tier.divisor[1]);
+  const quotient = randInt(tier.quotient[0], tier.quotient[1]);
   const dividend = divisor * quotient;
   return {
     prompt: `${dividend} ÷ ${divisor} = ? Keep subtracting ${divisor} until you reach 0!`, speak: `${dividend} divided by ${divisor}`,
