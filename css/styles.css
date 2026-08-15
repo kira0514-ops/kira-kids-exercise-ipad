@@ -699,8 +699,80 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .fracbar-bar-correct .fracbar-segment-shaded { background: #2E7D32; }
 .fracbar-counter { font-weight: bold; font-size: 16px; color: var(--text); margin-bottom: 4px; }
 
+.eqgroups-wrap { text-align: center; margin: 10px auto; }
+.eqgroups-pool { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 20px; max-width: 460px; margin-left: auto; margin-right: auto; }
+.eqgroups-object {
+  width: 44px;
+  height: 44px;
+  background: white;
+  border: 2.5px solid var(--text);
+  border-radius: 10px;
+  font-size: 22px;
+  cursor: pointer;
+}
+.eqgroups-object:active { transform: translateY(1px); }
+.eqgroups-object-placed { visibility: hidden; }
+.eqgroups-bins { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.eqgroups-bin { background: white; border: 2.5px dashed var(--grad2); border-radius: 10px; padding: 8px; min-width: 70px; }
+.eqgroups-bin-label { font-size: 12px; font-weight: bold; color: var(--text-secondary, #666); margin-bottom: 6px; }
+.eqgroups-bin-items { display: flex; flex-wrap: wrap; gap: 3px; min-height: 26px; justify-content: center; }
+.eqgroups-bin-dot { font-size: 18px; }
+.eqgroups-recap { font-size: 16px; font-weight: bold; color: var(--text); margin-bottom: 16px; }
+.eqgroups-equation { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
+.eqgroups-blank {
+  width: 52px;
+  height: 52px;
+  background: white;
+  border: 2.5px dashed var(--grad2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--text);
+  cursor: pointer;
+}
+.eqgroups-blank-filled { border-style: solid; }
+.eqgroups-blank-correct { background: #C8E6C9; border-color: #2E7D32; color: #1B5E20; cursor: default; }
+.eqgroups-blank-wrong { background: #FFCDD2; border-color: #C62828; }
+.eqgroups-op { font-size: 24px; font-weight: bold; color: var(--text); }
+.eqgroups-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.eqgroups-tile {
+  width: 52px;
+  height: 52px;
+  background: white;
+  border: 2.5px solid var(--text);
+  border-radius: 10px;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.eqgroups-tile:active { transform: translateY(1px); }
+
+.repsub-wrap { text-align: center; margin: 10px auto; }
+.repsub-remaining { font-size: 48px; font-weight: bold; color: var(--text); margin-bottom: 4px; }
+.repsub-hopcount { font-size: 16px; font-weight: bold; color: var(--grad1); margin-bottom: 16px; }
+.repsub-prompt { font-size: 16px; font-weight: bold; color: var(--text); margin: 16px 0; }
+.repsub-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.repsub-tile {
+  width: 52px;
+  height: 52px;
+  background: white;
+  border: 2.5px solid var(--text);
+  border-radius: 10px;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.repsub-tile:active { transform: translateY(1px); }
+.repsub-tile-correct { background: #C8E6C9; border-color: #2E7D32; cursor: default; }
+.repsub-tile-wrong { background: #FFCDD2; border-color: #C62828; }
+
 @media (max-width: 700px) {
   .fracbar-bar { height: 48px; }
+  .eqgroups-object { width: 36px; height: 36px; font-size: 18px; }
+  .eqgroups-blank, .eqgroups-tile, .repsub-tile { width: 44px; height: 44px; font-size: 18px; }
 }
 
 .numgrid-grid {

@@ -1062,6 +1062,212 @@ function buildFractionBarInteractive(numerator, denominator, onComplete) {
   return wrap;
 }
 
+// -- Concrete, non-algorithm ways to teach division --------------------------------------
+// Both are exact division only (dividend = divisor x quotient, no remainder) -- these are
+// about building the concept of what division IS before adding remainder complexity on top.
+
+// Phase 1: tap each scattered object to deal it out round-robin into `divisor` group bins
+// (exactly how "share these equally" works by hand -- one to you, one to you, one to you,
+// repeat), so placement is always correct by construction and the kid's job is just watching
+// the groups even out as they tap. Phase 2: write the equation from what just happened --
+// three blanks (dividend, divisor, quotient) with a shared number bank, filled in order left
+// to right like Sentence Builder, so getting the STRUCTURE of the equation right (which number
+// is the total, which is the group count) is as much the point as the arithmetic.
+function equalGroupsQ(ageIdx, diffIdx) {
+  const divisor = randInt(diffIdx >= 2 ? 3 : 2, diffIdx >= 2 ? 6 : 4);
+  const maxQuotient = Math.max(2, Math.floor(20 / divisor));
+  const quotient = randInt(2, Math.min(maxQuotient, diffIdx >= 2 ? 8 : 5));
+  const dividend = divisor * quotient;
+  const emoji = choice(COUNT_EMOJIS);
+  return {
+    prompt: `Share ${dividend} ${emoji} equally into ${divisor} groups!`, speak: `Share ${dividend} into ${divisor} equal groups`,
+    choices: numericChoices(quotient, 0, dividend), answer: quotient,
+    interactive: "equal_groups", dividend, divisor, quotient, emoji,
+  };
+}
+
+function buildEqualGroupsInteractive(dividend, divisor, quotient, emoji, onComplete) {
+  const wrap = el("div", { class: "eqgroups-wrap" });
+  const poolRow = el("div", { class: "eqgroups-pool" });
+  wrap.appendChild(poolRow);
+  const binsRow = el("div", { class: "eqgroups-bins" });
+  wrap.appendChild(binsRow);
+
+  const bins = [];
+  for (let i = 0; i < divisor; i++) {
+    const bin = el("div", { class: "eqgroups-bin" });
+    bin.appendChild(el("div", { class: "eqgroups-bin-label", text: `Group ${i + 1}` }));
+    const binItems = el("div", { class: "eqgroups-bin-items" });
+    bin.appendChild(binItems);
+    binsRow.appendChild(bin);
+    bins.push(binItems);
+  }
+
+  let nextBin = 0;
+  let placed = 0;
+  for (let i = 0; i < dividend; i++) {
+    const obj = el("button", { class: "eqgroups-object", type: "button", text: emoji });
+    obj.addEventListener("click", () => {
+      if (obj.disabled) return;
+      obj.disabled = true;
+      obj.classList.add("eqgroups-object-placed");
+      bins[nextBin].appendChild(el("span", { class: "eqgroups-bin-dot", text: emoji }));
+      nextBin = (nextBin + 1) % divisor;
+      placed++;
+      if (placed === dividend) setTimeout(showEquationPhase, 500);
+    });
+    poolRow.appendChild(obj);
+  }
+
+  function showEquationPhase() {
+    wrap.innerHTML = "";
+    wrap.appendChild(el("div", { class: "eqgroups-recap", text: `${divisor} groups of ${quotient} each! Now write the equation:` }));
+
+    const eqRow = el("div", { class: "eqgroups-equation" });
+    wrap.appendChild(eqRow);
+    const blanks = [el("div", { class: "eqgroups-blank" }), el("div", { class: "eqgroups-blank" }), el("div", { class: "eqgroups-blank" })];
+    eqRow.appendChild(blanks[0]);
+    eqRow.appendChild(el("div", { class: "eqgroups-op", text: "÷" }));
+    eqRow.appendChild(blanks[1]);
+    eqRow.appendChild(el("div", { class: "eqgroups-op", text: "=" }));
+    eqRow.appendChild(blanks[2]);
+    const correctSeq = [dividend, divisor, quotient];
+
+    const bankRow = el("div", { class: "eqgroups-bank" });
+    wrap.appendChild(bankRow);
+
+    const bankValues = new Set([dividend, divisor, quotient]);
+    let guard = 0;
+    while (bankValues.size < 5 && guard++ < 100) bankValues.add(randInt(1, dividend + 5));
+    const tiles = shuffle(Array.from(bankValues)).map((value, id) => ({ value, id }));
+    let placedIds = [];
+    let done = false;
+
+    function render() {
+      blanks.forEach((b, i) => {
+        const id = placedIds[i];
+        if (id != null) {
+          b.textContent = String(tiles.find((t) => t.id === id).value);
+          b.classList.add("eqgroups-blank-filled");
+        } else {
+          b.textContent = "";
+          b.classList.remove("eqgroups-blank-filled");
+        }
+      });
+      bankRow.innerHTML = "";
+      tiles.forEach((t) => {
+        if (placedIds.includes(t.id)) return;
+        const tile = el("button", { class: "eqgroups-tile", type: "button", text: String(t.value) });
+        tile.addEventListener("click", () => {
+          if (done || placedIds.length >= 3) return;
+          placedIds.push(t.id);
+          render();
+          if (placedIds.length === 3) checkComplete();
+        });
+        bankRow.appendChild(tile);
+      });
+    }
+
+    // Tapping the most recently placed blank undoes just that one -- backspace, not a full
+    // reset, since a slip on the 3rd number shouldn't cost the first two.
+    blanks.forEach((b, i) => {
+      b.addEventListener("click", () => {
+        if (done || i !== placedIds.length - 1) return;
+        placedIds.pop();
+        render();
+      });
+    });
+
+    function checkComplete() {
+      const chosen = placedIds.map((id) => tiles.find((t) => t.id === id).value);
+      if (chosen[0] === correctSeq[0] && chosen[1] === correctSeq[1] && chosen[2] === correctSeq[2]) {
+        done = true;
+        blanks.forEach((b) => b.classList.add("eqgroups-blank-correct"));
+        onComplete();
+      } else {
+        blanks.forEach((b) => b.classList.add("eqgroups-blank-wrong"));
+        setTimeout(() => {
+          blanks.forEach((b) => b.classList.remove("eqgroups-blank-wrong"));
+          placedIds = [];
+          render();
+        }, 900);
+      }
+    }
+
+    render();
+  }
+
+  return wrap;
+}
+
+// Start at the dividend, tap "subtract" to take away the divisor each time, counting hops
+// until nothing's left -- "how many times can I take this away" is usually the most intuitive
+// entry point into division, no groups/sharing metaphor or column algorithm required. Once the
+// pile hits exactly 0, the kid confirms the hop count as the answer from a small bank (so
+// counting the hops and connecting that count to "the answer" are both required, not just
+// tapping subtract mindlessly).
+function repeatedSubtractionQ(ageIdx, diffIdx) {
+  const divisor = randInt(diffIdx >= 2 ? 3 : 2, diffIdx >= 2 ? 9 : 5);
+  const quotient = randInt(diffIdx >= 2 ? 3 : 2, diffIdx >= 2 ? 9 : 6);
+  const dividend = divisor * quotient;
+  return {
+    prompt: `${dividend} ÷ ${divisor} = ? Keep subtracting ${divisor} until you reach 0!`, speak: `${dividend} divided by ${divisor}`,
+    choices: numericChoices(quotient, 0, dividend), answer: quotient,
+    interactive: "repeated_subtraction", dividend, divisor, quotient,
+  };
+}
+
+function buildRepeatedSubtractionInteractive(dividend, divisor, quotient, bank, onComplete) {
+  const wrap = el("div", { class: "repsub-wrap" });
+  const remainingEl = el("div", { class: "repsub-remaining", text: String(dividend) });
+  wrap.appendChild(remainingEl);
+  const hopCounterEl = el("div", { class: "repsub-hopcount", text: "Hops: 0" });
+  wrap.appendChild(hopCounterEl);
+
+  let remaining = dividend;
+  let hops = 0;
+
+  const subtractBtn = button(`➖ Subtract ${divisor}`, () => {
+    if (remaining <= 0) return;
+    remaining -= divisor;
+    hops++;
+    remainingEl.textContent = String(remaining);
+    hopCounterEl.textContent = `Hops: ${hops}`;
+    if (remaining === 0) {
+      subtractBtn.disabled = true;
+      showAnswerPhase();
+    }
+  }, "start");
+  wrap.appendChild(subtractBtn);
+
+  const answerPhaseEl = el("div", { class: "repsub-answer-phase" });
+  wrap.appendChild(answerPhaseEl);
+
+  function showAnswerPhase() {
+    answerPhaseEl.appendChild(el("div", { class: "repsub-prompt", text: `You hopped back ${hops} times! So ${dividend} ÷ ${divisor} = ?` }));
+    const bankRow = el("div", { class: "repsub-bank" });
+    let done = false;
+    bank.forEach((num) => {
+      const tile = el("button", { class: "repsub-tile", type: "button", text: String(num) });
+      tile.addEventListener("click", () => {
+        if (done) return;
+        if (num === quotient) {
+          done = true;
+          tile.classList.add("repsub-tile-correct");
+          onComplete();
+        } else {
+          tile.classList.add("repsub-tile-wrong");
+          setTimeout(() => tile.classList.remove("repsub-tile-wrong"), 400);
+        }
+      });
+      bankRow.appendChild(tile);
+    });
+    answerPhaseEl.appendChild(bankRow);
+  }
+
+  return wrap;
+}
+
 const MATH_TOPIC_FUNCS = {
   Addition: additionQ,
   "Counting Tap": countingTapQ,
@@ -1074,6 +1280,8 @@ const MATH_TOPIC_FUNCS = {
   Multiplication: multiplicationQ,
   "Vertical Multiplication": verticalMultiplicationQ,
   Division: divisionQ,
+  "Equal Groups Sorter": equalGroupsQ,
+  "Division Hops": repeatedSubtractionQ,
   "Mixed Operations": mixedOperationsQ,
   "Place Value": placeValueQ,
   Fractions: fractionsQ,
