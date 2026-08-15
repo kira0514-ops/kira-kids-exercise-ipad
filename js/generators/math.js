@@ -1062,87 +1062,6 @@ function buildFractionBarInteractive(numerator, denominator, onComplete) {
   return wrap;
 }
 
-// Step-by-step long division: one quotient digit at a time, mirroring the standard algorithm
-// (bring down the next digit, how many times does the divisor go in, multiply, subtract) --
-// exactly what a kid does on paper, not just "here's the final answer, pick it from 4 choices."
-// Reuses buildDragDigitBox (the same 0-9 picker as the vertical arithmetic exercises) since
-// each step is a single discrete digit answer, not a multi-tap arrangement -- immediate
-// correct/wrong feedback per digit is the same convention vertical arithmetic already uses.
-function longDivisionSteps(dividend, divisor) {
-  const digits = String(dividend).split("").map(Number);
-  const steps = [];
-  let current = 0;
-  let started = false;
-  for (let i = 0; i < digits.length; i++) {
-    current = current * 10 + digits[i];
-    if (!started && current < divisor) continue; // still accumulating leading digits
-    started = true;
-    const quotientDigit = Math.floor(current / divisor);
-    const remainder = current % divisor;
-    steps.push({ workingValue: current, quotientDigit, remainder, product: quotientDigit * divisor });
-    current = remainder;
-  }
-  return steps;
-}
-
-function longDivisionQ(ageIdx, diffIdx) {
-  const divisor = randInt(2, diffIdx >= 2 ? 12 : 9);
-  let dividend, steps;
-  for (let tries = 0; tries < 200; tries++) {
-    const digitCount = diffIdx >= 2 ? choice([3, 4]) : 3;
-    dividend = digitCount === 3 ? randInt(100, 999) : randInt(1000, 9999);
-    steps = longDivisionSteps(dividend, divisor);
-    if (steps.length >= 2) break;
-  }
-  const quotient = Math.floor(dividend / divisor);
-  const remainder = dividend % divisor;
-  return {
-    prompt: `${dividend} ÷ ${divisor} = ?`, speak: `${dividend} divided by ${divisor}`,
-    choices: numericChoices(quotient, 0, quotient + Math.max(10, Math.floor(quotient / 2)) + 5), answer: quotient,
-    interactive: "long_division", dividend, divisor, steps, quotient, remainder,
-  };
-}
-
-function buildLongDivisionInteractive(dividend, divisor, steps, onComplete) {
-  const wrap = el("div", { class: "longdiv-wrap" });
-  wrap.appendChild(el("div", { class: "longdiv-header", text: `${dividend} ÷ ${divisor} = ?` }));
-
-  const quotientRow = el("div", { class: "longdiv-quotient-row" });
-  wrap.appendChild(quotientRow);
-  const quotientBoxes = steps.map(() => {
-    const box = el("div", { class: "longdiv-quotient-box" });
-    quotientRow.appendChild(box);
-    return box;
-  });
-
-  const stepCard = el("div", { class: "longdiv-step-card" });
-  wrap.appendChild(stepCard);
-
-  let stepIdx = 0;
-
-  function renderStep() {
-    stepCard.innerHTML = "";
-    const s = steps[stepIdx];
-    stepCard.appendChild(el("div", { class: "longdiv-step-text", text: `${s.workingValue} ÷ ${divisor} = ? (tap the digit)` }));
-    const ui = buildDragDigitBox(s.quotientDigit, "normal", () => {
-      quotientBoxes[stepIdx].textContent = String(s.quotientDigit);
-      quotientBoxes[stepIdx].classList.add("longdiv-quotient-box-filled");
-      stepCard.appendChild(el("div", { class: "longdiv-recap",
-        text: `${s.quotientDigit} × ${divisor} = ${s.product}. ${s.workingValue} - ${s.product} = ${s.remainder}` }));
-      stepIdx++;
-      setTimeout(() => {
-        if (stepIdx < steps.length) renderStep();
-        else onComplete();
-      }, 1100);
-    });
-    stepCard.appendChild(ui.box);
-    stepCard.appendChild(ui.strip);
-  }
-
-  renderStep();
-  return wrap;
-}
-
 const MATH_TOPIC_FUNCS = {
   Addition: additionQ,
   "Counting Tap": countingTapQ,
@@ -1155,7 +1074,6 @@ const MATH_TOPIC_FUNCS = {
   Multiplication: multiplicationQ,
   "Vertical Multiplication": verticalMultiplicationQ,
   Division: divisionQ,
-  "Long Division": longDivisionQ,
   "Mixed Operations": mixedOperationsQ,
   "Place Value": placeValueQ,
   Fractions: fractionsQ,
