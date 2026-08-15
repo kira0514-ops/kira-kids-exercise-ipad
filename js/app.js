@@ -44,6 +44,29 @@ const SUBJECT_GENERATOR = {
   "Logic / Puzzles": (ageIdx, diffIdx, topics) => logicQuestion(ageIdx, diffIdx, topics),
 };
 
+// Groups the topic checkboxes into labeled clusters so the picker stays scannable as topics
+// are added over time. Any topic not listed here (e.g. a brand-new one added before this list
+// is updated) still shows up, bucketed into a trailing "More" group -- so a sync never hides it.
+const TOPIC_CATEGORIES = {
+  Math: [
+    ["➕ Addition & Subtraction", ["Addition", "Make 10 Addition", "Vertical Addition", "Vertical Addition (Single Digit)", "Subtraction", "Vertical Subtraction", "Counting Tap", "Ten-Frame Fill"]],
+    ["✖️ Multiplication & Division", ["Multiplication", "Vertical Multiplication", "Division", "Mixed Operations", "Equal Groups Sorter", "Division Hops", "Groups Multiplier"]],
+    ["🔢 Numbers & Place Value", ["Place Value", "Missing Number"]],
+    ["🍰 Fractions, Decimals & Percentages", ["Fractions", "Fraction Bar Builder", "Decimals", "Percentages"]],
+    ["📐 Geometry & Measurement", ["Geometry", "Measurement", "Trigonometry"]],
+    ["🧮 Word Problems & Equations", ["Word Problems", "Equations"]],
+  ],
+  "Reading / Spelling": [
+    ["🔤 Letters & Sounds", ["Phonics", "First Letter", "Rhyming", "Missing Letter"]],
+    ["✏️ Spelling & Word Building", ["Word Length", "Unscramble", "Spell the Word"]],
+    ["📖 Vocabulary & Comprehension", ["Synonyms", "Antonyms", "Reading Comprehension", "Sentence Builder"]],
+  ],
+  "Logic / Puzzles": [
+    ["🔁 Patterns & Sequences", ["Patterns", "Pattern Builder", "Number Sequences", "Number Sequence Solver"]],
+    ["🧠 Reasoning & Logic", ["Odd One Out", "Analogies", "Chart Reading", "Who's Right?"]],
+  ],
+};
+
 const root = document.getElementById("app");
 
 function availableTopics(subject) {
@@ -222,22 +245,33 @@ function showSetup() {
     clearAllBtn.classList.add("clear-all-btn");
     heading.appendChild(clearAllBtn);
     left.appendChild(heading);
-    const topicsGrid = el("div", { class: "topics-grid" });
     const minAge = SUBJECT_MIN_AGE[subject];
-    for (const topic of SUBJECT_TOPIC_LIST[subject]()) {
-      const available = minAge[topic] <= state.ageIdx;
-      const label = el("label", { class: available ? "topic-chip" : "topic-chip topic-disabled" });
-      const cb = el("input", { type: "checkbox" });
-      cb.checked = available && topicSet.has(topic);
-      cb.disabled = !available;
-      cb.addEventListener("change", () => {
-        if (cb.checked) topicSet.add(topic); else topicSet.delete(topic);
-      });
-      label.appendChild(cb);
-      label.appendChild(document.createTextNode(" " + topic));
-      topicsGrid.appendChild(label);
+    const allTopics = SUBJECT_TOPIC_LIST[subject]();
+    const categories = TOPIC_CATEGORIES[subject] || [];
+    const categorized = new Set(categories.flatMap(([, topics]) => topics));
+    const leftover = allTopics.filter((tp) => !categorized.has(tp));
+    const groups = leftover.length ? [...categories, ["✨ More", leftover]] : categories;
+
+    for (const [catLabel, catTopics] of groups) {
+      const present = catTopics.filter((tp) => allTopics.includes(tp));
+      if (present.length === 0) continue;
+      left.appendChild(el("div", { class: "topic-category-label", text: catLabel }));
+      const topicsGrid = el("div", { class: "topics-grid" });
+      for (const topic of present) {
+        const available = minAge[topic] <= state.ageIdx;
+        const label = el("label", { class: available ? "topic-chip" : "topic-chip topic-disabled" });
+        const cb = el("input", { type: "checkbox" });
+        cb.checked = available && topicSet.has(topic);
+        cb.disabled = !available;
+        cb.addEventListener("change", () => {
+          if (cb.checked) topicSet.add(topic); else topicSet.delete(topic);
+        });
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(" " + topic));
+        topicsGrid.appendChild(label);
+      }
+      left.appendChild(topicsGrid);
     }
-    left.appendChild(topicsGrid);
   }
 
   left.appendChild(el("h3", { text: "🎂 Age Group:" }));

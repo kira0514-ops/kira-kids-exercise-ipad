@@ -24,6 +24,7 @@ const ADDTABLE_OPS = {
     speedPrompt: (r, c) => `${r} + ${c} = ?`,
     speedAnswer: (r, c) => r + c,
     choiceRange: [0, 20],
+    desc: "Explore the 1-10 addition grid: find sums by tapping, then fill them in from memory and race the clock.",
   },
   subtraction: {
     icon: "➖", name: "Subtraction", symbol: "−",
@@ -34,6 +35,7 @@ const ADDTABLE_OPS = {
     speedPrompt: (r, c) => `${r + 10} − ${c} = ?`,
     speedAnswer: (r, c) => (r + 10) - c,
     choiceRange: [0, 19],
+    desc: "Same idea as the Addition Table, but for subtraction facts — find differences, then recall them under time pressure.",
   },
   multiplication: {
     icon: "✖️", name: "Multiplication", symbol: "×",
@@ -44,6 +46,7 @@ const ADDTABLE_OPS = {
     speedPrompt: (r, c) => `${r} × ${c} = ?`,
     speedAnswer: (r, c) => r * c,
     choiceRange: [1, 100],
+    desc: "Explore the 1-10 times table: find products by tapping, then fill them in from memory and race the clock.",
   },
   division: {
     icon: "➗", name: "Division", symbol: "÷",
@@ -56,8 +59,24 @@ const ADDTABLE_OPS = {
     speedPrompt: (r, c) => `${r * c} ÷ ${r} = ?`,
     speedAnswer: (r, c) => c,
     choiceRange: [1, 10],
+    desc: "Uses the same grid as Multiplication, but in reverse: given a dividend and divisor, search the row to find the quotient.",
   },
 };
+
+// One-line blurbs shown on the hub for the 5 non-table games, so parents can tell at a
+// glance how games that look similar (e.g. the three "vertical" ones) actually differ.
+const MINI_GAME_LIST = [
+  { icon: "🔟", name: "Make 10 to Add", fn: () => showMakeTenGame(),
+    desc: "Split one number apart to build a ten first, then add what's left over — the mental-math shortcut for adding past 10." },
+  { icon: "➕", name: "Vertical Addition", fn: () => showVerticalAdditionGame(),
+    desc: "Stack two numbers and add column by column, carrying the 1 whenever a column totals 10 or more." },
+  { icon: "➖", name: "Vertical Subtraction", fn: () => showVerticalSubtractionGame(),
+    desc: "Stack two numbers and subtract column by column, borrowing from the next column when needed." },
+  { icon: "✖️", name: "Vertical Multiplication", fn: () => showVerticalMultiplicationGame(),
+    desc: "Multiply a multi-digit number by a single digit, one column at a time with carrying — like long multiplication on paper." },
+  { icon: "🔍", name: "Answer Hunt", fn: () => showNumberGridGame(),
+    desc: "A math fact flashes up — scan a grid of numbers and tap the one that answers it before time runs out." },
+];
 
 function showMiniGames() {
   applyThemeVars();
@@ -68,17 +87,22 @@ function showMiniGames() {
   top.appendChild(button("🏠 Menu", showSetup, "quit"));
   root.appendChild(top);
 
-  const grid = el("div", { class: "lesson-topic-grid" });
-  grid.appendChild(button("🔟 Make 10 to Add", showMakeTenGame, "choice"));
-  grid.appendChild(button("➕ Vertical Addition", showVerticalAdditionGame, "choice"));
-  grid.appendChild(button("➖ Vertical Subtraction", showVerticalSubtractionGame, "choice"));
-  grid.appendChild(button("✖️ Vertical Multiplication", showVerticalMultiplicationGame, "choice"));
-  grid.appendChild(button("🔍 Answer Hunt", showNumberGridGame, "choice"));
+  const grid = el("div", { class: "game-card-grid" });
+  for (const g of MINI_GAME_LIST) {
+    grid.appendChild(gameCard(g.icon, g.name, g.desc, g.fn));
+  }
   for (const opKey of Object.keys(ADDTABLE_OPS)) {
     const op = ADDTABLE_OPS[opKey];
-    grid.appendChild(button(`${op.icon} ${op.name} Table`, () => showAdditionTableMenu(opKey), "choice"));
+    grid.appendChild(gameCard(op.icon, `${op.name} Table`, op.desc, () => showAdditionTableMenu(opKey)));
   }
   root.appendChild(grid);
+}
+
+function gameCard(icon, name, desc, onClick) {
+  const card = el("div", { class: "game-card" });
+  card.appendChild(button(`${icon} ${name}`, onClick, "choice"));
+  card.appendChild(el("div", { class: "game-card-desc", text: desc }));
+  return card;
 }
 
 // -- Make 10 to Add: work the decompose-to-make-ten strategy out step by step, typing each

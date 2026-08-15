@@ -198,7 +198,17 @@ h3 { margin: 20px 0 8px; font-size: 16px; }
 .col { flex: 1; min-width: 280px; }
 
 .chip-row, .topics-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-.topics-grid { max-width: 480px; }
+.topics-grid { max-width: 480px; margin-bottom: 10px; }
+
+.topic-category-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #4a4a4a;
+  opacity: 0.65;
+  margin: 8px 0 4px;
+}
 
 .topic-chip {
   display: inline-flex;
@@ -332,6 +342,21 @@ button.btn-choice { padding: 16px; font-size: 16px; }
   max-width: 700px; margin: 0 auto 10px; padding: 0 20px;
 }
 .lesson-container { max-width: 680px; margin: 0 auto; padding: 0 20px; }
+
+.game-card-grid {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 16px;
+  max-width: 900px; margin: 0 auto 10px; padding: 0 20px;
+}
+.game-card {
+  display: flex; flex-direction: column; align-items: center;
+  width: 220px; background: rgba(255,255,255,0.6);
+  border-radius: 14px; padding: 12px;
+}
+.game-card .btn { width: 100%; }
+.game-card-desc {
+  font-size: 12px; color: #4a4a4a; text-align: center;
+  margin-top: 8px; line-height: 1.35;
+}
 .lesson-card-border { background: var(--grad2); border-radius: 14px; padding: 3px; margin: 14px 0; }
 .lesson-card-inner { background: white; border-radius: 12px; padding: 18px 20px; }
 .lesson-section-title { font-size: 17px; font-weight: bold; color: var(--grad1); margin-bottom: 8px; }
