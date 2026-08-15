@@ -267,11 +267,17 @@ function showDailyCurriculum() {
   cardInner.appendChild(el("div", { class: "step-text curriculum-preview", text: previewLines.join("\n") }));
 
   const lessonTopic = mathTopics[0];
-  if (lessonTopic && APP_DATA.LESSONS.Math[lessonTopic]) {
-    const section = APP_DATA.LESSONS.Math[lessonTopic].sections[0];
+  const lessonEntry = lessonTopic && APP_DATA.LESSONS.Math[lessonTopic];
+  const section = lessonEntry && lessonEntry.sections && lessonEntry.sections[0];
+  if (section) {
     const lessonBox = el("div", { class: "example-box curriculum-lesson-preview" });
     lessonBox.appendChild(el("div", { class: "lesson-section-title", text: `📖 Today's Lesson: ${section.title}` }));
-    const previewSteps = section.steps.slice(0, 2).map((s) => "• " + s).join("\n");
+    // Every Math lesson's first section uses `steps` (a bullet list) except when it doesn't --
+    // falling back to `explanation` (a single paragraph) keeps this from crashing the whole
+    // curriculum day screen the way it did when a topic's lesson didn't match the convention.
+    const previewSteps = section.steps
+      ? section.steps.slice(0, 2).map((s) => "• " + s).join("\n")
+      : section.explanation || "";
     lessonBox.appendChild(el("div", { class: "example-text", text: previewSteps }));
     cardInner.appendChild(lessonBox);
   }
