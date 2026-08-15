@@ -276,8 +276,74 @@ function whosRightQ(ageIdx, diffIdx) {
   return { prompt, choices: people.slice(), answer };
 }
 
+// Interactive counterpart to Patterns: instead of picking the next item from 4 choices, the
+// sequence is shown with an open blank slot at the end, and the kid taps candidate tiles
+// (shuffled, from the same category as the sequence) into the blank -- same "build the answer
+// yourself" spirit as the vertical arithmetic / Spell the Word / Sentence Builder exercises.
+// Reuses patternsQ's exact difficulty-scaled sequence shapes (AB, ABC, ABCD units) so the two
+// topics stay consistent, just presented differently.
+function patternBuilderQ(ageIdx, diffIdx) {
+  const [, cat] = SEEN.pickUnseen("categories_patterns_interactive", Object.entries(APP_DATA.CATEGORIES), (kv) => kv[0]);
+  let seq, answer;
+  if (diffIdx >= 3 && cat.length >= 4) {
+    const [a, b, c, d] = sample(cat, 4);
+    seq = [a, b, c, d, a, b, c]; answer = d;
+  } else if (diffIdx >= 2) {
+    const [a, b, c] = sample(cat, 3);
+    seq = [a, b, c, a, b]; answer = c;
+  } else {
+    const [a, b] = sample(cat, 2);
+    seq = [a, b, a, b]; answer = a;
+  }
+  const bank = makeChoices(answer, cat);
+  return {
+    prompt: "What comes next in the pattern?", speak: "What comes next in the pattern?",
+    choices: bank, answer,
+    interactive: "pattern_fill", sequence: seq, bank,
+  };
+}
+
+// Tapping the right bank tile fills the blank and finishes the exercise (same "only ever
+// finishes once actually solved" rule as every other interactive exercise); a wrong tap just
+// flashes and stays tappable, since there's only one blank -- no partial-progress state to
+// reset the way the multi-slot spelling/sentence exercises need.
+function buildPatternFillInteractive(sequence, bank, answer, onComplete) {
+  const wrap = el("div", { class: "pattern-wrap" });
+
+  const seqRow = el("div", { class: "pattern-sequence" });
+  sequence.forEach((item) => seqRow.appendChild(el("div", { class: "pattern-tile", text: item })));
+  const blankTile = el("div", { class: "pattern-tile pattern-tile-blank", text: "?" });
+  seqRow.appendChild(blankTile);
+  wrap.appendChild(seqRow);
+
+  const bankRow = el("div", { class: "pattern-bank" });
+  wrap.appendChild(bankRow);
+
+  let done = false;
+  bank.forEach((item) => {
+    const tile = el("button", { class: "pattern-choice-tile", type: "button", text: item });
+    tile.addEventListener("click", () => {
+      if (done) return;
+      if (item === answer) {
+        done = true;
+        blankTile.textContent = item;
+        blankTile.classList.add("pattern-tile-correct");
+        tile.classList.add("pattern-choice-correct");
+        onComplete();
+      } else {
+        tile.classList.add("pattern-choice-wrong");
+        setTimeout(() => tile.classList.remove("pattern-choice-wrong"), 400);
+      }
+    });
+    bankRow.appendChild(tile);
+  });
+
+  return wrap;
+}
+
 const LOGIC_TOPIC_FUNCS = {
   Patterns: patternsQ,
+  "Pattern Builder": patternBuilderQ,
   "Odd One Out": oddOneOutQ,
   "Number Sequences": numberSequencesQ,
   Analogies: analogiesQ,
