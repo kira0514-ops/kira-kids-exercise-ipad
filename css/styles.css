@@ -717,7 +717,7 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .eqgroups-bin-label { font-size: 12px; font-weight: bold; color: var(--text-secondary, #666); margin-bottom: 6px; }
 .eqgroups-bin-items { display: flex; flex-wrap: wrap; gap: 3px; min-height: 26px; justify-content: center; }
 .eqgroups-bin-dot { font-size: 18px; }
-.eqgroups-recap { font-size: 16px; font-weight: bold; color: var(--text); margin-bottom: 16px; }
+.eqgroups-recap { font-size: 16px; font-weight: bold; color: var(--text); margin-top: 20px; margin-bottom: 16px; }
 .eqgroups-equation { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
 .eqgroups-blank {
   width: 52px;

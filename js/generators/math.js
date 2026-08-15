@@ -1146,7 +1146,11 @@ function buildEqualGroupsInteractive(dividend, divisor, quotient, emoji, onCompl
   }
 
   function showEquationPhase() {
-    wrap.innerHTML = "";
+    // Keep the sorted groups on screen instead of wiping them -- the whole point of writing
+    // the equation right after sorting is connecting the symbols back to what they just built,
+    // which doesn't work if the groups vanish the moment the equation appears. Only the (now
+    // empty) object pool goes away, since there's nothing left in it to look at.
+    poolRow.remove();
     wrap.appendChild(el("div", { class: "eqgroups-recap", text: `${divisor} groups of ${quotient} each! Now write the equation:` }));
 
     const eqRow = el("div", { class: "eqgroups-equation" });
