@@ -753,124 +753,147 @@ function mixedOperationsQ(ageIdx, diffIdx) {
 }
 
 const ADD_EQ_TEMPLATES = [
-  "{name} had some {item}. Then {name} found {b} more {item}, ending up with {c} {item} in total. Let x be how many {item} {name} started with. Solve: x + {b} = {c}",
-  "A jar had some {item} in it. After {b} more {item} were added, the jar had {c} {item}. If x is the number of {item} that were in the jar at first, solve: x + {b} = {c}",
-  "{name} was given {b} {item} as a gift, bringing the total to {c} {item}. Let x be how many {item} {name} had before the gift. Solve: x + {b} = {c}",
+  "{name} had some {item}. Then {name} found {b} more {item_b}, ending up with {c} {item_c} in total. Let x be how many {item} {name} started with. Solve: x + {b} = {c}",
+  "A jar had some {item} in it. After {b} more {item_b} {was_were_b} added, the jar had {c} {item_c}. If x is the number of {item} that were in the jar at first, solve: x + {b} = {c}",
+  "{name} was given {b} {item_b} as a gift, bringing the total to {c} {item_c}. Let x be how many {item} {name} had before the gift. Solve: x + {b} = {c}",
 ];
 const SUB_EQ_TEMPLATES = [
-  "{name} had some {item}. After giving away {b} {item}, {name} had {c} {item} left. Let x be how many {item} {name} started with. Solve: x - {b} = {c}",
-  "A box had some {item}. {b} {item} were taken out, leaving {c} {item} in the box. If x is the number of {item} that were in the box at first, solve: x - {b} = {c}",
+  "{name} had some {item}. After giving away {b} {item_b}, {name} had {c} {item_c} left. Let x be how many {item} {name} started with. Solve: x - {b} = {c}",
+  "A box had some {item}. {b} {item_b} {was_were_b} taken out, leaving {c} {item_c} in the box. If x is the number of {item} that were in the box at first, solve: x - {b} = {c}",
 ];
 const MUL_EQ_TEMPLATES = [
-  "{name} has {b} equal bags of {item}, with x {item} in each bag, for a total of {c} {item}. Solve: {b}x = {c}",
-  "There are {b} boxes, each holding x {item}, and together they hold {c} {item}. Solve: {b}x = {c}",
+  "{name} has {b} equal bags of {item}, with x {item} in each bag, for a total of {c} {item_c}. Solve: {b}x = {c}",
+  "There are {b} boxes, each holding x {item}, and together they hold {c} {item_c}. Solve: {b}x = {c}",
 ];
 const AX_PLUS_B_EQ_TEMPLATES = [
-  "{name} buys {a} bags of {item}, with x {item} in each bag, then finds {b} more loose {item}. In total {name} now has {c} {item}. Solve: {a}x + {b} = {c}",
-  "Each of {name}'s {a} shelves holds x {item}, and {name} adds {b} more {item} on top of that. There are now {c} {item} in total. Solve: {a}x + {b} = {c}",
+  "{name} buys {a} bags of {item}, with x {item} in each bag, then finds {b} more loose {item_b}. In total {name} now has {c} {item_c}. Solve: {a}x + {b} = {c}",
+  "Each of {name}'s {a} shelves holds x {item}, and {name} adds {b} more {item_b} on top of that. There are now {c} {item_c} in total. Solve: {a}x + {b} = {c}",
 ];
 const AX_MINUS_B_EQ_TEMPLATES = [
-  "{name} had {a} bags of {item} with x {item} in each bag, but {b} {item} were lost along the way, leaving {c} {item}. Solve: {a}x - {b} = {c}",
-  "There were {a} boxes with x {item} in each box. After {b} {item} were removed, {c} {item} remained. Solve: {a}x - {b} = {c}",
+  "{name} had {a} bags of {item} with x {item} in each bag, but {b} {item_b} {was_were_b} lost along the way, leaving {c} {item_c}. Solve: {a}x - {b} = {c}",
+  "There were {a} boxes with x {item} in each box. After {b} {item_b} {was_were_b} removed, {c} {item_c} remained. Solve: {a}x - {b} = {c}",
 ];
 
-function equationWordProblem(kind, vars) {
-  const name = choice(NAMES), item = choice(ITEMS);
-  const templates = { add: ADD_EQ_TEMPLATES, sub: SUB_EQ_TEMPLATES, mul: MUL_EQ_TEMPLATES,
-    axPlusB: AX_PLUS_B_EQ_TEMPLATES, axMinusB: AX_MINUS_B_EQ_TEMPLATES }[kind];
-  return fmt(choice(templates), { name, item, ...vars });
+// ITEMS are all regular plurals (apples, pencils, toy cars, ...), so singularizing for a
+// count of exactly 1 is just dropping the trailing 's' -- avoids "leaving 1 pencils".
+function pluralizeItem(item, count) {
+  return count === 1 ? item.slice(0, -1) : item;
 }
 
+function equationWordProblem(kind, name, item, vars) {
+  const templates = { add: ADD_EQ_TEMPLATES, sub: SUB_EQ_TEMPLATES, mul: MUL_EQ_TEMPLATES,
+    ax_plus_b: AX_PLUS_B_EQ_TEMPLATES, ax_minus_b: AX_MINUS_B_EQ_TEMPLATES }[kind];
+  const item_b = "b" in vars ? pluralizeItem(item, vars.b) : item;
+  const item_c = "c" in vars ? pluralizeItem(item, vars.c) : item;
+  const was_were_b = vars.b === 1 ? "was" : "were";
+  return fmt(choice(templates), { name, item, item_b, item_c, was_were_b, ...vars });
+}
+
+// Builds the {terms, op, total} shape drawEquationStory (JS) / _draw_equation_story (Python)
+// render: a row of '?' boxes for the unknown next to the item's own emoji for the known
+// quantity, tying the picture to the word problem instead of an abstract algebra balance
+// scale. Returns null (no illustration) when a term has too many units to render as
+// individual boxes/icons -- the question still works fine as text-only in that case.
+function equationStoryIllustration(kind, item, vars) {
+  if (kind === "add") {
+    const { b, c } = vars;
+    if (b > 20) return null;
+    return { type: "equation_story", item, terms: [{ unknown: 1 }, { known: b }], op: "+", total: c };
+  }
+  if (kind === "sub") {
+    const { b, c } = vars;
+    if (b > 20) return null;
+    return { type: "equation_story", item, terms: [{ unknown: 1 }, { known: b, removed: true }], op: "-", total: c };
+  }
+  if (kind === "mul") {
+    const { b, c } = vars;
+    if (b > 12) return null;
+    return { type: "equation_story", item, terms: [{ unknown: b }], op: null, total: c };
+  }
+  if (kind === "ax_plus_b") {
+    const { a, b, c } = vars;
+    if (a > 12 || b > 20) return null;
+    return { type: "equation_story", item, terms: [{ unknown: a }, { known: b }], op: "+", total: c };
+  }
+  if (kind === "ax_minus_b") {
+    const { a, b, c } = vars;
+    if (a > 12 || b > 20) return null;
+    return { type: "equation_story", item, terms: [{ unknown: a }, { known: b, removed: true }], op: "-", total: c };
+  }
+  return null;
+}
+
+// Always frames one-step/two-step equations as a word problem about a real item (a kid
+// finding/sharing/losing stickers, cookies, etc), with an illustration to match, rather
+// than showing the bare algebra -- extreme (variable on both sides) has no natural
+// word-problem phrasing, so it stays abstract text with no illustration.
 function equationsQ(ageIdx, diffIdx) {
+  const name = choice(NAMES), item = choice(ITEMS);
+
   if (ageIdx === 1) {
-    let x, b, c, prompt, left, answer;
+    let x, b, c, kind;
     if (diffIdx === 0) {
+      kind = "add";
       x = randInt(1, 15); b = randInt(1, 15); c = x + b;
-      left = `x + ${b}`;
-      if (Math.random() < 0.5) { prompt = equationWordProblem("add", { b, c }); }
-      else if (choice([true, false])) { prompt = `x + ${b} = ${c}. What is x?`; }
-      else { prompt = `${b} + x = ${c}. What is x?`; left = `${b} + x`; }
     } else if (diffIdx === 1) {
       if (choice([true, false])) {
+        kind = "sub";
         b = randInt(1, 15); x = b + randInt(1, 15); c = x - b;
-        left = `x - ${b}`;
-        prompt = Math.random() < 0.5 ? equationWordProblem("sub", { b, c }) : `x - ${b} = ${c}. What is x?`;
       } else {
+        kind = "mul";
         x = randInt(2, 10); b = randInt(2, 9); c = x * b;
-        left = `${b} × x`;
-        prompt = Math.random() < 0.5 ? equationWordProblem("mul", { b, c }) : `${b} × x = ${c}. What is x?`;
       }
     } else {
-      const op = choice(["add", "sub", "mul"]);
-      if (op === "add") {
-        x = randInt(1, 60); b = randInt(1, 60); c = x + b;
-        left = `x + ${b}`;
-        prompt = Math.random() < 0.5 ? equationWordProblem("add", { b, c }) : `x + ${b} = ${c}. What is x?`;
-      } else if (op === "sub") {
-        b = randInt(1, 50); x = b + randInt(1, 50); c = x - b;
-        left = `x - ${b}`;
-        prompt = Math.random() < 0.5 ? equationWordProblem("sub", { b, c }) : `x - ${b} = ${c}. What is x?`;
-      } else {
-        x = randInt(2, 12); b = randInt(2, 12); c = x * b;
-        left = `${b} × x`;
-        prompt = Math.random() < 0.5 ? equationWordProblem("mul", { b, c }) : `${b} × x = ${c}. What is x?`;
-      }
+      kind = choice(["add", "sub", "mul"]);
+      if (kind === "add") { x = randInt(1, 60); b = randInt(1, 60); c = x + b; }
+      else if (kind === "sub") { b = randInt(1, 50); x = b + randInt(1, 50); c = x - b; }
+      else { x = randInt(2, 12); b = randInt(2, 12); c = x * b; }
     }
-    answer = x;
-    return { prompt, choices: numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 10), answer,
-      illustration: { type: "equation_balance", left, right: String(c) } };
+    const prompt = equationWordProblem(kind, name, item, { b, c });
+    const answer = x;
+    const choices = numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 10);
+    const illustration = equationStoryIllustration(kind, item, { b, c });
+    const result = { prompt, choices, answer };
+    if (illustration) result.illustration = illustration;
+    return result;
   }
 
   // ageIdx === 2
-  let answer, prompt, left, c;
+  let answer, prompt, illustration, c;
   if (diffIdx === 0) {
-    const op = choice(["add", "sub", "mul"]);
+    const kind = choice(["add", "sub", "mul"]);
     let x, b;
-    if (op === "add") {
-      x = randInt(1, 100); b = randInt(1, 100); c = x + b;
-      left = `x + ${b}`;
-      prompt = Math.random() < 0.5 ? equationWordProblem("add", { b, c }) : `x + ${b} = ${c}. What is x?`;
-    } else if (op === "sub") {
-      b = randInt(1, 80); x = b + randInt(1, 80); c = x - b;
-      left = `x - ${b}`;
-      prompt = Math.random() < 0.5 ? equationWordProblem("sub", { b, c }) : `x - ${b} = ${c}. What is x?`;
-    } else {
-      x = randInt(2, 20); b = randInt(2, 12); c = x * b;
-      left = `${b} × x`;
-      prompt = Math.random() < 0.5 ? equationWordProblem("mul", { b, c }) : `${b} × x = ${c}. What is x?`;
-    }
+    if (kind === "add") { x = randInt(1, 100); b = randInt(1, 100); c = x + b; }
+    else if (kind === "sub") { b = randInt(1, 80); x = b + randInt(1, 80); c = x - b; }
+    else { x = randInt(2, 20); b = randInt(2, 12); c = x * b; }
+    prompt = equationWordProblem(kind, name, item, { b, c });
     answer = x;
-  } else if (diffIdx === 1) {
-    const a = randInt(2, 9), x = randInt(2, 15), b = randInt(1, 20);
-    if (choice([true, false])) {
-      c = a * x + b; left = `${a}x + ${b}`;
-      prompt = Math.random() < 0.5 ? equationWordProblem("axPlusB", { a, b, c }) : `${a}x + ${b} = ${c}. What is x?`;
-    } else {
-      c = a * x - b; left = `${a}x - ${b}`;
-      prompt = Math.random() < 0.5 ? equationWordProblem("axMinusB", { a, b, c }) : `${a}x - ${b} = ${c}. What is x?`;
-    }
+    illustration = equationStoryIllustration(kind, item, { b, c });
+  } else if (diffIdx === 1 || diffIdx === 2) {
+    const a = randInt(2, 9);
+    const bMax = diffIdx === 1 ? 20 : 30;
+    const x = diffIdx === 1 ? randInt(2, 15) : randInt(2, 20);
+    const kind = choice(["ax_plus_b", "ax_minus_b"]);
+    // b must stay below a*x so c = a*x - b can't go negative/zero (a "leaving -1 books"
+    // word problem, or a divide-by-nothing-left story with no items).
+    const b = kind === "ax_plus_b" ? randInt(1, bMax) : randInt(1, Math.min(bMax, a * x - 1));
+    c = kind === "ax_plus_b" ? a * x + b : a * x - b;
+    prompt = equationWordProblem(kind, name, item, { a, b, c });
     answer = x;
-  } else if (diffIdx === 2) {
-    const a = randInt(2, 9), x = randInt(2, 20), b = randInt(1, 30);
-    if (choice([true, false])) {
-      c = a * x + b; left = `${a}x + ${b}`;
-      prompt = `A number multiplied by ${a}, then plus ${b}, equals ${c}. What is the number?`;
-    } else {
-      c = a * x - b; left = `${a}x - ${b}`;
-      prompt = `A number multiplied by ${a}, then minus ${b}, equals ${c}. What is the number?`;
-    }
-    answer = x;
+    illustration = equationStoryIllustration(kind, item, { a, b, c });
   } else {
+    // extreme: variable on both sides (genuine grade 7 stretch) -- no natural
+    // word-problem phrasing for comparing two expressions, so no illustration either.
     const x = randInt(2, 15), a = randInt(2, 9), d = randInt(1, a - 1), b = randInt(1, 20);
     c = (a - d) * x + b;
     prompt = `${a}x + ${b} = ${d}x + ${c}. What is x?`;
-    left = `${a}x + ${b}`;
     answer = x;
-    return { prompt, choices: numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 15), answer,
-      illustration: { type: "equation_balance", left, right: `${d}x + ${c}` } };
+    illustration = null;
   }
-  return { prompt, choices: numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 15), answer,
-    illustration: { type: "equation_balance", left, right: String(c) } };
+  const choices = numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 15);
+  const result = { prompt, choices, answer };
+  if (illustration) result.illustration = illustration;
+  return result;
 }
 
 // -- Preschool-only counting/quantity-sense exercises ------------------------------------

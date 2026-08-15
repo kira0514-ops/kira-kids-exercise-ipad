@@ -349,6 +349,88 @@ function drawEquationBalance(illus, theme) {
   return c;
 }
 
+// Row of '?' boxes for the unknown next to the word problem's own item emoji for the known
+// quantity -- e.g. x + 6 = 12 (about stickers) draws one '?' box, a '+', six star emoji,
+// '=', and 12. Ties the picture to the story instead of abstract algebra notation.
+function drawEquationStory(illus, theme) {
+  const emoji = (typeof ITEM_EMOJI !== "undefined" && ITEM_EMOJI[illus.item]) || "❓";
+  const terms = illus.terms;
+  const op = illus.op;
+  const total = illus.total;
+  const perRow = 8, gap = 34, box = 24;
+
+  const termGrid = (term) => {
+    const n = "unknown" in term ? term.unknown : term.known;
+    const cols = Math.min(n, perRow);
+    const rows = Math.max(1, Math.ceil(n / perRow));
+    return { n, cols, rows };
+  };
+  const termSize = (term) => {
+    const { cols, rows } = termGrid(term);
+    return [cols * gap, rows * gap];
+  };
+
+  const segs = [];
+  terms.forEach((term, i) => {
+    if (i > 0 && op) segs.push({ kind: "op", val: op === "+" ? "+" : "−" });
+    segs.push({ kind: "term", val: term });
+  });
+  if (total != null) {
+    segs.push({ kind: "op", val: "=" });
+    segs.push({ kind: "op", val: String(total) });
+  }
+
+  let maxH = gap;
+  const widths = segs.map((s) => {
+    if (s.kind === "term") {
+      const [w, h] = termSize(s.val);
+      maxH = Math.max(maxH, h);
+      return w;
+    }
+    return Math.max(26, s.val.length * 15);
+  });
+  const totalWidth = widths.reduce((a, b) => a + b, 0) + 16 * (segs.length - 1) + 20;
+  const height = maxH + 20;
+
+  const c = makeCanvas(totalWidth, height);
+  const ctx = c.getContext("2d");
+  let x = 10;
+  const yCenter = height / 2;
+  segs.forEach((s, i) => {
+    const w = widths[i];
+    if (s.kind === "term") {
+      const { n, cols, rows } = termGrid(s.val);
+      const gridH = rows * gap;
+      const y0 = yCenter - gridH / 2 + gap / 2;
+      for (let k = 0; k < n; k++) {
+        const row = Math.floor(k / perRow), col = k % perRow;
+        const cx = x + gap / 2 + col * gap, cy = y0 + row * gap;
+        if ("unknown" in s.val) {
+          ctx.fillStyle = "#E1D5F7";
+          ctx.strokeStyle = theme.text; ctx.lineWidth = 2;
+          ctx.fillRect(cx - box / 2, cy - box / 2, box, box);
+          ctx.strokeRect(cx - box / 2, cy - box / 2, box, box);
+          ctx.fillStyle = theme.text; ctx.font = "bold 13px 'Segoe UI'"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText("?", cx, cy);
+        } else {
+          ctx.font = "26px 'Segoe UI Emoji', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(emoji, cx, cy);
+          if (s.val.removed) {
+            ctx.strokeStyle = "#B71C1C"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(cx - 11, cy - 11); ctx.lineTo(cx + 11, cy + 11); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx - 11, cy + 11); ctx.lineTo(cx + 11, cy - 11); ctx.stroke();
+          }
+        }
+      }
+    } else {
+      ctx.fillStyle = theme.text; ctx.font = "bold 18px 'Segoe UI'"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(s.val, x + w / 2, yCenter);
+    }
+    x += w + 16;
+  });
+  return c;
+}
+
 function drawPolygonShape(illus, theme) {
   const size = 130;
   const c = makeCanvas(size, size);
@@ -794,6 +876,7 @@ const ILLUSTRATION_DRAWERS = {
   right_triangle_labeled: drawRightTriangleLabeled,
   right_triangle_trig: drawRightTriangleTrig,
   equation_balance: drawEquationBalance,
+  equation_story: drawEquationStory,
   polygon_shape: drawPolygonShape,
   angle: drawAngleShape,
   coins: drawCoins,
