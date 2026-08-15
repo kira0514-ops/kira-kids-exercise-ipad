@@ -36,10 +36,14 @@ function dailyCurriculumTopics(ageIdx, day, trackYear = 1, diffOverride = null) 
   const diffIdx = diffOverride !== null ? diffOverride : autoDiffIdx;
   function pick(avail, n) {
     if (!avail.length) return [];
-    // Cap at half the pool (min 1) so a small topic list (e.g. 2 topics) rotates one
-    // topic per day instead of cramming the whole pool into every single day, which
-    // made consecutive days show identical topic coverage.
-    n = Math.min(n, avail.length, Math.max(1, Math.ceil(avail.length / 2)));
+    // Show up to `n` distinct topics from the pool (or the whole pool if it's smaller than
+    // `n`) -- previously this additionally halved small pools (e.g. showing only 2 of 4
+    // topics), meant to keep consecutive days from looking identical, but it backfired for
+    // pools just above `n`: a 4-topic pool with n=3 only ever showed 2 per day, and which
+    // 2 landed on a fixed day-based rotation, so specific topics (and specific days, like
+    // day 1) could end up never showing a given topic at all. Capping at just the pool size
+    // still leaves real day-to-day rotation whenever the pool is bigger than `n`.
+    n = Math.min(n, avail.length);
     // day-1 so day 1 always starts at the first-listed (intended starting) topic,
     // instead of a scrambled offset that could open on a later topic out of order.
     const start = (day - 1) % avail.length;
