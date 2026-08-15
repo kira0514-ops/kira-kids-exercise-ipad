@@ -437,13 +437,6 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .addtable-data { background: white; border: 1px solid #e1e4e9; color: var(--text); }
 .addtable-data-tappable { cursor: pointer; }
 .addtable-data-solved { background: #C8E6C9; color: #1B5E20; cursor: default; }
-/* Faint crosshair guiding the eye along the highlighted row/column toward their intersection --
-   lighter than the header highlight (which stays the strong "this is the target" amber) so it
-   reads as a subtle trail, not a second competing highlight. Stacks additively where the row
-   and column bands cross, which is fine: the grid already shows every value in Level 1 (or is
-   blank in Level 2), so this never reveals the answer, only helps trace to the right cell. */
-.addtable-data-row-highlight, .addtable-data-col-highlight { background: #FFF8E1; }
-.addtable-data-row-highlight.addtable-data-col-highlight { background: #FFECB3; }
 .addtable-data-solved.addtable-data-row-highlight, .addtable-data-solved.addtable-data-col-highlight { background: #C8E6C9; }
 .addtable-wrong-flash { background: #E53935 !important; color: white; }
 .addtable-input-row { justify-content: center; margin-top: 10px; }
