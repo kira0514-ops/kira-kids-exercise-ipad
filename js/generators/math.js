@@ -975,14 +975,29 @@ function buildTenFrameInteractive(target, onComplete) {
       cell.classList.toggle("tenframe-cell-filled");
       filled += isFilled ? -1 : 1;
       counterEl.textContent = `Filled: ${filled} / ${target}`;
-      if (filled === target) {
-        done = true;
-        grid.classList.add("tenframe-grid-correct");
-        onComplete();
-      }
     });
     grid.appendChild(cell);
   }
+
+  // Reaching the target count no longer auto-completes the exercise -- filling boxes is just
+  // arranging the answer, not committing to it, so the kid explicitly submits when ready
+  // (matching how every choice-based question already works: pick, then it's final).
+  const feedbackEl = el("div", { class: "feedback" });
+  wrap.appendChild(feedbackEl);
+  const submitBtn = button("✅ Submit", () => {
+    if (done) return;
+    if (filled === target) {
+      done = true;
+      grid.classList.add("tenframe-grid-correct");
+      submitBtn.disabled = true;
+      onComplete();
+    } else {
+      feedbackEl.textContent = "Not quite -- try again!";
+      feedbackEl.className = "feedback feedback-wrong";
+      setTimeout(() => { feedbackEl.textContent = ""; feedbackEl.className = "feedback"; }, 1200);
+    }
+  }, "start");
+  wrap.appendChild(submitBtn);
 
   return wrap;
 }
