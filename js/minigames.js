@@ -730,10 +730,49 @@ function buildLongMultiplicationInteractive(p, onComplete) {
   return wrap;
 }
 
+// Difficulty tiers for the three standalone Vertical games, independent of the app's global
+// age/difficulty system (same reasoning as NUMBER_GRID_DIFFICULTIES above) -- these are picked
+// once up front via showVerticalDifficultyPicker, not derived from a profile's age/level.
+// Addition/Subtraction share a shape (digit count of each operand); Multiplication's multiplier
+// must stay single-digit (2-9) for this interactive's per-column colFn to stay mathematically
+// correct (see verticalMultiplicationProblem), so only the multiplicand's digit count grows.
+const VERTICAL_ADD_SUB_DIFFICULTIES = {
+  easy: { label: "🟢 Easy", a: 1, b: 1 },
+  medium: { label: "🟡 Medium", a: 2, b: 2 },
+  hard: { label: "🔴 Hard", a: 3, b: 2 },
+};
+const VERTICAL_MULT_DIFFICULTIES = {
+  easy: { label: "🟢 Easy", digits: 1 },
+  medium: { label: "🟡 Medium", digits: 2 },
+  hard: { label: "🔴 Hard", digits: 3 },
+};
+
+// Shared difficulty-picker screen for the three Vertical games -- same layout as Answer Hunt's
+// showNumberGridDifficultyPicker, so the two families of standalone games feel consistent.
+function showVerticalDifficultyPicker(headerTitle, diffs, onPick) {
+  applyThemeVars();
+  clearRoot();
+  root.appendChild(headerBanner(headerTitle));
+
+  const top = el("div", { class: "quiz-top" });
+  top.appendChild(button("◀ Back", showMiniGames, "next"));
+  top.appendChild(button("🏠 Menu", showSetup, "quit"));
+  root.appendChild(top);
+
+  const card = el("div", { class: "card" });
+  card.appendChild(el("div", { class: "step-text", text: "Pick a difficulty:" }));
+  const diffRow = el("div", { class: "chip-row" });
+  for (const key of ["easy", "medium", "hard"]) {
+    diffRow.appendChild(button(diffs[key].label, () => onPick(key), "start"));
+  }
+  card.appendChild(diffRow);
+  root.appendChild(card);
+}
+
 // Shared standalone-game loop for column arithmetic where the carry flows left (addition,
 // multiplication by a single digit) -- both produce the same problem shape and render
 // identically; only the header, sign, and generator differ.
-function showVerticalColumnGame({ headerTitle, sign, genFn }) {
+function showVerticalColumnGame({ headerTitle, sign, genFn, backFn }) {
   applyThemeVars();
   clearRoot();
 
@@ -742,7 +781,7 @@ function showVerticalColumnGame({ headerTitle, sign, genFn }) {
   const top = el("div", { class: "quiz-top" });
   const scoreLabel = el("span", { text: "⭐ Solved: 0" });
   top.appendChild(scoreLabel);
-  top.appendChild(button("◀ Back", showMiniGames, "next"));
+  top.appendChild(button("◀ Back", backFn, "next"));
   top.appendChild(button("🏠 Menu", showSetup, "quit"));
   root.appendChild(top);
 
@@ -766,12 +805,30 @@ function showVerticalColumnGame({ headerTitle, sign, genFn }) {
   nextProblem();
 }
 
-function showVerticalAdditionGame() {
-  showVerticalColumnGame({ headerTitle: "➕ Vertical Addition", sign: "+", genFn: verticalAdditionProblem });
+function showVerticalAdditionGame(diffKey) {
+  if (!diffKey) {
+    showVerticalDifficultyPicker("➕ Vertical Addition", VERTICAL_ADD_SUB_DIFFICULTIES, (key) => showVerticalAdditionGame(key));
+    return;
+  }
+  const cfg = VERTICAL_ADD_SUB_DIFFICULTIES[diffKey];
+  showVerticalColumnGame({
+    headerTitle: `➕ Vertical Addition · ${cfg.label}`, sign: "+",
+    genFn: () => verticalAdditionProblem(cfg.a, cfg.b),
+    backFn: () => showVerticalAdditionGame(),
+  });
 }
 
-function showVerticalMultiplicationGame() {
-  showVerticalColumnGame({ headerTitle: "✖️ Vertical Multiplication", sign: "×", genFn: verticalMultiplicationProblem });
+function showVerticalMultiplicationGame(diffKey) {
+  if (!diffKey) {
+    showVerticalDifficultyPicker("✖️ Vertical Multiplication", VERTICAL_MULT_DIFFICULTIES, (key) => showVerticalMultiplicationGame(key));
+    return;
+  }
+  const cfg = VERTICAL_MULT_DIFFICULTIES[diffKey];
+  showVerticalColumnGame({
+    headerTitle: `✖️ Vertical Multiplication · ${cfg.label}`, sign: "×",
+    genFn: () => verticalMultiplicationProblem(cfg.digits, 9),
+    backFn: () => showVerticalMultiplicationGame(),
+  });
 }
 
 // Subtraction borrows rather than carries: instead of overflow flowing INTO a new column to
@@ -879,16 +936,22 @@ function buildVerticalSubtractionInteractive(p, onComplete) {
   return wrap;
 }
 
-function showVerticalSubtractionGame() {
+function showVerticalSubtractionGame(diffKey) {
+  if (!diffKey) {
+    showVerticalDifficultyPicker("➖ Vertical Subtraction", VERTICAL_ADD_SUB_DIFFICULTIES, (key) => showVerticalSubtractionGame(key));
+    return;
+  }
+  const cfg = VERTICAL_ADD_SUB_DIFFICULTIES[diffKey];
+
   applyThemeVars();
   clearRoot();
 
-  root.appendChild(headerBanner("➖ Vertical Subtraction"));
+  root.appendChild(headerBanner(`➖ Vertical Subtraction · ${cfg.label}`));
 
   const top = el("div", { class: "quiz-top" });
   const scoreLabel = el("span", { text: "⭐ Solved: 0" });
   top.appendChild(scoreLabel);
-  top.appendChild(button("◀ Back", showMiniGames, "next"));
+  top.appendChild(button("◀ Back", () => showVerticalSubtractionGame(), "next"));
   top.appendChild(button("🏠 Menu", showSetup, "quit"));
   root.appendChild(top);
 
@@ -898,7 +961,7 @@ function showVerticalSubtractionGame() {
   let score = 0;
 
   function nextProblem() {
-    const p = verticalSubtractionProblem();
+    const p = verticalSubtractionProblem(cfg.a, cfg.b);
     card.innerHTML = "";
     card.appendChild(el("div", { class: "step-text maketen-intro", text: "Tap a box, then tap or drag to a number to fill it in." }));
 
