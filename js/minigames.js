@@ -95,6 +95,9 @@ function showMiniGames() {
     const op = ADDTABLE_OPS[opKey];
     grid.appendChild(gameCard(op.icon, `${op.name} Table`, op.desc, () => showAdditionTableMenu(opKey)));
   }
+  grid.appendChild(gameCard("➕", "Addition Table (Under 10)",
+    "A smaller, easier Addition Table using just 1-5, so every sum stays 10 or under.",
+    () => showAdditionTableMenu("addition", 5)));
   root.appendChild(grid);
 }
 
@@ -975,11 +978,13 @@ function showVerticalSubtractionGame(diffKey) {
   nextProblem();
 }
 
-function showAdditionTableMenu(opKey) {
+function showAdditionTableMenu(opKey, size) {
+  size = size || ADDTABLE_SIZE;
   const op = ADDTABLE_OPS[opKey];
   applyThemeVars();
   clearRoot();
-  root.appendChild(headerBanner(`${op.icon} ${op.name} Table`));
+  const sizeTag = size !== ADDTABLE_SIZE ? ` (1-${size})` : "";
+  root.appendChild(headerBanner(`${op.icon} ${op.name} Table${sizeTag}`));
 
   const top = el("div", { class: "quiz-top" });
   top.appendChild(button("◀ Back", showMiniGames, "next"));
@@ -998,21 +1003,23 @@ function showAdditionTableMenu(opKey) {
   root.appendChild(card);
 
   const col = el("div", { class: "addtable-menu-col" });
-  col.appendChild(button("1️⃣ Level 1: Find the Cell", () => showAddTableLevel1(opKey), "start"));
-  col.appendChild(button("2️⃣ Level 2: Type the Answer", () => showAddTableLevel2(opKey), "start"));
-  col.appendChild(button("⏱️ Speed Round", () => showAddTableSpeedRound(opKey), "start"));
+  col.appendChild(button("1️⃣ Level 1: Find the Cell", () => showAddTableLevel1(opKey, size), "start"));
+  col.appendChild(button("2️⃣ Level 2: Type the Answer", () => showAddTableLevel2(opKey, size), "start"));
+  col.appendChild(button("⏱️ Speed Round", () => showAddTableSpeedRound(opKey, size), "start"));
   root.appendChild(col);
 }
 
-// Builds the 11x11 header+grid DOM shared by Level 1 and Level 2. `showValues` pre-fills
-// every data cell with its value (Level 1); otherwise cells start blank (Level 2). `tappable`
-// adds pointer styling/cursor to data cells (Level 1 only -- Level 2 answers via typing).
-function buildAddTableGrid(op, showValues, tappable) {
+// Builds the (size+1)x(size+1) header+grid DOM shared by Level 1 and Level 2. `showValues`
+// pre-fills every data cell with its value (Level 1); otherwise cells start blank (Level 2).
+// `tappable` adds pointer styling/cursor to data cells (Level 1 only -- Level 2 answers via
+// typing). `size` defaults to the standard 1-10 table; the Addition-only easier variant passes
+// a smaller size (e.g. 5) so every sum stays in reach of a beginner.
+function buildAddTableGrid(op, size, showValues, tappable) {
   const grid = el("div", { class: "addtable-grid" });
   grid.appendChild(el("div", { class: "addtable-cell addtable-corner", text: op.symbol }));
 
   const colHeaderEls = {};
-  for (let c = 1; c <= ADDTABLE_SIZE; c++) {
+  for (let c = 1; c <= size; c++) {
     const headerCell = el("div", { class: "addtable-cell addtable-header addtable-header-col", text: op.colLabel(c) });
     grid.appendChild(headerCell);
     colHeaderEls[c] = headerCell;
@@ -1020,11 +1027,11 @@ function buildAddTableGrid(op, showValues, tappable) {
 
   const rowHeaderEls = {};
   const cellEls = {};
-  for (let r = 1; r <= ADDTABLE_SIZE; r++) {
+  for (let r = 1; r <= size; r++) {
     const rowHeader = el("div", { class: "addtable-cell addtable-header addtable-header-row", text: op.rowLabel(r) });
     grid.appendChild(rowHeader);
     rowHeaderEls[r] = rowHeader;
-    for (let c = 1; c <= ADDTABLE_SIZE; c++) {
+    for (let c = 1; c <= size; c++) {
       const val = op.cellValue(r, c);
       const cellClass = "addtable-cell addtable-data" + (tappable ? " addtable-data-tappable" : "");
       const cell = el("div", { class: cellClass, text: showValues ? String(val) : "" });
@@ -1046,23 +1053,24 @@ function clearAddTableHighlight(rowHeaderEls, colHeaderEls, cellEls) {
 // Faint-highlights every data cell in row `r` (and column `c`, unless isDivision -- division
 // only ever reveals the row, same reasoning as the header highlight above it) so the eye can
 // trace along the band to the target instead of just seeing two highlighted header labels.
-function highlightAddTableRowCol(cellEls, r, c, isDivision) {
-  for (let cc = 1; cc <= ADDTABLE_SIZE; cc++) cellEls[`${r}-${cc}`].classList.add("addtable-data-row-highlight");
+function highlightAddTableRowCol(cellEls, size, r, c, isDivision) {
+  for (let cc = 1; cc <= size; cc++) cellEls[`${r}-${cc}`].classList.add("addtable-data-row-highlight");
   if (!isDivision) {
-    for (let rr = 1; rr <= ADDTABLE_SIZE; rr++) cellEls[`${rr}-${c}`].classList.add("addtable-data-col-highlight");
+    for (let rr = 1; rr <= size; rr++) cellEls[`${rr}-${c}`].classList.add("addtable-data-col-highlight");
   }
 }
 
-function shuffledAddTableTargets() {
+function shuffledAddTableTargets(size) {
   const targets = [];
-  for (let r = 1; r <= ADDTABLE_SIZE; r++) {
-    for (let c = 1; c <= ADDTABLE_SIZE; c++) targets.push([r, c]);
+  for (let r = 1; r <= size; r++) {
+    for (let c = 1; c <= size; c++) targets.push([r, c]);
   }
   return shuffle(targets);
 }
 
 // -- Level 1: tap the intersecting cell in a fully-filled table --------------------------
-function showAddTableLevel1(opKey) {
+function showAddTableLevel1(opKey, size) {
+  size = size || ADDTABLE_SIZE;
   const op = ADDTABLE_OPS[opKey];
   const isDivision = opKey === "division";
   applyThemeVars();
@@ -1070,7 +1078,7 @@ function showAddTableLevel1(opKey) {
 
   root.appendChild(headerBanner(`${op.icon} Find the Cell`));
   const top = el("div", { class: "quiz-top" });
-  top.appendChild(button("◀ Back", () => showAdditionTableMenu(opKey), "next"));
+  top.appendChild(button("◀ Back", () => showAdditionTableMenu(opKey, size), "next"));
   top.appendChild(button("🏠 Menu", showSetup, "quit"));
   root.appendChild(top);
 
@@ -1080,11 +1088,11 @@ function showAddTableLevel1(opKey) {
   card.appendChild(promptEl);
   card.appendChild(scoreEl);
 
-  const { grid, cellEls, rowHeaderEls, colHeaderEls } = buildAddTableGrid(op, true, true);
+  const { grid, cellEls, rowHeaderEls, colHeaderEls } = buildAddTableGrid(op, size, true, true);
   card.appendChild(grid);
   root.appendChild(card);
 
-  const remaining = shuffledAddTableTargets();
+  const remaining = shuffledAddTableTargets(size);
   const total = remaining.length;
   let target = null;
   let score = 0;
@@ -1104,7 +1112,7 @@ function showAddTableLevel1(opKey) {
     // the prompt states the dividend directly and the kid searches the row for that value,
     // which is a genuinely different (and genuinely division) task.
     if (!isDivision) colHeaderEls[c].classList.add("addtable-highlight");
-    highlightAddTableRowCol(cellEls, r, c, isDivision);
+    highlightAddTableRowCol(cellEls, size, r, c, isDivision);
     promptEl.textContent = isDivision ? op.typePrompt(r, c) : op.findPrompt(r, c);
     scoreEl.textContent = `Found: ${score} / ${total}`;
   }
@@ -1129,7 +1137,8 @@ function showAddTableLevel1(opKey) {
 }
 
 // -- Level 2: blank table, type the answer -------------------------------------------------
-function showAddTableLevel2(opKey) {
+function showAddTableLevel2(opKey, size) {
+  size = size || ADDTABLE_SIZE;
   const op = ADDTABLE_OPS[opKey];
   const isDivision = opKey === "division";
   applyThemeVars();
@@ -1137,7 +1146,7 @@ function showAddTableLevel2(opKey) {
 
   root.appendChild(headerBanner(`${op.icon} Type the Answer`));
   const top = el("div", { class: "quiz-top" });
-  top.appendChild(button("◀ Back", () => showAdditionTableMenu(opKey), "next"));
+  top.appendChild(button("◀ Back", () => showAdditionTableMenu(opKey, size), "next"));
   top.appendChild(button("🏠 Menu", showSetup, "quit"));
   root.appendChild(top);
 
@@ -1157,11 +1166,11 @@ function showAddTableLevel2(opKey) {
   const feedbackEl = el("div", { class: "feedback" });
   card.appendChild(feedbackEl);
 
-  const { grid, cellEls, rowHeaderEls, colHeaderEls } = buildAddTableGrid(op, false, false);
+  const { grid, cellEls, rowHeaderEls, colHeaderEls } = buildAddTableGrid(op, size, false, false);
   card.appendChild(grid);
   root.appendChild(card);
 
-  const remaining = shuffledAddTableTargets();
+  const remaining = shuffledAddTableTargets(size);
   const total = remaining.length;
   let target = null;
   let score = 0;
@@ -1184,7 +1193,7 @@ function showAddTableLevel2(opKey) {
     // Division only reveals the divisor (row) -- highlighting the quotient (column) too
     // would hand the kid the answer, since typePrompt's dividend already comes from r*c.
     if (!isDivision) colHeaderEls[c].classList.add("addtable-highlight");
-    highlightAddTableRowCol(cellEls, r, c, isDivision);
+    highlightAddTableRowCol(cellEls, size, r, c, isDivision);
     promptEl.textContent = op.typePrompt(r, c);
     scoreEl.textContent = `Filled: ${score} / ${total}`;
     answerInput.focus();
@@ -1219,7 +1228,8 @@ function showAddTableLevel2(opKey) {
 }
 
 // -- Speed Round: multiple-choice against a countdown timer -------------------------------
-function showAddTableSpeedRound(opKey) {
+function showAddTableSpeedRound(opKey, size) {
+  size = size || ADDTABLE_SIZE;
   const op = ADDTABLE_OPS[opKey];
   applyThemeVars();
   clearRoot();
@@ -1231,7 +1241,7 @@ function showAddTableSpeedRound(opKey) {
   const scoreLabel = el("span", { text: "⭐ Score: 0" });
   top.appendChild(timerLabel);
   top.appendChild(scoreLabel);
-  top.appendChild(button("🚪 Quit", () => { stopTimer(); showAdditionTableMenu(opKey); }, "quit"));
+  top.appendChild(button("🚪 Quit", () => { stopTimer(); showAdditionTableMenu(opKey, size); }, "quit"));
   root.appendChild(top);
 
   const card = el("div", { class: "card" });
@@ -1264,8 +1274,8 @@ function showAddTableSpeedRound(opKey) {
       score >= 20 ? "Amazing speed! 🌟" : score >= 10 ? "Great job! 🎉" : "Nice try — play again to beat it!" }));
     root.appendChild(resultCard);
     const btnRow = el("div", { class: "next-row" });
-    btnRow.appendChild(button("🔄 Play Again", () => showAddTableSpeedRound(opKey), "playagain"));
-    btnRow.appendChild(button("◀ Back", () => showAdditionTableMenu(opKey), "next"));
+    btnRow.appendChild(button("🔄 Play Again", () => showAddTableSpeedRound(opKey, size), "playagain"));
+    btnRow.appendChild(button("◀ Back", () => showAdditionTableMenu(opKey, size), "next"));
     root.appendChild(btnRow);
   }
 
@@ -1273,7 +1283,7 @@ function showAddTableSpeedRound(opKey) {
     acceptingInput = true;
     feedbackEl.textContent = "";
     feedbackEl.className = "feedback";
-    const r = randInt(1, ADDTABLE_SIZE), c = randInt(1, ADDTABLE_SIZE);
+    const r = randInt(1, size), c = randInt(1, size);
     const answer = op.speedAnswer(r, c);
     promptEl.textContent = op.speedPrompt(r, c);
     const [lo, hi] = op.choiceRange;
