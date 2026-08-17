@@ -179,20 +179,187 @@ function spellWordQ(ageIdx, diffIdx) {
   };
 }
 
-// Sentence-level counterpart to Spell the Word: hear a whole sentence, then tap its words
-// (shuffled) into the answer area in order. Split into a short/long tier by word count within
-// each age's pool, same pattern readingComprehensionQ uses for its passages.
+// Sentence Builder: procedural generation ------------------------------------------------
+// A fixed hand-written list, no matter how large, still runs out for a kid doing dozens of
+// rounds a day -- one family reported ~40 rounds/day exhausting a 75-per-age list within a
+// single sitting. Instead of growing that list further, most sentences are now composed from
+// templates + word banks at generation time: thousands of distinct, grammatically valid
+// combinations per age/difficulty tier instead of a few dozen. Each template's word banks are
+// deliberately uniform in tense/grammatical role (e.g. every Age 2 clause is simple past) so
+// ANY cross-combination stays grammatically correct even when the resulting causal logic is a
+// little arbitrary ("Because the test was difficult, most students passed with good grades.")
+// -- that's fine here since the exercise is about word ORDER, not factual plausibility.
+// The curated APP_DATA.SENTENCE_BUILDER_SENTENCES list is still mixed in some of the time,
+// for narrative variety templates alone can't produce.
+
+const SB0_SUBJECTS = [
+  "The dog", "The cat", "The bird", "The frog", "The pig", "The cow", "The duck", "The bear",
+  "The fox", "The fish", "The bee", "The ant", "The mouse", "The rabbit", "The turtle",
+  "The horse", "The sheep", "The goat", "The chick", "The owl", "The snail", "The seal",
+  "The bat", "The lamb", "The kitten", "The puppy", "The baby", "The bug", "My dog", "My cat",
+];
+const SB0_CAN_VERBS = [
+  "run", "jump", "hop", "swim", "fly", "sing", "hide", "sleep", "crawl", "walk", "dig",
+  "climb", "spin", "dance", "wave", "clap", "stomp", "giggle", "wiggle", "tiptoe",
+];
+const SB0_ADJECTIVES = [
+  "big", "small", "red", "blue", "green", "soft", "tiny", "happy", "fast", "fluffy", "funny",
+  "loud", "quiet", "warm", "cold", "bright", "silly", "brave", "sleepy", "hungry",
+];
+const SB0_NOUNS_PLURAL = ["dogs", "cats", "apples", "cookies", "stars", "toys", "books", "games", "flowers", "balloons"];
+const SB0_NOUNS_SINGULAR = ["ball", "hat", "kite", "cake", "book", "toy", "bike", "cup", "star", "car", "drum", "sock", "doll", "frog", "bug"];
+const SB0_PEOPLE = ["Tom", "Ben", "Mia", "Sam", "Mom", "Dad", "She", "He"];
+const SB0_WE_VERB_PHRASES = [
+  "play games", "eat lunch", "read books", "wash hands", "brush teeth", "fly kites",
+  "build blocks", "sing songs", "draw pictures", "ride bikes",
+];
+
+function sbAge0EasyPool() {
+  const out = [];
+  for (const subj of SB0_SUBJECTS) for (const v of SB0_CAN_VERBS) out.push(`${subj} can ${v}.`);
+  for (const subj of SB0_SUBJECTS) for (const adj of SB0_ADJECTIVES) out.push(`${subj} is ${adj}.`);
+  for (const n of SB0_NOUNS_PLURAL) out.push(`I like ${n}.`);
+  for (const n of SB0_NOUNS_SINGULAR) out.push(`I see a ${n}.`);
+  for (const p of SB0_PEOPLE) for (const n of SB0_NOUNS_SINGULAR) out.push(`${p} has a ${n}.`);
+  for (const vp of SB0_WE_VERB_PHRASES) out.push(`We ${vp}.`);
+  return out;
+}
+
+function sbAge0HardPool() {
+  const out = [];
+  for (const subj of SB0_SUBJECTS) {
+    for (const v1 of SB0_CAN_VERBS) {
+      for (const v2 of SB0_CAN_VERBS) {
+        if (v1 !== v2) out.push(`${subj} can ${v1} and ${v2}.`);
+      }
+    }
+  }
+  return out;
+}
+
+const SB1_SUBJECTS = [
+  "The dog", "The cat", "The girl", "The boy", "My sister", "My brother", "The teacher",
+  "The children", "The bird", "The puppy", "Our neighbor", "The farmer", "The artist",
+  "The coach", "The baker", "Grandma", "Grandpa", "The librarian", "The nurse", "The mechanic",
+  "The firefighter", "The postman", "The chef", "The gardener", "My friend",
+];
+const SB1_VERB_PHRASES = [
+  "ran fast", "played happily", "jumped high", "sang a song", "read a book", "painted a picture",
+  "built a tower", "found a treasure", "planted a seed", "baked a cake", "fixed the bike",
+  "watched the game", "cleaned the room", "wrote a letter", "caught the ball", "fed the ducks",
+  "climbed the tree", "solved the puzzle", "practiced piano", "walked the dog", "cooked dinner",
+  "picked flowers", "flew a kite", "told a story", "waved goodbye",
+];
+const SB1_PLACE_TIME = [
+  "across the park", "in the garden", "at school today", "before dinner", "during recess",
+  "near the lake", "under the tree", "after the rain", "every morning", "at the party",
+  "all afternoon", "before it got dark", "on the weekend", "in the kitchen", "at the zoo",
+  "by the window", "after lunch", "in the morning", "near the pond", "at the beach",
+];
+
+function sbAge1EasyPool() {
+  const out = [];
+  for (const subj of SB1_SUBJECTS) for (const vp of SB1_VERB_PHRASES) out.push(`${subj} ${vp}.`);
+  return out;
+}
+
+function sbAge1HardPool() {
+  const out = [];
+  for (const subj of SB1_SUBJECTS) for (const vp of SB1_VERB_PHRASES) for (const pt of SB1_PLACE_TIME) out.push(`${subj} ${vp} ${pt}.`);
+  return out;
+}
+
+// Kept to connectors + clause banks that are all simple-past, so any cross-combination stays
+// tense-consistent ("Unless"/"Whenever" want present/habitual clauses and were dropped for
+// that reason, not because they're grammatically invalid in general).
+const SB2_CONNECTORS = ["Although", "Because", "Since", "While", "Before", "After", "As", "Even though"];
+const SB2_CLAUSE_A = [
+  "it was raining", "she studied hard", "the power went out", "the crowd was large",
+  "the bridge was closed", "he practiced every day", "the museum was closed",
+  "the internet was down", "the test was difficult", "the harvest was poor",
+  "the debate continued", "the trail was muddy", "the storm arrived",
+  "the coach explained the strategy", "the sun set", "the students listened carefully",
+  "the team practiced hard", "the results were announced", "the flight was delayed",
+  "the rain finally stopped", "the roads were icy", "the crowd cheered loudly",
+  "the teacher called on her", "the fire alarm rang", "the ship reached the harbor",
+];
+const SB2_MAIN_CLAUSES = [
+  "the children played outside happily", "she passed the difficult test",
+  "we finished the project by hand", "the students stayed focused on their work",
+  "he finally went outside to play", "the sailors quickly secured their boats",
+  "we had to take a longer route", "the players listened carefully",
+  "extra security was called in", "prices at the market increased",
+  "the audience listened with great interest", "most students passed with good grades",
+  "the hikers reached the summit", "the meeting was postponed",
+  "the game continued as planned", "everyone cheered loudly",
+  "the class went on a field trip", "the coach called a timeout",
+  "the crowd grew silent", "the plan succeeded in the end",
+  "the pilot announced a delay", "the family stayed inside all day",
+  "the scientists recorded their findings", "the workers finished the project early",
+  "the singer performed one more song",
+];
+
+function sbAge2Pool() {
+  const out = [];
+  for (const conn of SB2_CONNECTORS) for (const ca of SB2_CLAUSE_A) for (const mc of SB2_MAIN_CLAUSES) {
+    out.push(`${conn} ${ca}, ${mc}.`);
+  }
+  return out;
+}
+
+// Each pool is a pure function of static word banks, so it's computed once and cached instead
+// of rebuilt on every question (age0 hard alone is ~11k combinations).
+const SB_POOL_CACHE = {};
+function sbPool(ageIdx, diffIdx) {
+  if (ageIdx === 0) {
+    const key = diffIdx >= 2 ? "0_hard" : "0_easy";
+    return SB_POOL_CACHE[key] || (SB_POOL_CACHE[key] = diffIdx >= 2 ? sbAge0HardPool() : sbAge0EasyPool());
+  }
+  if (ageIdx === 1) {
+    const key = diffIdx >= 2 ? "1_hard" : "1_easy";
+    return SB_POOL_CACHE[key] || (SB_POOL_CACHE[key] = diffIdx >= 2 ? sbAge1HardPool() : sbAge1EasyPool());
+  }
+  return SB_POOL_CACHE["2_all"] || (SB_POOL_CACHE["2_all"] = sbAge2Pool());
+}
+
+// SEEN.pickUnseen persists its full exhaustion history to localStorage on every call (sorts
+// and re-serializes the whole seen-set each time), which is fine for the curated lists it was
+// designed for (dozens of items) but far too much I/O once the seen-set itself grows into the
+// thousands, as it would here. A pool this large doesn't need persisted exhaustion-tracking
+// anyway -- true random draws already collide rarely at this scale -- so this just keeps a
+// small in-memory (non-persisted) recent-use set per pool to avoid back-to-back repeats.
+const SB_GEN_RECENT = {};
+function pickFromGenPool(poolKey, pool) {
+  const recent = SB_GEN_RECENT[poolKey] || (SB_GEN_RECENT[poolKey] = new Set());
+  let sentence;
+  for (let tries = 0; tries < 10; tries++) {
+    sentence = choice(pool);
+    if (!recent.has(sentence)) break;
+  }
+  recent.add(sentence);
+  if (recent.size > 60) recent.clear();
+  return sentence;
+}
+
+// Hear a whole sentence, then tap its words (shuffled) into the answer area in order. Mostly
+// draws from the procedural pool above; occasionally (15%) pulls a hand-written sentence from
+// the curated list instead, using the same short/long tier split as before.
 function sentenceBuilderQ(ageIdx, diffIdx) {
-  const pool = APP_DATA.SENTENCE_BUILDER_SENTENCES[ageIdx];
-  const byLength = pool.slice().sort((a, b) => a.split(" ").length - b.split(" ").length);
-  const half = Math.floor(byLength.length / 2);
-  const tier = diffIdx >= 2 && half ? byLength.slice(half) : half ? byLength.slice(0, half) : byLength;
-  const poolKey = `sentence_builder_${ageIdx}`;
-  const sentence = SEEN.pickUnseen(poolKey, tier, (s) => s);
+  const curatedPool = APP_DATA.SENTENCE_BUILDER_SENTENCES[ageIdx];
+  let sentence;
+  if (Math.random() < 0.15) {
+    const byLength = curatedPool.slice().sort((a, b) => a.split(" ").length - b.split(" ").length);
+    const half = Math.floor(byLength.length / 2);
+    const tier = diffIdx >= 2 && half ? byLength.slice(half) : half ? byLength.slice(0, half) : byLength;
+    sentence = SEEN.pickUnseen(`sentence_builder_${ageIdx}`, tier, (s) => s);
+  } else {
+    const genPoolKey = `sentence_builder_gen_${ageIdx}_${diffIdx >= 2 ? "hard" : "easy"}`;
+    sentence = pickFromGenPool(genPoolKey, sbPool(ageIdx, diffIdx));
+  }
   return {
     prompt: "🔊 Tap \"Read Aloud\" to hear the sentence, then build it in order!",
     speak: sentence,
-    choices: makeChoices(sentence, pool), answer: sentence,
+    choices: makeChoices(sentence, curatedPool), answer: sentence,
     interactive: "sentence_builder", words: sentence.split(" "), sentence,
   };
 }
