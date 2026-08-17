@@ -61,7 +61,28 @@ const ADDTABLE_OPS = {
     choiceRange: [1, 10],
     desc: "Uses the same grid as Multiplication, but in reverse: given a dividend and divisor, search the row to find the quotient.",
   },
+  // Easier subtraction variant, only ever reached with size=5 (see the "Under 10" hub card
+  // below) -- mirrors "subtraction" above but offsets the row header by +5 instead of +10, so
+  // with rows/cols 1-5 the minuend never exceeds 10 and every difference stays under 10. Not
+  // part of ADDTABLE_PRIMARY_OPS, so it doesn't get its own full-size table card.
+  subtraction_easy: {
+    icon: "➖", name: "Subtraction", symbol: "−",
+    rowLabel: (r) => String(r + 5), colLabel: (c) => String(c),
+    cellValue: (r, c) => (r + 5) - c,
+    findPrompt: (r, c) => `Tap where row ${r + 5} and column ${c} meet!`,
+    typePrompt: (r, c) => `${r + 5} − ${c} = ?`,
+    speedPrompt: (r, c) => `${r + 5} − ${c} = ?`,
+    speedAnswer: (r, c) => (r + 5) - c,
+    choiceRange: [0, 9],
+    desc: "A smaller, easier Subtraction Table using just 1-5, so every difference stays under 10.",
+  },
 };
+
+// The four operations that get an automatic full-size (1-10) hub card in showMiniGames --
+// deliberately a fixed list rather than Object.keys(ADDTABLE_OPS), since easier size-limited
+// variants (like subtraction_easy) live in ADDTABLE_OPS too but get their own hand-built card
+// instead of a redundant full-size one.
+const ADDTABLE_PRIMARY_OPS = ["addition", "subtraction", "multiplication", "division"];
 
 // One-line blurbs shown on the hub for the 5 non-table games, so parents can tell at a
 // glance how games that look similar (e.g. the three "vertical" ones) actually differ.
@@ -91,13 +112,16 @@ function showMiniGames() {
   for (const g of MINI_GAME_LIST) {
     grid.appendChild(gameCard(g.icon, g.name, g.desc, g.fn));
   }
-  for (const opKey of Object.keys(ADDTABLE_OPS)) {
+  for (const opKey of ADDTABLE_PRIMARY_OPS) {
     const op = ADDTABLE_OPS[opKey];
     grid.appendChild(gameCard(op.icon, `${op.name} Table`, op.desc, () => showAdditionTableMenu(opKey)));
   }
   grid.appendChild(gameCard("➕", "Addition Table (Under 10)",
     "A smaller, easier Addition Table using just 1-5, so every sum stays 10 or under.",
     () => showAdditionTableMenu("addition", 5)));
+  grid.appendChild(gameCard("➖", "Subtraction Table (Under 10)",
+    ADDTABLE_OPS.subtraction_easy.desc,
+    () => showAdditionTableMenu("subtraction_easy", 5)));
   root.appendChild(grid);
 }
 
