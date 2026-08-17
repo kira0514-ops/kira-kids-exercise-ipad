@@ -408,7 +408,7 @@ function showQuestion() {
   nextBtn.id = "quiz-next-btn";
   nextRow.appendChild(nextBtn);
 
-  const INTERACTIVE_TYPES = ["make_ten", "vertical_column", "vertical_subtract", "spell_word", "sentence_builder", "pattern_fill", "counting_tap", "ten_frame", "number_sequence", "fraction_bar", "equal_groups", "repeated_subtraction", "groups_multiply"];
+  const INTERACTIVE_TYPES = ["make_ten", "vertical_column", "vertical_subtract", "long_multiply", "spell_word", "sentence_builder", "pattern_fill", "counting_tap", "ten_frame", "number_sequence", "fraction_bar", "equal_groups", "repeated_subtraction", "groups_multiply"];
   if (INTERACTIVE_TYPES.includes(q.interactive)) {
     // Worked-out box exercise instead of multiple choice -- it can only ever be "finished"
     // once actually solved correctly, so completion always counts as correct.
@@ -421,6 +421,7 @@ function showQuestion() {
     const interactive = q.interactive === "make_ten" ? buildMakeTenInteractive(q, onSolved)
       : q.interactive === "vertical_column" ? buildVerticalColumnInteractive(q, q.sign, onSolved)
       : q.interactive === "vertical_subtract" ? buildVerticalSubtractionInteractive(q, onSolved)
+      : q.interactive === "long_multiply" ? buildLongMultiplicationInteractive(q, onSolved)
       : q.interactive === "spell_word" ? buildSpellWordInteractive(q.word, q.emoji, onSolved)
       : q.interactive === "sentence_builder" ? buildSentenceBuilderInteractive(q.words, onSolved)
       : q.interactive === "pattern_fill" ? buildPatternFillInteractive(q.sequence, q.bank, q.answer, onSolved)

@@ -362,22 +362,86 @@ function verticalColumnProblem(a, b, colFn) {
   return { a, b, digitsA, digitsB, resultDigits, carryIn };
 }
 
-function verticalAdditionProblem(digits) {
-  // `digits` sets both addends' digit count (1 = single-digit + single-digit, used for
-  // Preschool, where the engine naturally produces just one answer box normally and a second
-  // (carry) box only when the sum reaches 10+, matching the classic worksheet). Defaults to 2
-  // for callers with no age/difficulty context (the standalone Mini Game); quiz/curriculum
-  // callers pass a digit count scaled to age/difficulty -- see vColumnDigits() in math.js.
-  const d = digits || 2;
-  const a = randOfDigits(d), b = randOfDigits(d);
-  const digitsB = digitsOfNum(b);
-  return verticalColumnProblem(a, b, (aDigit, i) => aDigit + (digitsB[i] || 0));
+function verticalAdditionProblem(digitsA, digitsB) {
+  // digitsA/digitsB set each addend's digit count independently (e.g. 2-digit + single-digit),
+  // so the operand with fewer digits must be `b` -- verticalColumnProblem's column loop runs
+  // digitsA.length times and treats any place `b` doesn't reach as 0, which only gives the
+  // right total when `a` is the one with >= digits. digitsB defaults to digitsA (both callers
+  // that only ever wanted symmetric operands -- the standalone Mini Game's parameterless call,
+  // and any future caller that just passes one count -- keep working unchanged).
+  const dA = digitsA || 2;
+  const dB = digitsB != null ? digitsB : dA;
+  const a = randOfDigits(dA), b = randOfDigits(dB);
+  const digitsBArr = digitsOfNum(b);
+  return verticalColumnProblem(a, b, (aDigit, i) => aDigit + (digitsBArr[i] || 0));
 }
 
 function verticalMultiplicationProblem(digits, multiplierHi) {
-  const a = randOfDigits(digits || 2);
+  // A single-digit multiplicand (digits === 1, used by the new "single x single" Easy tier)
+  // avoids 0/1 -- "0 x 7" or "1 x 7" isn't meaningful column-multiplication practice, matching
+  // the multiplier's own existing floor of 2 below.
+  const d = digits || 2;
+  const a = d <= 1 ? randInt(2, 9) : randOfDigits(d);
   const b = randInt(2, multiplierHi || 9); // multiplier stays single-digit-ish, applied to every column of a
   return verticalColumnProblem(a, b, (aDigit) => aDigit * b);
+}
+
+// Computes a * bDigit (bDigit a single digit 0-9) as its own column-multiplication, with
+// carries -- the same per-column math verticalColumnProblem's multiplication path uses,
+// factored out so it can be reused once per digit of a multi-digit multiplier (see
+// longMultiplicationProblem below).
+function columnMultiplyByDigit(a, bDigit) {
+  const digitsA = digitsOfNum(a);
+  const resultDigits = [];
+  const carryIn = [];
+  let carry = 0;
+  for (let i = 0; i < digitsA.length; i++) {
+    carryIn[i] = carry;
+    const colVal = digitsA[i] * bDigit + carry;
+    resultDigits[i] = colVal % 10;
+    carry = Math.floor(colVal / 10);
+  }
+  if (carry > 0) { resultDigits[digitsA.length] = carry; carryIn[digitsA.length] = carry; }
+  return { digitsA, resultDigits, carryIn };
+}
+
+// Generic multi-operand column addition with carries chained across all of them at once --
+// used for long multiplication's final "add up the partial products" step. `numbers` are
+// plain integers, already shifted by their own place value (a partial product's tens-shift is
+// baked into its numeric value, not handled here).
+function verticalColumnSum(numbers) {
+  const digitsList = numbers.map(digitsOfNum);
+  const numCols = Math.max(...digitsList.map((d) => d.length));
+  const resultDigits = [];
+  const carryIn = [];
+  let carry = 0;
+  for (let i = 0; i < numCols; i++) {
+    carryIn[i] = carry;
+    const colSum = digitsList.reduce((s, d) => s + (d[i] || 0), 0) + carry;
+    resultDigits[i] = colSum % 10;
+    carry = Math.floor(colSum / 10);
+  }
+  while (carry > 0) { resultDigits.push(carry % 10); carry = Math.floor(carry / 10); }
+  return { numbers, digitsList, resultDigits, carryIn };
+}
+
+// Full long multiplication: a (digitsA digits) x b (digitsB digits, 2+). A single-digit
+// multiplier can't represent this -- multiplying by "38" isn't "multiply every column of a by
+// the number 38", it's a separate partial product per digit of b (multiply by 8, then by 30,
+// ...), each shifted left by that digit's place value, summed together at the end. One
+// `columnMultiplyByDigit` call per digit of b produces those partial products; verticalColumnSum
+// combines their (already-shifted) values into the final answer.
+function longMultiplicationProblem(digitsA, digitsB) {
+  const a = randOfDigits(digitsA);
+  const b = randOfDigits(digitsB);
+  const bDigits = digitsOfNum(b); // ones-first
+  const partials = bDigits.map((bd, shift) => {
+    const col = columnMultiplyByDigit(a, bd);
+    const value = a * bd * Math.pow(10, shift);
+    return { multiplierDigit: bd, shift, ...col, value };
+  });
+  const sum = verticalColumnSum(partials.map((part) => part.value));
+  return { a, b, digitsA: digitsOfNum(a), digitsB: bDigits, partials, sum, answer: a * b };
 }
 
 // A tap-or-drag digit box: tapping it reveals a vertical strip of 0-9; picking a digit is
@@ -536,6 +600,136 @@ function buildVerticalColumnInteractive(p, sign, onComplete) {
   return wrap;
 }
 
+// Long multiplication (multi-digit x multi-digit, from longMultiplicationProblem): unlike
+// buildVerticalColumnInteractive's fixed 5-row layout, this needs a dynamic row count -- one
+// carry row + one digit row per partial product (each shifted left by its own place value),
+// then a final carry row + digit row summing the (already-shifted) partial products together.
+// Reuses the same vadd-* CSS classes and buildDragDigitBox mechanic so it reads as the same
+// family of exercise, just with more rows; the grid itself has no hardcoded row count, so any
+// number of partial products works without CSS changes.
+function buildLongMultiplicationInteractive(p, onComplete) {
+  const wrap = el("div", {});
+  const totalCols = p.sum.resultDigits.length;
+  const grid = el("div", { class: "vadd-grid" });
+  grid.style.gridTemplateColumns = `24px repeat(${totalCols}, 44px)`;
+  wrap.appendChild(grid);
+
+  const strips = [];
+  let remaining = 0;
+  let doneCalled = false;
+  function markDone() {
+    remaining--;
+    if (remaining <= 0 && !doneCalled) { doneCalled = true; onComplete(); }
+  }
+
+  function cell(row, col, extraClass) {
+    return el("div", { class: `vadd-cell${extraClass ? " " + extraClass : ""}`, style: `grid-row:${row}; grid-column:${col};` });
+  }
+  function placeIndex(col) { return totalCols - (col - 1); }
+
+  let row = 1;
+
+  // Operands: a on top, x b below -- sign in its own column so digits never shift.
+  grid.appendChild(cell(row, 1));
+  for (let col = 2; col <= totalCols + 1; col++) {
+    const idx = placeIndex(col);
+    const c = cell(row, col, "vadd-num");
+    if (idx < p.digitsA.length) c.textContent = String(p.digitsA[idx]);
+    grid.appendChild(c);
+  }
+  row++;
+  const signCell = cell(row, 1, "vadd-sign");
+  signCell.textContent = "×";
+  grid.appendChild(signCell);
+  for (let col = 2; col <= totalCols + 1; col++) {
+    const idx = placeIndex(col);
+    const c = cell(row, col, "vadd-num");
+    if (idx < p.digitsB.length) c.textContent = String(p.digitsB[idx]);
+    grid.appendChild(c);
+  }
+  row++;
+  grid.appendChild(el("div", { class: "vadd-line", style: `grid-row:${row}; grid-column:1 / ${totalCols + 2};` }));
+  row++;
+
+  // One carry row + one digit row per partial product. Columns to the right of that partial's
+  // own shift are left blank on its digit row (no box) -- same as a paper worksheet leaving
+  // the ones place empty on the second line of a two-digit multiplier.
+  for (const partial of p.partials) {
+    grid.appendChild(cell(row, 1));
+    for (let col = 2; col <= totalCols + 1; col++) {
+      const idx = placeIndex(col);
+      const localIdx = idx - partial.shift;
+      const carryVal = localIdx >= 0 ? partial.carryIn[localIdx] : undefined;
+      if (carryVal > 0) {
+        remaining++;
+        const ui = buildDragDigitBox(carryVal, "small", markDone);
+        const c = cell(row, col, "vadd-carry-cell");
+        c.appendChild(ui.box);
+        grid.appendChild(c);
+        strips.push(ui.strip);
+      } else {
+        grid.appendChild(cell(row, col));
+      }
+    }
+    row++;
+
+    grid.appendChild(cell(row, 1));
+    for (let col = 2; col <= totalCols + 1; col++) {
+      const idx = placeIndex(col);
+      const localIdx = idx - partial.shift;
+      const c = cell(row, col);
+      if (localIdx >= 0 && localIdx < partial.resultDigits.length) {
+        remaining++;
+        const ui = buildDragDigitBox(partial.resultDigits[localIdx], "normal", markDone);
+        c.appendChild(ui.box);
+        strips.push(ui.strip);
+      }
+      grid.appendChild(c);
+    }
+    row++;
+  }
+
+  // Only add the addition step when there's more than one partial product to actually sum --
+  // with just one (a single-digit multiplier), summing "one number" is a no-op that would
+  // otherwise duplicate the partial product row for no reason.
+  if (p.partials.length > 1) {
+    grid.appendChild(el("div", { class: "vadd-line", style: `grid-row:${row}; grid-column:1 / ${totalCols + 2};` }));
+    row++;
+
+    grid.appendChild(cell(row, 1));
+    for (let col = 2; col <= totalCols + 1; col++) {
+      const idx = placeIndex(col);
+      const carryVal = p.sum.carryIn[idx];
+      if (carryVal > 0) {
+        remaining++;
+        const ui = buildDragDigitBox(carryVal, "small", markDone);
+        const c = cell(row, col, "vadd-carry-cell");
+        c.appendChild(ui.box);
+        grid.appendChild(c);
+        strips.push(ui.strip);
+      } else {
+        grid.appendChild(cell(row, col));
+      }
+    }
+    row++;
+
+    grid.appendChild(cell(row, 1));
+    for (let col = 2; col <= totalCols + 1; col++) {
+      const idx = placeIndex(col);
+      remaining++;
+      const ui = buildDragDigitBox(p.sum.resultDigits[idx], "normal", markDone);
+      const c = cell(row, col);
+      c.appendChild(ui.box);
+      grid.appendChild(c);
+      strips.push(ui.strip);
+    }
+    row++;
+  }
+
+  for (const strip of strips) wrap.appendChild(strip);
+  return wrap;
+}
+
 // Shared standalone-game loop for column arithmetic where the carry flows left (addition,
 // multiplication by a single digit) -- both produce the same problem shape and render
 // identically; only the header, sign, and generator differ.
@@ -584,23 +778,29 @@ function showVerticalMultiplicationGame() {
 // the left, a column that can't subtract cleanly reduces the column to its LEFT by 1 (and
 // adds 10 to itself). digitsA/digitsB/resultDigits are ones-first; borrowIn[i] = 1 if column
 // i's own top digit had to be reduced by 1 to lend to the column on its right.
-function verticalSubtractionProblem(digits) {
-  const d = digits || 2;
-  let a = randOfDigits(d), b = randOfDigits(d);
-  if (a < b) [a, b] = [b, a]; // keep it to non-negative results, appropriate for this level
-  const digitsA = digitsOfNum(a), digitsB = digitsOfNum(b);
-  const numCols = digitsA.length; // a >= b, so a never has fewer digits than b
+function verticalSubtractionProblem(digitsA, digitsB) {
+  // Same asymmetric-digits idea as verticalAdditionProblem. When the two digit counts differ,
+  // a is guaranteed numerically bigger already (an n-digit number's smallest value always
+  // exceeds an (n-1)-digit number's largest, e.g. 10 > 9), so no swap is needed there -- the
+  // swap-if-needed check only matters when both counts match and either draw could come out
+  // on top.
+  const dA = digitsA || 2;
+  const dB = digitsB != null ? digitsB : dA;
+  let a = randOfDigits(dA), b = randOfDigits(dB);
+  if (dA === dB && a < b) [a, b] = [b, a]; // keep it to non-negative results, appropriate for this level
+  const digitsAArr = digitsOfNum(a), digitsBArr = digitsOfNum(b);
+  const numCols = digitsAArr.length; // a >= b, so a never has fewer digits than b
   const resultDigits = [];
   const borrowIn = [];
   let borrow = 0;
   for (let i = 0; i < numCols; i++) {
     borrowIn[i] = borrow;
-    let topVal = (digitsA[i] || 0) - borrow;
-    const botVal = digitsB[i] || 0;
+    let topVal = (digitsAArr[i] || 0) - borrow;
+    const botVal = digitsBArr[i] || 0;
     if (topVal < botVal) { topVal += 10; borrow = 1; } else { borrow = 0; }
     resultDigits[i] = topVal - botVal;
   }
-  return { a, b, digitsA, digitsB, resultDigits, borrowIn };
+  return { a, b, digitsA: digitsAArr, digitsB: digitsBArr, resultDigits, borrowIn };
 }
 
 // Builds one interactive subtraction exercise for a single problem `p` ({digitsA, digitsB,

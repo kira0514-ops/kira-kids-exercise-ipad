@@ -9,6 +9,15 @@ function wordPool(ageIdx, diffIdx) {
   return diffIdx < 2 ? APP_DATA.UPPER_WORDS : APP_DATA.UPPER_HARD_WORDS;
 }
 
+// Mirrors wordPool()'s exact branching, as a stable label instead of the array itself -- lets
+// every wordPool-based topic below track "seen" words per underlying list (not per age/diff
+// combo, several of which share the same list) via SEEN.pickUnseen.
+function wordPoolKey(ageIdx, diffIdx) {
+  if (ageIdx === 0) return diffIdx < 2 ? "preschool" : "early";
+  if (ageIdx === 1) return diffIdx < 2 ? "early" : "upper";
+  return diffIdx < 2 ? "upper" : "upper_hard";
+}
+
 function rhymeQuestion(diffIdx = 0) {
   const pool = diffIdx >= 2 ? APP_DATA.RHYME_SETS_HARD : APP_DATA.RHYME_SETS;
   const poolKey = diffIdx >= 2 ? "rhyme_hard" : "rhyme_easy";
@@ -27,20 +36,23 @@ function firstLetterQ(ageIdx, diffIdx) {
     return { prompt: `What letter comes after '${letter}' in the alphabet?`,
       choices: makeChoices(answer, LETTERS), answer };
   }
-  const word = choice(wordPool(ageIdx, diffIdx));
+  // Previously a plain choice() with no repeat-avoidance at all (unlike Synonyms/Antonyms,
+  // which already used SEEN.pickUnseen at this same ~60-word pool size) -- a kid playing many
+  // rounds a day could hit the same word repeatedly with no tracking to prevent it.
+  const word = SEEN.pickUnseen(`first_letter_${wordPoolKey(ageIdx, diffIdx)}`, wordPool(ageIdx, diffIdx), (w) => w);
   const answer = word[0];
   return { prompt: `What letter does '${word}' start with?`, choices: makeChoices(answer, LETTERS), answer };
 }
 
 function wordLengthQ(ageIdx, diffIdx) {
-  const word = choice(wordPool(ageIdx, diffIdx));
+  const word = SEEN.pickUnseen(`word_length_${wordPoolKey(ageIdx, diffIdx)}`, wordPool(ageIdx, diffIdx), (w) => w);
   const answer = word.length;
   return { prompt: `How many letters are in '${word}'?`, choices: numericChoices(answer, 1, 12), answer };
 }
 
 function unscrambleQ(ageIdx, diffIdx) {
   const pool = wordPool(ageIdx, diffIdx);
-  const word = choice(pool);
+  const word = SEEN.pickUnseen(`unscramble_${wordPoolKey(ageIdx, diffIdx)}`, pool, (w) => w);
   let scrambled = word;
   while (scrambled === word) {
     scrambled = shuffle(word.split("")).join("");
@@ -50,7 +62,7 @@ function unscrambleQ(ageIdx, diffIdx) {
 
 function missingLetterQ(ageIdx, diffIdx) {
   const pool = wordPool(ageIdx, diffIdx);
-  const word = choice(pool);
+  const word = SEEN.pickUnseen(`missing_letter_${wordPoolKey(ageIdx, diffIdx)}`, pool, (w) => w);
   const pos = randInt(0, word.length - 1);
   const answer = word[pos];
   const blanked = word.slice(0, pos) + "_" + word.slice(pos + 1);
@@ -170,7 +182,7 @@ function phonicsQ(ageIdx, diffIdx) {
 // digits. Rendered by buildSpellWordInteractive() further down.
 function spellWordQ(ageIdx, diffIdx) {
   const pool = wordPool(ageIdx, diffIdx);
-  const word = choice(pool);
+  const word = SEEN.pickUnseen(`spell_word_${wordPoolKey(ageIdx, diffIdx)}`, pool, (w) => w);
   return {
     prompt: "🔊 Tap \"Read Aloud\" to hear the word, then spell it!",
     speak: word,

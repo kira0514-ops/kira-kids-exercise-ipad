@@ -148,19 +148,26 @@ function make10AdditionQ(ageIdx, diffIdx) {
 // this one -- these generators only ever run later, at quiz-build time, by which point every
 // script has already loaded. `choices` stays only as a fallback for older call sites (e.g.
 // lesson "Try it yourself" snippets) that expect plain multiple choice.
-// How many digits each operand of a vertical-arithmetic problem gets, scaled by age/difficulty
-// the same way the regular (non-column) generators scale via getAddOperands/getMulOperands --
-// Early Elementary progresses 2 -> 2 -> 3 digits across Easy/Medium/Hard (Extreme bumps up to
-// Upper Elementary via resolveExtreme, so index 3 is never actually read for ageIdx 1), Upper
-// Elementary progresses 2 -> 3 -> 3 -> 4 across Easy/Medium/Hard/Extreme.
-const VCOL_DIGIT_TIERS = { 1: [2, 2, 3], 2: [2, 3, 3, 4] };
-function vColumnDigits(ageIdx, diffIdx) {
-  const tiers = VCOL_DIGIT_TIERS[ageIdx] || VCOL_DIGIT_TIERS[1];
+// Each operand's digit count, scaled by age/difficulty -- shared by all 3 vertical-arithmetic
+// operations, which now follow the same single x single -> multi x single -> multi x multi ->
+// bigger multi x multi progression (the way multiplication is traditionally taught: single-digit
+// facts first, then a multi-digit number times a single digit, then genuine long multiplication
+// with partial products). Replaces the old scheme where both operands always grew in lockstep
+// by the same amount (Early Elementary's table was [2, 2, 3] -- Easy and Medium were both
+// 2-digit + 2-digit, i.e. identical difficulty) and never reached a multi-digit second operand
+// at all, so long multiplication never actually came up regardless of difficulty.
+const V_ARITH_TIERS = {
+  1: [{ a: 1, b: 1 }, { a: 2, b: 1 }, { a: 2, b: 2 }, { a: 3, b: 2 }],
+  2: [{ a: 1, b: 1 }, { a: 3, b: 1 }, { a: 3, b: 2 }, { a: 4, b: 3 }],
+};
+function vArithTier(ageIdx, diffIdx) {
+  const tiers = V_ARITH_TIERS[ageIdx] || V_ARITH_TIERS[1];
   return tiers[Math.min(diffIdx, tiers.length - 1)];
 }
 
 function verticalAdditionQ(ageIdx, diffIdx) {
-  const p = verticalAdditionProblem(vColumnDigits(ageIdx, diffIdx));
+  const { a: da, b: db } = vArithTier(ageIdx, diffIdx);
+  const p = verticalAdditionProblem(da, db);
   const answer = p.a + p.b;
   return {
     prompt: `${p.a} + ${p.b} = ?`, choices: numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 5), answer,
@@ -185,7 +192,8 @@ function verticalAdditionSingleDigitQ(ageIdx, diffIdx) {
 }
 
 function verticalSubtractionQ(ageIdx, diffIdx) {
-  const p = verticalSubtractionProblem(vColumnDigits(ageIdx, diffIdx));
+  const { a: da, b: db } = vArithTier(ageIdx, diffIdx);
+  const p = verticalSubtractionProblem(da, db);
   const answer = p.a - p.b;
   return {
     prompt: `${p.a} - ${p.b} = ?`, choices: numericChoices(answer, 0, p.a), answer,
@@ -194,12 +202,18 @@ function verticalSubtractionQ(ageIdx, diffIdx) {
 }
 
 function verticalMultiplicationQ(ageIdx, diffIdx) {
-  // Capped at 10, not just "a bit bigger": with 9 as the largest single digit, a multiplier
-  // of 11+ can push a column's carry to 10+ (e.g. 9x11 chained -> carry stabilizes at 10),
-  // which the carry box can't represent since it's a single 0-9 digit picker, same as every
-  // other box in this exercise -- that would render an unsolvable question.
-  const multiplierHi = diffIdx >= 2 ? 10 : 9;
-  const p = verticalMultiplicationProblem(vColumnDigits(ageIdx, diffIdx), multiplierHi);
+  const { a: da, b: db } = vArithTier(ageIdx, diffIdx);
+  // b >= 2 digits (Hard/Extreme) needs the full partial-products long-multiplication engine --
+  // a single scalar multiplier can't represent multiplying by a genuinely multi-digit number.
+  if (db >= 2) {
+    const p = longMultiplicationProblem(da, db);
+    const answer = p.answer;
+    return {
+      prompt: `${p.a} × ${p.b} = ?`, choices: numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 5), answer,
+      interactive: "long_multiply", ...p,
+    };
+  }
+  const p = verticalMultiplicationProblem(da, 9);
   const answer = p.a * p.b;
   return {
     prompt: `${p.a} × ${p.b} = ?`, choices: numericChoices(answer, 0, answer + Math.max(10, Math.floor(answer / 2)) + 5), answer,
