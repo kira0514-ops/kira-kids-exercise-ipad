@@ -10,7 +10,7 @@ function getCurriculumPhase(ageIdx, day, trackYear = 1) {
     else break;
   }
   const phase = phases[phaseIdx];
-  const [startDay, rawDiffIdx, mathList, readingList, logicList, unitLabel] = phase;
+  const [startDay, rawDiffIdx, mathList, readingList, logicList, scienceList, unitLabel] = phase;
   // Ease into a harder phase over its first ~2 weeks instead of jumping straight to the
   // new difficulty on day 1 of the phase, so the ramp feels gradual rather than a sudden step.
   const prevDiffIdx = phaseIdx > 0 ? phases[phaseIdx - 1][1] : rawDiffIdx;
@@ -25,11 +25,12 @@ function getCurriculumPhase(ageIdx, day, trackYear = 1) {
   const mathAvail = mathList !== null ? mathList : APP_DATA.MATH_TOPICS.filter((t) => APP_DATA.MATH_TOPIC_MIN_AGE[t] <= ageIdx);
   const readingAvail = readingList !== null ? readingList : APP_DATA.READING_TOPICS.filter((t) => APP_DATA.READING_TOPIC_MIN_AGE[t] <= ageIdx);
   const logicAvail = logicList !== null ? logicList : APP_DATA.LOGIC_TOPICS.filter((t) => APP_DATA.LOGIC_TOPIC_MIN_AGE[t] <= ageIdx);
-  return [diffIdx, mathAvail, readingAvail, logicAvail, unitLabel];
+  const scienceAvail = scienceList !== null ? scienceList : APP_DATA.SCIENCE_TOPICS.filter((t) => APP_DATA.SCIENCE_TOPIC_MIN_AGE[t] <= ageIdx);
+  return [diffIdx, mathAvail, readingAvail, logicAvail, scienceAvail, unitLabel];
 }
 
 function dailyCurriculumTopics(ageIdx, day, trackYear = 1, diffOverride = null) {
-  const [autoDiffIdx, mathAvail, readingAvail, logicAvail, unitLabel] = getCurriculumPhase(ageIdx, day, trackYear);
+  const [autoDiffIdx, mathAvail, readingAvail, logicAvail, scienceAvail, unitLabel] = getCurriculumPhase(ageIdx, day, trackYear);
   // A parent-chosen difficulty for this age track overrides the calendar-driven ramp -- the
   // day still determines which topics show up (that's the curriculum's actual sequencing),
   // only how hard each one is gets swapped out.
@@ -60,7 +61,7 @@ function dailyCurriculumTopics(ageIdx, day, trackYear = 1, diffOverride = null) 
   // Logic used to always pick just 1 topic/day (vs. math's 3 and reading's 2), so every one
   // of its ~5 daily question slots was the exact same topic -- the single most repetitive
   // slice of a session. Matches reading's count now.
-  return [diffIdx, pick(mathAvail, 3), pick(readingAvail, 2), pick(logicAvail, 2), unitLabel];
+  return [diffIdx, pick(mathAvail, 3), pick(readingAvail, 2), pick(logicAvail, 2), pick(scienceAvail, 2), unitLabel];
 }
 
 const DAILY_STORAGE_KEY = "kidsExerciseGenerator.daily";
@@ -254,7 +255,7 @@ function showDailyCurriculum() {
   cardInner.appendChild(progressTrack);
   cardInner.appendChild(el("div", { class: "note", text: `${DAILY.completedDays.size} days completed so far` }));
 
-  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] =
+  const [diffIdx, mathTopics, readingTopics, logicTopics, scienceTopics, unitLabel] =
     dailyCurriculumTopics(DAILY.ageIdx, day, DAILY.trackYear, DAILY.diffOverrideFor(DAILY.ageIdx));
 
   cardInner.appendChild(el("div", { class: "curriculum-unit-label", text: `📘 ${unitLabel}` }));
@@ -263,6 +264,7 @@ function showDailyCurriculum() {
   if (mathTopics.length) previewLines.push("🔢 Math: " + mathTopics.join(", "));
   if (readingTopics.length) previewLines.push("📖 Reading: " + readingTopics.join(", "));
   if (logicTopics.length) previewLines.push("🧩 Logic: " + logicTopics.join(", "));
+  if (scienceTopics.length) previewLines.push("🔬 Science: " + scienceTopics.join(", "));
   previewLines.push(`Difficulty: ${APP_DATA.DIFFICULTIES[diffIdx]}`);
   cardInner.appendChild(el("div", { class: "step-text curriculum-preview", text: previewLines.join("\n") }));
 
@@ -294,11 +296,12 @@ function showDailyLesson() {
   const t = theme();
 
   const day = DAILY.currentDay;
-  const [diffIdx, mathTopics, readingTopics, logicTopics, unitLabel] =
+  const [diffIdx, mathTopics, readingTopics, logicTopics, scienceTopics, unitLabel] =
     dailyCurriculumTopics(DAILY.ageIdx, day, DAILY.trackYear, DAILY.diffOverrideFor(DAILY.ageIdx));
   let subject, topic;
   if (mathTopics.length) { subject = "Math"; topic = mathTopics[0]; }
   else if (readingTopics.length) { subject = "Reading / Spelling"; topic = readingTopics[0]; }
+  else if (scienceTopics.length) { subject = "Science"; topic = scienceTopics[0]; }
   else { subject = "Logic / Puzzles"; topic = logicTopics[0]; }
 
   root.appendChild(headerBanner(`📖 Day ${day}: ${topic}`));
@@ -325,12 +328,13 @@ function showDailyLesson() {
 function startDailyCurriculum() {
   const ageIdx = DAILY.ageIdx;
   const day = DAILY.currentDay;
-  const [diffIdx, mathTopics, readingTopics, logicTopics] =
+  const [diffIdx, mathTopics, readingTopics, logicTopics, scienceTopics] =
     dailyCurriculumTopics(ageIdx, day, DAILY.trackYear, DAILY.diffOverrideFor(ageIdx));
   const topicSlots = [
     ...mathTopics.map((t) => ["Math", t, mathQuestion]),
     ...readingTopics.map((t) => ["Reading / Spelling", t, readingQuestion]),
     ...logicTopics.map((t) => ["Logic / Puzzles", t, logicQuestion]),
+    ...scienceTopics.map((t) => ["Science", t, scienceQuestion]),
   ];
   const perTopic = Math.ceil(DAILY_CURRICULUM_QUESTION_COUNT / topicSlots.length);
 

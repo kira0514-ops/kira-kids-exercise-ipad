@@ -5,6 +5,7 @@ const TOPIC_FUNCS_BY_SUBJECT = {
   Math: () => MATH_TOPIC_FUNCS,
   "Reading / Spelling": () => READING_TOPIC_FUNCS,
   "Logic / Puzzles": () => LOGIC_TOPIC_FUNCS,
+  Science: () => SCIENCE_TOPIC_FUNCS,
 };
 
 function matchesPredicateRule(q, rule) {
@@ -194,6 +195,7 @@ function showLessonPicker() {
     ["Math", APP_DATA.MATH_TOPICS, APP_DATA.MATH_TOPIC_MIN_AGE, "🔢"],
     ["Reading / Spelling", APP_DATA.READING_TOPICS, APP_DATA.READING_TOPIC_MIN_AGE, "📖"],
     ["Logic / Puzzles", APP_DATA.LOGIC_TOPICS, APP_DATA.LOGIC_TOPIC_MIN_AGE, "🧩"],
+    ["Science", APP_DATA.SCIENCE_TOPICS, APP_DATA.SCIENCE_TOPIC_MIN_AGE, "🔬"],
   ];
   for (const [subject, topics, minAge, icon] of subjects) {
     const available = topics.filter((tp) => minAge[tp] <= state.ageIdx);
@@ -230,6 +232,7 @@ function startTopicPractice(subject, topic) {
   state.subjects = new Set([subject]);
   if (subject === "Math") state.mathTopics = new Set([topic]);
   else if (subject === "Reading / Spelling") state.readingTopics = new Set([topic]);
+  else if (subject === "Science") state.scienceTopics = new Set([topic]);
   else state.logicTopics = new Set([topic]);
   startQuiz();
 }

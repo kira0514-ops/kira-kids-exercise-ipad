@@ -11,6 +11,7 @@ const state = {
   mathTopics: new Set(["Addition", "Subtraction", "Multiplication", "Division", "Place Value"]),
   readingTopics: new Set(APP_DATA.READING_TOPICS.filter((t) => t !== "Reading Comprehension")),
   logicTopics: new Set(APP_DATA.LOGIC_TOPICS),
+  scienceTopics: new Set(APP_DATA.SCIENCE_TOPICS),
   count: 10,
   questions: [],
   currentIndex: 0,
@@ -21,27 +22,31 @@ const state = {
   flashcardIndex: 0,
 };
 
-const SUBJECT_NAMES = ["Math", "Reading / Spelling", "Logic / Puzzles"];
-const SUBJECT_ICONS = { Math: "➕", "Reading / Spelling": "📖", "Logic / Puzzles": "🧩" };
+const SUBJECT_NAMES = ["Math", "Reading / Spelling", "Logic / Puzzles", "Science"];
+const SUBJECT_ICONS = { Math: "➕", "Reading / Spelling": "📖", "Logic / Puzzles": "🧩", Science: "🔬" };
 const SUBJECT_TOPIC_STATE = {
   Math: () => state.mathTopics,
   "Reading / Spelling": () => state.readingTopics,
   "Logic / Puzzles": () => state.logicTopics,
+  Science: () => state.scienceTopics,
 };
 const SUBJECT_TOPIC_LIST = {
   Math: () => APP_DATA.MATH_TOPICS,
   "Reading / Spelling": () => APP_DATA.READING_TOPICS,
   "Logic / Puzzles": () => APP_DATA.LOGIC_TOPICS,
+  Science: () => APP_DATA.SCIENCE_TOPICS,
 };
 const SUBJECT_MIN_AGE = {
   Math: APP_DATA.MATH_TOPIC_MIN_AGE,
   "Reading / Spelling": APP_DATA.READING_TOPIC_MIN_AGE,
   "Logic / Puzzles": APP_DATA.LOGIC_TOPIC_MIN_AGE,
+  Science: APP_DATA.SCIENCE_TOPIC_MIN_AGE,
 };
 const SUBJECT_GENERATOR = {
   Math: (ageIdx, diffIdx, topics) => mathQuestion(ageIdx, diffIdx, topics),
   "Reading / Spelling": (ageIdx, diffIdx, topics) => readingQuestion(ageIdx, diffIdx, topics),
   "Logic / Puzzles": (ageIdx, diffIdx, topics) => logicQuestion(ageIdx, diffIdx, topics),
+  Science: (ageIdx, diffIdx, topics) => scienceQuestion(ageIdx, diffIdx, topics),
 };
 
 // Groups the topic checkboxes into labeled clusters so the picker stays scannable as topics
@@ -64,6 +69,10 @@ const TOPIC_CATEGORIES = {
   "Logic / Puzzles": [
     ["🔁 Patterns & Sequences", ["Patterns", "Pattern Builder", "Number Sequences", "Number Sequence Solver"]],
     ["🧠 Reasoning & Logic", ["Odd One Out", "Analogies", "Chart Reading", "Who's Right?"]],
+  ],
+  Science: [
+    ["🌱 Life Science", ["Plants", "My Body & Senses"]],
+    ["🧲 Physical Science", ["Materials", "Magnets"]],
   ],
 };
 
