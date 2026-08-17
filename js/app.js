@@ -66,6 +66,7 @@ const TOPIC_CATEGORIES = {
     ["🔤 Letters & Sounds", ["Phonics", "First Letter", "Rhyming", "Missing Letter"]],
     ["✏️ Spelling & Word Building", ["Word Length", "Unscramble", "Spell the Word"]],
     ["📖 Vocabulary & Comprehension", ["Synonyms", "Antonyms", "Reading Comprehension", "Sentence Builder"]],
+    ["📝 Grammar", ["Verb Tenses"]],
   ],
   "Logic / Puzzles": [
     ["🔁 Patterns & Sequences", ["Patterns", "Pattern Builder", "Number Sequences", "Number Sequence Solver"]],

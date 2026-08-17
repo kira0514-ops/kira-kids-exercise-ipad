@@ -376,6 +376,74 @@ function sentenceBuilderQ(ageIdx, diffIdx) {
   };
 }
 
+const TENSE_REGULAR_VERBS = [
+  ["walk", "walked"], ["jump", "jumped"], ["play", "played"], ["talk", "talked"],
+  ["climb", "climbed"], ["cook", "cooked"], ["clean", "cleaned"], ["paint", "painted"],
+  ["dance", "danced"], ["bake", "baked"], ["help", "helped"], ["wash", "washed"],
+  ["watch", "watched"], ["listen", "listened"], ["look", "looked"], ["open", "opened"],
+  ["close", "closed"], ["kick", "kicked"], ["pull", "pulled"], ["push", "pushed"],
+  ["pack", "packed"], ["call", "called"], ["fill", "filled"], ["fix", "fixed"],
+  ["laugh", "laughed"], ["smile", "smiled"], ["wave", "waved"], ["arrive", "arrived"],
+];
+const TENSE_IRREGULAR_VERBS = [
+  ["go", "went"], ["run", "ran"], ["eat", "ate"], ["see", "saw"], ["make", "made"],
+  ["come", "came"], ["give", "gave"], ["take", "took"], ["have", "had"], ["say", "said"],
+  ["get", "got"], ["find", "found"], ["think", "thought"], ["know", "knew"], ["write", "wrote"],
+  ["sit", "sat"], ["stand", "stood"], ["sing", "sang"], ["swim", "swam"], ["fly", "flew"],
+  ["drink", "drank"], ["fall", "fell"], ["grow", "grew"], ["throw", "threw"], ["buy", "bought"],
+  ["bring", "brought"], ["catch", "caught"], ["draw", "drew"], ["ride", "rode"], ["begin", "began"],
+];
+const TENSE_SENTENCES = [
+  ["She walks to school every day.", "Present"],
+  ["They will build a sandcastle.", "Future"],
+  ["He played soccer yesterday.", "Past"],
+  ["We eat dinner at six.", "Present"],
+  ["I will visit my grandma tomorrow.", "Future"],
+  ["The dog barked all night.", "Past"],
+  ["She sings in the choir.", "Present"],
+  ["They will travel to the beach next week.", "Future"],
+  ["We watched a movie last night.", "Past"],
+  ["He reads a book every evening.", "Present"],
+  ["I will finish my homework soon.", "Future"],
+  ["The children played in the park.", "Past"],
+  ["My mom cooks dinner every night.", "Present"],
+  ["We will celebrate her birthday next month.", "Future"],
+  ["The bird flew away.", "Past"],
+  ["He drinks milk every morning.", "Present"],
+  ["They will clean the house on Saturday.", "Future"],
+  ["She found a shiny coin.", "Past"],
+  ["I write in my journal every day.", "Present"],
+  ["We will plant flowers in the spring.", "Future"],
+];
+
+// Easy: regular -ed verbs. Medium: irregular past forms, with the "just add -ed" mistake
+// (e.g. "goed") deliberately included as a distractor since it's the single most common way
+// kids actually get an irregular verb wrong. Hard: fill in the correct past-tense form inside
+// a sentence, mixing regular and irregular verbs. Extreme: identify a whole sentence's tense.
+function verbTensesQ(ageIdx, diffIdx) {
+  if (diffIdx === 0) {
+    const [base, past] = choice(TENSE_REGULAR_VERBS);
+    const distractors = [`${base}ing`, `${base}s`, `${base}eded`];
+    return { prompt: `What is the past tense of '${base}'?`, choices: makeChoices(past, distractors), answer: past };
+  }
+  if (diffIdx === 1) {
+    const [base, past] = choice(TENSE_IRREGULAR_VERBS);
+    const wrongRegular = `${base}ed`;
+    const otherPasts = TENSE_IRREGULAR_VERBS.filter(([b]) => b !== base).map(([, p]) => p);
+    return { prompt: `What is the past tense of '${base}'?`, choices: makeChoices(past, [wrongRegular, ...otherPasts]), answer: past };
+  }
+  if (diffIdx === 2) {
+    const pool = Math.random() < 0.5 ? TENSE_IRREGULAR_VERBS : TENSE_REGULAR_VERBS;
+    const [base, past] = choice(pool);
+    const subject = choice(["I", "she", "he", "we", "they"]); // lowercase except "I" -- always follows "Yesterday, " here, never sentence-initial
+    const otherPasts = pool.filter(([b]) => b !== base).map(([, p]) => p);
+    return { prompt: `Yesterday, ${subject} ___ (${base}).\n\nFill in the blank with the correct past-tense form.`,
+      choices: makeChoices(past, otherPasts), answer: past };
+  }
+  const [sentence, tense] = SEEN.pickUnseen("verb_tenses_sentences", TENSE_SENTENCES, (s) => s[0]);
+  return { prompt: `Which tense is this sentence in?\n\n"${sentence}"`, choices: ["Past", "Present", "Future"], answer: tense };
+}
+
 const READING_TOPIC_FUNCS = {
   Phonics: phonicsQ,
   "First Letter": firstLetterQ,
@@ -388,6 +456,7 @@ const READING_TOPIC_FUNCS = {
   "Reading Comprehension": readingComprehensionQ,
   "Spell the Word": spellWordQ,
   "Sentence Builder": sentenceBuilderQ,
+  "Verb Tenses": verbTensesQ,
 };
 
 // Tap-in-order letter tiles from a shuffled bank into blank boxes to spell `word`. No drag
