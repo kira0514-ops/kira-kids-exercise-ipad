@@ -1040,6 +1040,10 @@ function showAdditionTableMenu(opKey, size) {
 // a smaller size (e.g. 5) so every sum stays in reach of a beginner.
 function buildAddTableGrid(op, size, showValues, tappable) {
   const grid = el("div", { class: "addtable-grid" });
+  // .addtable-grid's CSS defaults to 11 columns (the standard 1-10 table's corner + 10 data
+  // columns) -- override inline for any other size, or a smaller table's cells get laid out
+  // by CSS grid's auto-flow across 11 slots instead of wrapping at size+1, scrambling the rows.
+  grid.style.gridTemplateColumns = `repeat(${size + 1}, minmax(0, 1fr))`;
   grid.appendChild(el("div", { class: "addtable-cell addtable-corner", text: op.symbol }));
 
   const colHeaderEls = {};
