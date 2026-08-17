@@ -26,6 +26,43 @@ function drawFlashcardIllustration(emoji, word, theme) {
   return c;
 }
 
+// Builds the same circle-ring-plus-sparkles frame as drawFlashcardIllustration,
+// but around a real photo <img> instead of a canvas cartoon/emoji.
+function buildFlashcardPhotoFrame(imgEl, theme) {
+  const size = 220;
+  const palette = theme.choice_palette;
+  const frame = el("div", { class: "flashcard-photo-frame" });
+  Object.assign(frame.style, {
+    width: `${size}px`, height: `${size}px`, position: "relative",
+    display: "flex", alignItems: "center", justifyContent: "center",
+  });
+
+  const ring = el("div", {});
+  Object.assign(ring.style, {
+    width: "190px", height: "190px", borderRadius: "50%",
+    background: palette[0], display: "flex",
+    alignItems: "center", justifyContent: "center",
+  });
+  frame.appendChild(ring);
+
+  Object.assign(imgEl.style, {
+    width: "156px", height: "156px", borderRadius: "50%",
+    objectFit: "cover", border: `4px solid ${palette[1]}`,
+    display: "block", background: "white",
+  });
+  ring.appendChild(imgEl);
+
+  for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const spark = el("span", { text: "✨" });
+    Object.assign(spark.style, {
+      position: "absolute", fontSize: "16px",
+      left: `${size / 2 + sx * 107 - 10}px`, top: `${size / 2 + sy * 107 - 10}px`,
+    });
+    frame.appendChild(spark);
+  }
+  return frame;
+}
+
 let ttsVoice = null;
 
 function pickTtsVoice() {
@@ -95,6 +132,17 @@ function showFlashcard() {
   const illusWrap = el("div", { class: "illustration-wrap" });
   illusWrap.appendChild(drawFlashcardIllustration(emoji, word, t));
   card.appendChild(illusWrap);
+
+  // Prefer a real photo when we have one; silently keep the canvas cartoon/emoji
+  // art (already appended above) for the handful of words with no good photo match.
+  const photo = new Image();
+  photo.alt = word;
+  photo.decoding = "async";
+  photo.onload = () => {
+    illusWrap.innerHTML = "";
+    illusWrap.appendChild(buildFlashcardPhotoFrame(photo, t));
+  };
+  photo.src = `images/flashcards/${word}.jpg`;
 
   const wordFrame = el("div", { class: "flashcard-word" });
   wordFrame.appendChild(el("span", { class: "flashcard-word-first", text: word[0].toUpperCase() }));
