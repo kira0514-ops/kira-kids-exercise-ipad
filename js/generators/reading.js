@@ -444,6 +444,265 @@ function verbTensesQ(ageIdx, diffIdx) {
   return { prompt: `Which tense is this sentence in?\n\n"${sentence}"`, choices: ["Past", "Present", "Future"], answer: tense };
 }
 
+const PLURAL_REGULAR = [
+  ["cat", "cats"], ["dog", "dogs"], ["book", "books"], ["chair", "chairs"], ["apple", "apples"],
+  ["car", "cars"], ["bird", "birds"], ["hat", "hats"], ["cup", "cups"], ["star", "stars"],
+  ["toy", "toys"], ["flower", "flowers"], ["pencil", "pencils"], ["shoe", "shoes"], ["desk", "desks"],
+];
+const PLURAL_ES = [
+  ["box", "boxes"], ["glass", "glasses"], ["bus", "buses"], ["dish", "dishes"], ["church", "churches"],
+  ["fox", "foxes"], ["watch", "watches"], ["brush", "brushes"], ["class", "classes"], ["wish", "wishes"],
+];
+const PLURAL_Y_IES = [
+  ["baby", "babies"], ["puppy", "puppies"], ["city", "cities"], ["story", "stories"], ["candy", "candies"],
+  ["family", "families"], ["party", "parties"], ["lady", "ladies"], ["berry", "berries"], ["penny", "pennies"],
+];
+const PLURAL_IRREGULAR = [
+  ["child", "children"], ["mouse", "mice"], ["foot", "feet"], ["tooth", "teeth"], ["man", "men"],
+  ["woman", "women"], ["person", "people"], ["goose", "geese"], ["ox", "oxen"], ["die", "dice"],
+];
+const PLURAL_SAME = [["sheep", "sheep"], ["deer", "deer"], ["fish", "fish"], ["moose", "moose"], ["series", "series"]];
+
+function pluralsQ(ageIdx, diffIdx) {
+  if (diffIdx === 0) {
+    const [base, plural] = choice(PLURAL_REGULAR);
+    return { prompt: `What is the plural of '${base}'?`, choices: makeChoices(plural, [`${base}s${base}`, base, `${base}es`]), answer: plural };
+  }
+  if (diffIdx === 1) {
+    const [base, plural] = choice(Math.random() < 0.5 ? PLURAL_ES : PLURAL_Y_IES);
+    return { prompt: `What is the plural of '${base}'?`, choices: makeChoices(plural, [`${base}s`, base, `${plural}s`]), answer: plural };
+  }
+  if (diffIdx === 2) {
+    const [base, plural] = choice(PLURAL_IRREGULAR);
+    const otherPlurals = PLURAL_IRREGULAR.filter(([b]) => b !== base).map(([, p]) => p);
+    return { prompt: `What is the plural of '${base}'?`, choices: makeChoices(plural, [`${base}s`, ...otherPlurals]), answer: plural };
+  }
+  if (Math.random() < 0.4) {
+    const [base, plural] = choice(PLURAL_SAME);
+    return { prompt: `What is the plural of '${base}'?`, choices: makeChoices(plural, [`${base}s`, `${base}es`, `${base}ies`]), answer: plural };
+  }
+  const [base, plural] = choice(PLURAL_IRREGULAR);
+  return { prompt: `What is the plural of '${base}'?`,
+    choices: makeChoices(plural, PLURAL_IRREGULAR.filter(([b]) => b !== base).map(([, p]) => p)), answer: plural };
+}
+
+const POS_NOUNS = ["dog", "cat", "house", "tree", "car", "book", "teacher", "school", "ball", "river", "mountain", "city", "garden", "bridge", "kitchen"];
+const POS_VERBS = ["run", "jump", "eat", "sing", "write", "swim", "climb", "dance", "laugh", "build", "paint", "clean", "read", "cook", "fly"];
+const POS_ADJECTIVES = ["happy", "tall", "blue", "fast", "quiet", "huge", "shiny", "brave", "gentle", "curious", "ancient", "fragile", "cheerful", "tiny", "bright"];
+const POS_ADVERBS = ["quickly", "quietly", "happily", "slowly", "carefully", "loudly", "gently", "bravely", "easily", "suddenly", "softly", "eagerly", "calmly", "proudly", "silently"];
+
+// Sentences are composed from the 4 word banks rather than hand-written, so any combination is
+// grammatically valid to ask about ("The {adj} {noun} {verb}s {adv}.") -- same "generate,
+// don't hand-curate a fixed list" idea used elsewhere in this file.
+function partsOfSpeechQ(ageIdx, diffIdx) {
+  const noun = choice(POS_NOUNS), verb = choice(POS_VERBS), adj = choice(POS_ADJECTIVES), adv = choice(POS_ADVERBS);
+  if (diffIdx === 3) {
+    const targetPos = choice(["Noun", "Verb", "Adjective", "Adverb"]);
+    const wordFor = { Noun: noun, Verb: verb, Adjective: adj, Adverb: adv };
+    const article = targetPos === "Adjective" || targetPos === "Adverb" ? "an" : "a";
+    return { prompt: `Which of these words is ${article} ${targetPos.toLowerCase()}?`, choices: [noun, verb, adj, adv], answer: wordFor[targetPos] };
+  }
+  const sentence = `The ${adj} ${noun} ${verb}s ${adv}.`;
+  // "Verb" pairs with `${verb}s`, not the bare base form -- the sentence only actually contains
+  // the conjugated word (e.g. "writes"), so asking about the base form ("write") would be
+  // asking about a word that doesn't literally appear in the quoted sentence.
+  const pool = diffIdx === 0 ? [["Noun", noun], ["Verb", `${verb}s`]]
+    : diffIdx === 1 ? [["Noun", noun], ["Verb", `${verb}s`], ["Adjective", adj]]
+    : [["Noun", noun], ["Verb", `${verb}s`], ["Adjective", adj], ["Adverb", adv]];
+  const [pos, word] = choice(pool);
+  return { prompt: `In this sentence, what part of speech is '${word}'?\n\n"${sentence}"`, choices: pool.map(([p]) => p), answer: pos };
+}
+
+const PUNCT_STATEMENTS = ["The sun is shining", "My dog likes to play", "She reads every night", "We went to the park", "He is my best friend"];
+const PUNCT_QUESTIONS = ["What is your name", "Where do you live", "Why is the sky blue", "How old are you", "Can we go outside"];
+const PUNCT_EXCLAMATIONS = ["What a great day", "Watch out for that car", "I won the race", "That is amazing", "Look at that huge dog"];
+const PUNCT_CAP_WORDS = ["tom", "sarah", "monday", "paris", "emma", "friday", "london", "jake", "tuesday", "maria"];
+const COMMA_LISTS = [["apples", "bananas", "and grapes"], ["red", "blue", "and green"], ["dogs", "cats", "and birds"], ["run", "jump", "and swim"], ["pens", "pencils", "and erasers"]];
+
+function capitalizeWrong(word) {
+  if (word.length < 3) return word.toUpperCase();
+  const mid = Math.floor(word.length / 2);
+  return word.slice(0, mid) + word[mid].toUpperCase() + word.slice(mid + 1);
+}
+
+function punctuationQ(ageIdx, diffIdx) {
+  if (diffIdx <= 1) {
+    const kindPool = diffIdx === 0 ? ["statement", "question"] : ["statement", "question", "exclamation"];
+    const kind = choice(kindPool);
+    const text = kind === "statement" ? choice(PUNCT_STATEMENTS) : kind === "question" ? choice(PUNCT_QUESTIONS) : choice(PUNCT_EXCLAMATIONS);
+    const answer = kind === "statement" ? "." : kind === "question" ? "?" : "!";
+    return { prompt: `What punctuation mark should end this sentence?\n\n"${text}___"`, choices: [".", "?", "!"], answer };
+  }
+  if (diffIdx === 2) {
+    const word = choice(PUNCT_CAP_WORDS);
+    const correct = word.charAt(0).toUpperCase() + word.slice(1);
+    const wrong1 = word;
+    const wrong2 = word.toUpperCase();
+    const wrong3 = capitalizeWrong(word);
+    return { prompt: "Which one is capitalized correctly?", choices: shuffle([correct, wrong1, wrong2, wrong3]), answer: correct };
+  }
+  const items = choice(COMMA_LISTS);
+  const correct = `I like ${items[0]}, ${items[1]}, ${items[2]}.`;
+  const wrong1 = `I like ${items[0]} ${items[1]} ${items[2]}.`;
+  const wrong2 = `I like ${items[0]}, ${items[1]} ${items[2]}.`;
+  const wrong3 = `I like, ${items[0]} ${items[1]} ${items[2]}.`;
+  return { prompt: "Which sentence uses commas correctly?", choices: shuffle([correct, wrong1, wrong2, wrong3]), answer: correct };
+}
+
+const CONTRACTIONS = [
+  ["do not", "don't"], ["can not", "can't"], ["will not", "won't"], ["is not", "isn't"],
+  ["are not", "aren't"], ["I am", "I'm"], ["you are", "you're"], ["it is", "it's"],
+  ["they are", "they're"], ["we are", "we're"], ["he is", "he's"], ["she is", "she's"],
+  ["did not", "didn't"], ["was not", "wasn't"], ["have not", "haven't"], ["has not", "hasn't"],
+  ["should not", "shouldn't"], ["would not", "wouldn't"], ["could not", "couldn't"], ["let us", "let's"],
+];
+
+function contractionsQ(ageIdx, diffIdx) {
+  const [full, contr] = choice(CONTRACTIONS);
+  if (diffIdx <= 1) {
+    const distractors = CONTRACTIONS.filter(([f]) => f !== full).map(([, c]) => c);
+    return { prompt: `What is the contraction for '${full}'?`, choices: makeChoices(contr, distractors), answer: contr };
+  }
+  const distractors = CONTRACTIONS.filter(([, c]) => c !== contr).map(([f]) => f);
+  return { prompt: `What two words make up the contraction '${contr}'?`, choices: makeChoices(full, distractors), answer: full };
+}
+
+// Ordered easy-first: to/too/two, see/sea, write/right, know/no (no apostrophes involved) come
+// before the apostrophe-based set (their/there/they're, your/you're, its/it's), which trips
+// kids up more since the words also sound identical but the apostrophe rule is the only clue.
+const HOMOPHONE_SETS = [
+  { blank: "I want ___ go to the park.", answer: "to", others: ["too", "two"] },
+  { blank: "She has ___ apples.", answer: "two", others: ["to", "too"] },
+  { blank: "I want to come ___!", answer: "too", others: ["to", "two"] },
+  { blank: "I can ___ the ocean from here.", answer: "see", others: ["sea"] },
+  { blank: "We swam in the ___.", answer: "sea", others: ["see"] },
+  { blank: "Please ___ this letter for me.", answer: "write", others: ["right"] },
+  { blank: "Turn ___ at the corner.", answer: "right", others: ["write"] },
+  { blank: "I ___ the answer to that question.", answer: "know", others: ["no"] },
+  { blank: "There is ___ more juice left.", answer: "no", others: ["know"] },
+  { blank: "___ dog is very friendly.", answer: "Their", others: ["There", "They're"] },
+  { blank: "___ going to the beach today.", answer: "They're", others: ["Their", "There"] },
+  { blank: "Put the book over ___.", answer: "there", others: ["their", "they're"] },
+  { blank: "Is this ___ backpack?", answer: "your", others: ["you're"] },
+  { blank: "___ going to love this movie.", answer: "You're", others: ["Your"] },
+  { blank: "The cat chased ___ tail.", answer: "its", others: ["it's"] },
+  { blank: "___ raining outside right now.", answer: "It's", others: ["Its"] },
+];
+
+function homophonesQ(ageIdx, diffIdx) {
+  const pool = diffIdx <= 1 ? HOMOPHONE_SETS.slice(0, 9) : HOMOPHONE_SETS.slice(9);
+  const entry = SEEN.pickUnseen(`homophones_${diffIdx <= 1 ? "easy" : "hard"}`, pool, (e) => e.blank);
+  return { prompt: `Fill in the blank:\n\n${entry.blank}`, choices: shuffle([entry.answer, ...entry.others]), answer: entry.answer };
+}
+
+const PREFIX_WORDS = [
+  ["happy", "un", "unhappy"], ["kind", "un", "unkind"], ["fair", "un", "unfair"], ["do", "re", "redo"],
+  ["write", "re", "rewrite"], ["build", "re", "rebuild"], ["agree", "dis", "disagree"], ["like", "dis", "dislike"],
+  ["appear", "dis", "disappear"], ["understand", "mis", "misunderstand"], ["behave", "mis", "misbehave"],
+];
+const SUFFIX_WORDS = [
+  ["hope", "ful", "hopeful"], ["help", "ful", "helpful"], ["care", "ful", "careful"], ["hope", "less", "hopeless"],
+  ["care", "less", "careless"], ["home", "less", "homeless"], ["teach", "er", "teacher"], ["farm", "er", "farmer"],
+  ["sing", "er", "singer"], ["quick", "est", "quickest"], ["slow", "est", "slowest"], ["kind", "ness", "kindness"],
+];
+
+function prefixSuffixQ(ageIdx, diffIdx) {
+  if (diffIdx <= 1) {
+    const pool = diffIdx === 0 ? PREFIX_WORDS : SUFFIX_WORDS;
+    const label = diffIdx === 0 ? "prefix" : "suffix";
+    const [base, affix, result] = choice(pool);
+    const distractors = pool.filter(([b]) => b !== base).map(([, , r]) => r);
+    const affixLabel = diffIdx === 0 ? `${affix}-` : `-${affix}`; // prefix reads "un-", suffix reads "-ful"
+    return { prompt: `Add the ${label} '${affixLabel}' to '${base}'. What word do you get?`, choices: makeChoices(result, distractors), answer: result };
+  }
+  const all = PREFIX_WORDS.concat(SUFFIX_WORDS);
+  const [base, affix, result] = choice(all);
+  const otherAffixes = [...new Set(all.map(([, a]) => a))].filter((a) => a !== affix);
+  return { prompt: `What was added to '${base}' to make '${result}'?`, choices: makeChoices(affix, otherAffixes), answer: affix };
+}
+
+const COMPOUND_WORDS = [
+  ["sun", "flower", "sunflower"], ["rain", "bow", "rainbow"], ["butter", "fly", "butterfly"],
+  ["foot", "ball", "football"], ["snow", "man", "snowman"], ["star", "fish", "starfish"],
+  ["book", "case", "bookcase"], ["tooth", "brush", "toothbrush"], ["birth", "day", "birthday"],
+  ["back", "pack", "backpack"], ["sand", "box", "sandbox"], ["fire", "fly", "firefly"],
+  ["pan", "cake", "pancake"], ["cup", "cake", "cupcake"], ["day", "light", "daylight"],
+  ["moon", "light", "moonlight"], ["news", "paper", "newspaper"], ["basket", "ball", "basketball"],
+];
+const COMPOUND_NON_WORDS = ["happy", "quickly", "the", "jumped", "blue", "because"];
+
+function compoundWordsQ(ageIdx, diffIdx) {
+  const [w1, w2, compound] = choice(COMPOUND_WORDS);
+  if (diffIdx === 0) {
+    const distractors = COMPOUND_WORDS.filter(([a, b]) => a !== w1 || b !== w2).map(([, , c]) => c);
+    return { prompt: `What compound word do you get when you combine '${w1}' and '${w2}'?`, choices: makeChoices(compound, distractors), answer: compound };
+  }
+  if (diffIdx === 1) {
+    const answer = `${w1} + ${w2}`;
+    // A wrong split one letter before the real boundary (not a fixed slice(0,3)) -- splitting
+    // at a fixed position coincided with the real split whenever w1 happened to be exactly 3
+    // letters (day+light, sun+flower, pan+cake, cup+cake all did), silently duplicating the
+    // correct answer as a "distractor".
+    const wrongSplit = `${compound.slice(0, w1.length - 1)} + ${compound.slice(w1.length - 1)}`;
+    return { prompt: `Which two words make up the compound word '${compound}'?`,
+      choices: [answer, `${w2} + ${w1}`, wrongSplit, `${w1} + ${compound}`], answer };
+  }
+  return { prompt: "Which of these is a compound word?", choices: makeChoices(compound, sample(COMPOUND_NON_WORDS, 3)), answer: compound };
+}
+
+const POSSESSIVE_OWNERS = ["dog", "cat", "boy", "girl", "teacher", "student", "bird", "farmer"];
+const POSSESSIVE_ITEMS = ["ball", "book", "hat", "bike", "toy", "lunch", "pencil", "backpack"];
+
+function possessivesQ(ageIdx, diffIdx) {
+  const owner = choice(POSSESSIVE_OWNERS), item = choice(POSSESSIVE_ITEMS);
+  if (diffIdx <= 1) {
+    const answer = `the ${owner}'s ${item}`;
+    const distractors = [`the ${owner}s ${item}`, `the ${owner}s' ${item}`, `the ${owner}es ${item}`];
+    return { prompt: `The ${item} belongs to the ${owner}. Which shows this correctly?`, choices: makeChoices(answer, distractors), answer };
+  }
+  const answer = `the ${owner}s' ${item}`;
+  const distractors = [`the ${owner}'s ${item}`, `the ${owner}s ${item}`, `the ${owner}'ss ${item}`];
+  return { prompt: `More than one ${owner} shares the same ${item}. Which shows this correctly?`, choices: makeChoices(answer, distractors), answer };
+}
+
+const COMP_REGULAR = [
+  ["big", "bigger", "biggest"], ["small", "smaller", "smallest"], ["fast", "faster", "fastest"],
+  ["slow", "slower", "slowest"], ["tall", "taller", "tallest"], ["short", "shorter", "shortest"],
+  ["strong", "stronger", "strongest"], ["loud", "louder", "loudest"], ["soft", "softer", "softest"],
+  ["young", "younger", "youngest"], ["old", "older", "oldest"], ["cold", "colder", "coldest"],
+];
+const COMP_MORE_MOST = [
+  ["beautiful", "more beautiful", "most beautiful"], ["careful", "more careful", "most careful"],
+  ["dangerous", "more dangerous", "most dangerous"], ["famous", "more famous", "most famous"],
+  ["important", "more important", "most important"], ["interesting", "more interesting", "most interesting"],
+];
+const COMP_IRREGULAR = [["good", "better", "best"], ["bad", "worse", "worst"], ["far", "farther", "farthest"], ["little", "less", "least"]];
+
+function comparativeSuperlativeQ(ageIdx, diffIdx) {
+  if (diffIdx === 0) {
+    const [base, comp] = choice(COMP_REGULAR);
+    return { prompt: `What is the comparative form of '${base}' (comparing two things)?`,
+      choices: makeChoices(comp, [`${base}er${base}`, `more ${base}`, base]), answer: comp };
+  }
+  if (diffIdx === 1) {
+    const [base, , sup] = choice(COMP_REGULAR);
+    return { prompt: `What is the superlative form of '${base}' (comparing three or more things)?`,
+      choices: makeChoices(sup, [`most ${base}`, `${base}est${base}`, base]), answer: sup };
+  }
+  if (diffIdx === 2) {
+    const [base, comp, sup] = choice(COMP_MORE_MOST);
+    const askComp = Math.random() < 0.5;
+    const answer = askComp ? comp : sup;
+    return { prompt: `What is the ${askComp ? "comparative" : "superlative"} form of '${base}'?`,
+      choices: makeChoices(answer, [`${base}er`, `${base}est`, askComp ? sup : comp]), answer };
+  }
+  const [base, comp, sup] = choice(COMP_IRREGULAR);
+  const askComp = Math.random() < 0.5;
+  const answer = askComp ? comp : sup;
+  const otherForms = COMP_IRREGULAR.filter(([b]) => b !== base).flatMap(([, c, s]) => [c, s]);
+  return { prompt: `What is the ${askComp ? "comparative" : "superlative"} form of '${base}'?`, choices: makeChoices(answer, otherForms), answer };
+}
+
 const READING_TOPIC_FUNCS = {
   Phonics: phonicsQ,
   "First Letter": firstLetterQ,
@@ -457,6 +716,15 @@ const READING_TOPIC_FUNCS = {
   "Spell the Word": spellWordQ,
   "Sentence Builder": sentenceBuilderQ,
   "Verb Tenses": verbTensesQ,
+  Plurals: pluralsQ,
+  "Parts of Speech": partsOfSpeechQ,
+  "Punctuation & Capitalization": punctuationQ,
+  Contractions: contractionsQ,
+  Homophones: homophonesQ,
+  "Prefixes & Suffixes": prefixSuffixQ,
+  "Compound Words": compoundWordsQ,
+  Possessives: possessivesQ,
+  "Comparative & Superlative": comparativeSuperlativeQ,
 };
 
 // Tap-in-order letter tiles from a shuffled bank into blank boxes to spell `word`. No drag

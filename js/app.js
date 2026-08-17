@@ -64,9 +64,9 @@ const TOPIC_CATEGORIES = {
   ],
   "Reading / Spelling": [
     ["🔤 Letters & Sounds", ["Phonics", "First Letter", "Rhyming", "Missing Letter"]],
-    ["✏️ Spelling & Word Building", ["Word Length", "Unscramble", "Spell the Word"]],
-    ["📖 Vocabulary & Comprehension", ["Synonyms", "Antonyms", "Reading Comprehension", "Sentence Builder"]],
-    ["📝 Grammar", ["Verb Tenses"]],
+    ["✏️ Spelling & Word Building", ["Word Length", "Unscramble", "Spell the Word", "Prefixes & Suffixes", "Compound Words"]],
+    ["📖 Vocabulary & Comprehension", ["Synonyms", "Antonyms", "Reading Comprehension", "Sentence Builder", "Homophones"]],
+    ["📝 Grammar", ["Verb Tenses", "Plurals", "Parts of Speech", "Punctuation & Capitalization", "Contractions", "Possessives", "Comparative & Superlative"]],
   ],
   "Logic / Puzzles": [
     ["🔁 Patterns & Sequences", ["Patterns", "Pattern Builder", "Number Sequences", "Number Sequence Solver"]],
