@@ -1511,6 +1511,188 @@ function buildRepeatedSubtractionInteractive(dividend, divisor, quotient, bank, 
   return wrap;
 }
 
+// Factors & Multiples, Ratio & Proportion, and Negative Numbers are all available starting
+// Early Elementary, but only ever at Hard-tier difficulty there -- these are Grade 4-6 concepts
+// with no meaningful "easy" version for a Grade 1-3 kid, so rather than gate them to a specific
+// diffIdx (which the free-form Play/quiz picker could bypass by setting a lower difficulty),
+// each generator just clamps its OWN diffIdx up to Hard whenever ageIdx is Early Elementary --
+// guaranteed never-trivial regardless of what difficulty is otherwise selected.
+function isPrime(n) {
+  if (n < 2) return false;
+  for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
+  return true;
+}
+function factorsOf(n) {
+  const out = [];
+  for (let i = 1; i <= n; i++) if (n % i === 0) out.push(i);
+  return out;
+}
+
+function factorsMultiplesQ(ageIdx, diffIdx) {
+  if (ageIdx === 1) diffIdx = Math.max(diffIdx, 2);
+  if (diffIdx === 0) {
+    const n = randInt(6, 20);
+    const facs = factorsOf(n);
+    const answer = choice(facs);
+    const nonFacs = [];
+    for (let i = 1; i <= 20; i++) if (!facs.includes(i)) nonFacs.push(i);
+    return { prompt: `Which of these is a factor of ${n}?`, choices: makeChoices(answer, nonFacs), answer };
+  }
+  if (diffIdx === 1) {
+    const n = randInt(3, 9);
+    const mult = n * randInt(2, 8);
+    const nonMults = [];
+    for (let i = 1; i <= n * 10; i++) if (i % n !== 0) nonMults.push(i);
+    return { prompt: `Which of these is a multiple of ${n}?`, choices: makeChoices(mult, nonMults), answer: mult };
+  }
+  if (diffIdx === 2) {
+    if (Math.random() < 0.5) {
+      const n = randInt(2, 50);
+      const answer = isPrime(n) ? "Prime" : "Composite";
+      return { prompt: `Is ${n} prime or composite?`, choices: ["Prime", "Composite"], answer };
+    }
+    const a = randInt(4, 24), b = randInt(4, 24);
+    const answer = gcd(a, b);
+    return { prompt: `What is the greatest common factor (GCF) of ${a} and ${b}?`, choices: numericChoices(answer, 1, Math.max(a, b)), answer };
+  }
+  if (Math.random() < 0.4) {
+    const n = randInt(30, 100);
+    const answer = isPrime(n) ? "Prime" : "Composite";
+    return { prompt: `Is ${n} prime or composite?`, choices: ["Prime", "Composite"], answer };
+  }
+  const a = randInt(3, 15), b = randInt(3, 15);
+  const answer = (a * b) / gcd(a, b);
+  return { prompt: `What is the least common multiple (LCM) of ${a} and ${b}?`, choices: numericChoices(answer, 1, answer + 30), answer };
+}
+
+const RATIO_ITEM_PAIRS = [
+  ["red apples", "green apples"], ["cats", "dogs"], ["red marbles", "blue marbles"],
+  ["boys", "girls"], ["stickers", "stamps"], ["pencils", "erasers"],
+];
+
+function ratioProportionQ(ageIdx, diffIdx) {
+  if (ageIdx === 1) diffIdx = Math.max(diffIdx, 2);
+  if (diffIdx === 0) {
+    const [itemA, itemB] = choice(RATIO_ITEM_PAIRS);
+    const a = randInt(2, 9), b = randInt(2, 9);
+    const answer = `${a}:${b}`;
+    const distractors = [`${b}:${a}`, `${a}:${a + b}`, `${a + 1}:${b}`, `${a}:${b + 1}`];
+    return { prompt: `There are ${a} ${itemA} and ${b} ${itemB}. What is the ratio of ${itemA} to ${itemB}?`,
+      choices: makeChoices(answer, distractors), answer };
+  }
+  if (diffIdx === 1) {
+    const g = randInt(2, 6);
+    const a = g * randInt(2, 6), b = g * randInt(2, 6);
+    const d = gcd(a, b);
+    const answer = `${a / d}:${b / d}`;
+    const distractors = [`${a}:${b}`, `${b / d}:${a / d}`, `${a / d + 1}:${b / d}`, `${a / d}:${b / d + 1}`];
+    return { prompt: `Simplify the ratio ${a}:${b}`, choices: makeChoices(answer, distractors), answer };
+  }
+  if (diffIdx === 2) {
+    const a = randInt(2, 6), b = randInt(2, 8), k = randInt(2, 6);
+    const c = a * k, answer = b * k;
+    return { prompt: `If ${a}:${b} = ${c}:?, what does ? equal?`, choices: numericChoices(answer, 1, answer + 20), answer };
+  }
+  const unitPrice = randInt(2, 9), qty1 = randInt(2, 6), qty2 = randInt(qty1 + 1, qty1 + 8);
+  const cost1 = unitPrice * qty1, answer = unitPrice * qty2;
+  return { prompt: `${qty1} apples cost $${cost1}. At that rate, how much would ${qty2} apples cost?`,
+    choices: numericChoices(answer, 0, answer + 20), answer };
+}
+
+function negativeNumbersQ(ageIdx, diffIdx) {
+  if (ageIdx === 1) diffIdx = Math.max(diffIdx, 2);
+  if (diffIdx === 0) {
+    const a = randInt(1, 15), b = randInt(1, 15);
+    return { prompt: `Which number is smaller: ${-a} or ${b}?`, choices: [-a, b], answer: -a };
+  }
+  if (diffIdx === 1) {
+    const n = randInt(1, 20);
+    return { prompt: `What is the opposite of ${n}?`, choices: numericChoices(-n, -25, 25), answer: -n };
+  }
+  if (diffIdx === 2) {
+    const a = randInt(1, 10), b = randInt(1, 15);
+    const answer = -a + b;
+    return { prompt: `${-a} + ${b} = ?`, choices: numericChoices(answer, -20, 20), answer };
+  }
+  const a = randInt(1, 12), b = randInt(1, 12);
+  const useAdd = Math.random() < 0.5;
+  const answer = useAdd ? -a + -b : -a - b;
+  const prompt = useAdd ? `${-a} + ${-b} = ?` : `${-a} - ${b} = ?`;
+  return { prompt, choices: numericChoices(answer, -40, 5), answer };
+}
+
+function roundingEstimationQ(ageIdx, diffIdx) {
+  if (diffIdx === 0) {
+    const n = randInt(11, 99);
+    const answer = Math.round(n / 10) * 10;
+    return { prompt: `Round ${n} to the nearest 10.`, choices: numericChoices(answer, 0, 110), answer };
+  }
+  if (diffIdx === 1) {
+    const n = randInt(101, 999);
+    const answer = Math.round(n / 100) * 100;
+    return { prompt: `Round ${n} to the nearest 100.`, choices: numericChoices(answer, 0, 1100), answer };
+  }
+  if (diffIdx === 2) {
+    if (Math.random() < 0.5) {
+      const n = randInt(1001, 9999);
+      const answer = Math.round(n / 1000) * 1000;
+      return { prompt: `Round ${n} to the nearest 1000.`, choices: numericChoices(answer, 0, 11000), answer };
+    }
+    const a = randInt(11, 89), b = randInt(11, 89);
+    const answer = Math.round(a / 10) * 10 + Math.round(b / 10) * 10;
+    return { prompt: `Estimate ${a} + ${b} by rounding each number to the nearest 10 first, then adding.`,
+      choices: numericChoices(answer, 0, answer + 40), answer };
+  }
+  const a = randInt(11, 49), b = randInt(2, 9);
+  const answer = Math.round(a / 10) * 10 * b;
+  return { prompt: `Estimate ${a} × ${b} by rounding ${a} to the nearest 10 first, then multiplying.`,
+    choices: numericChoices(answer, 0, answer + 60), answer };
+}
+
+// Builds a "the average of N numbers is X, here are N-1 of them" scenario with a guaranteed
+// positive, exact-integer answer -- picks the missing value freely, then nudges it up by at
+// most N-1 so the total divides evenly by N, instead of a generate-and-check retry loop.
+function averageMissingValue(n, valLo, valHi) {
+  const known = Array.from({ length: n - 1 }, () => randInt(valLo, valHi));
+  let answer = randInt(valLo, valHi);
+  const knownSum = known.reduce((a, b) => a + b, 0);
+  const rem = (knownSum + answer) % n;
+  if (rem !== 0) answer += (n - rem);
+  const avg = (knownSum + answer) / n;
+  return { known, answer, avg };
+}
+
+function averageQ(ageIdx, diffIdx) {
+  if (diffIdx === 0) {
+    const nums = [randInt(1, 20), randInt(1, 20)];
+    if ((nums[0] + nums[1]) % 2 !== 0) nums[1] += 1;
+    const answer = (nums[0] + nums[1]) / 2;
+    return { prompt: `What is the average of ${nums.join(" and ")}?`, choices: numericChoices(answer, 0, 25), answer };
+  }
+  if (diffIdx === 1) {
+    const nums = Array.from({ length: 3 }, () => randInt(1, 30));
+    const rem = nums.reduce((a, b) => a + b, 0) % 3;
+    if (rem !== 0) nums[2] += (3 - rem);
+    const answer = nums.reduce((a, b) => a + b, 0) / 3;
+    return { prompt: `What is the average of ${nums.join(", ")}?`, choices: numericChoices(answer, 0, 40), answer };
+  }
+  if (diffIdx === 2) {
+    if (Math.random() < 0.5) {
+      const nums = Array.from({ length: 4 }, () => randInt(1, 40));
+      const rem = nums.reduce((a, b) => a + b, 0) % 4;
+      if (rem !== 0) nums[3] += (4 - rem);
+      const answer = nums.reduce((a, b) => a + b, 0) / 4;
+      return { prompt: `What is the average of ${nums.join(", ")}?`, choices: numericChoices(answer, 0, 55), answer };
+    }
+    const { known, answer, avg } = averageMissingValue(3, 1, 30);
+    return { prompt: `The average of three numbers is ${avg}. Two of them are ${known[0]} and ${known[1]}. What is the third number?`,
+      choices: numericChoices(answer, 0, answer + 30), answer };
+  }
+  const { known, answer, avg } = averageMissingValue(4, 1, 60);
+  return { prompt: `The average of four numbers is ${avg}. Three of them are ${known.join(", ")}. What is the fourth number?`,
+    choices: numericChoices(answer, 0, answer + 50), answer };
+}
+
 const MATH_TOPIC_FUNCS = {
   Addition: additionQ,
   "Counting Tap": countingTapQ,
@@ -1538,6 +1720,11 @@ const MATH_TOPIC_FUNCS = {
   "Word Problems": wordProblemQ,
   Trigonometry: trigonometryQ,
   Equations: equationsQ,
+  "Factors & Multiples": factorsMultiplesQ,
+  "Ratio & Proportion": ratioProportionQ,
+  "Negative Numbers": negativeNumbersQ,
+  "Rounding & Estimation": roundingEstimationQ,
+  Average: averageQ,
 };
 
 function mathQuestion(ageIdx, diffIdx, topics) {

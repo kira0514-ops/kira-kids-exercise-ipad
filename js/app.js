@@ -60,6 +60,7 @@ const TOPIC_CATEGORIES = {
     ["🍰 Fractions, Decimals & Percentages", ["Fractions", "Fraction Bar Builder", "Decimals", "Percentages"]],
     ["📐 Geometry & Measurement", ["Geometry", "Measurement", "Trigonometry"]],
     ["🧮 Word Problems & Equations", ["Word Problems", "Equations"]],
+    ["🔍 Number Theory & Estimation", ["Factors & Multiples", "Ratio & Proportion", "Negative Numbers", "Rounding & Estimation", "Average"]],
   ],
   "Reading / Spelling": [
     ["🔤 Letters & Sounds", ["Phonics", "First Letter", "Rhyming", "Missing Letter"]],
