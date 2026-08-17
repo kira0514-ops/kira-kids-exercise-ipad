@@ -422,19 +422,20 @@ const TENSE_SENTENCES = [
 // a sentence, mixing regular and irregular verbs. Extreme: identify a whole sentence's tense.
 function verbTensesQ(ageIdx, diffIdx) {
   if (diffIdx === 0) {
-    const [base, past] = choice(TENSE_REGULAR_VERBS);
+    const [base, past] = SEEN.pickUnseen("tense_regular", TENSE_REGULAR_VERBS, (e) => e[0]);
     const distractors = [`${base}ing`, `${base}s`, `${base}eded`];
     return { prompt: `What is the past tense of '${base}'?`, choices: makeChoices(past, distractors), answer: past };
   }
   if (diffIdx === 1) {
-    const [base, past] = choice(TENSE_IRREGULAR_VERBS);
+    const [base, past] = SEEN.pickUnseen("tense_irregular", TENSE_IRREGULAR_VERBS, (e) => e[0]);
     const wrongRegular = `${base}ed`;
     const otherPasts = TENSE_IRREGULAR_VERBS.filter(([b]) => b !== base).map(([, p]) => p);
     return { prompt: `What is the past tense of '${base}'?`, choices: makeChoices(past, [wrongRegular, ...otherPasts]), answer: past };
   }
   if (diffIdx === 2) {
-    const pool = Math.random() < 0.5 ? TENSE_IRREGULAR_VERBS : TENSE_REGULAR_VERBS;
-    const [base, past] = choice(pool);
+    const useIrregular = Math.random() < 0.5;
+    const pool = useIrregular ? TENSE_IRREGULAR_VERBS : TENSE_REGULAR_VERBS;
+    const [base, past] = SEEN.pickUnseen(useIrregular ? "tense_irregular" : "tense_regular", pool, (e) => e[0]);
     const subject = choice(["I", "she", "he", "we", "they"]); // lowercase except "I" -- always follows "Yesterday, " here, never sentence-initial
     const otherPasts = pool.filter(([b]) => b !== base).map(([, p]) => p);
     return { prompt: `Yesterday, ${subject} ___ (${base}).\n\nFill in the blank with the correct past-tense form.`,
@@ -465,23 +466,25 @@ const PLURAL_SAME = [["sheep", "sheep"], ["deer", "deer"], ["fish", "fish"], ["m
 
 function pluralsQ(ageIdx, diffIdx) {
   if (diffIdx === 0) {
-    const [base, plural] = choice(PLURAL_REGULAR);
+    const [base, plural] = SEEN.pickUnseen("plurals_regular", PLURAL_REGULAR, (e) => e[0]);
     return { prompt: `What is the plural of '${base}'?`, choices: makeChoices(plural, [`${base}s${base}`, base, `${base}es`]), answer: plural };
   }
   if (diffIdx === 1) {
-    const [base, plural] = choice(Math.random() < 0.5 ? PLURAL_ES : PLURAL_Y_IES);
+    const useEs = Math.random() < 0.5;
+    const pool = useEs ? PLURAL_ES : PLURAL_Y_IES;
+    const [base, plural] = SEEN.pickUnseen(useEs ? "plurals_es" : "plurals_y_ies", pool, (e) => e[0]);
     return { prompt: `What is the plural of '${base}'?`, choices: makeChoices(plural, [`${base}s`, base, `${plural}s`]), answer: plural };
   }
   if (diffIdx === 2) {
-    const [base, plural] = choice(PLURAL_IRREGULAR);
+    const [base, plural] = SEEN.pickUnseen("plurals_irregular", PLURAL_IRREGULAR, (e) => e[0]);
     const otherPlurals = PLURAL_IRREGULAR.filter(([b]) => b !== base).map(([, p]) => p);
     return { prompt: `What is the plural of '${base}'?`, choices: makeChoices(plural, [`${base}s`, ...otherPlurals]), answer: plural };
   }
   if (Math.random() < 0.4) {
-    const [base, plural] = choice(PLURAL_SAME);
+    const [base, plural] = SEEN.pickUnseen("plurals_same", PLURAL_SAME, (e) => e[0]);
     return { prompt: `What is the plural of '${base}'?`, choices: makeChoices(plural, [`${base}s`, `${base}es`, `${base}ies`]), answer: plural };
   }
-  const [base, plural] = choice(PLURAL_IRREGULAR);
+  const [base, plural] = SEEN.pickUnseen("plurals_irregular", PLURAL_IRREGULAR, (e) => e[0]);
   return { prompt: `What is the plural of '${base}'?`,
     choices: makeChoices(plural, PLURAL_IRREGULAR.filter(([b]) => b !== base).map(([, p]) => p)), answer: plural };
 }
@@ -495,7 +498,10 @@ const POS_ADVERBS = ["quickly", "quietly", "happily", "slowly", "carefully", "lo
 // grammatically valid to ask about ("The {adj} {noun} {verb}s {adv}.") -- same "generate,
 // don't hand-curate a fixed list" idea used elsewhere in this file.
 function partsOfSpeechQ(ageIdx, diffIdx) {
-  const noun = choice(POS_NOUNS), verb = choice(POS_VERBS), adj = choice(POS_ADJECTIVES), adv = choice(POS_ADVERBS);
+  const noun = SEEN.pickUnseen("pos_nouns", POS_NOUNS, (w) => w);
+  const verb = SEEN.pickUnseen("pos_verbs", POS_VERBS, (w) => w);
+  const adj = SEEN.pickUnseen("pos_adjectives", POS_ADJECTIVES, (w) => w);
+  const adv = SEEN.pickUnseen("pos_adverbs", POS_ADVERBS, (w) => w);
   if (diffIdx === 3) {
     const targetPos = choice(["Noun", "Verb", "Adjective", "Adverb"]);
     const wordFor = { Noun: noun, Verb: verb, Adjective: adj, Adverb: adv };
@@ -529,19 +535,21 @@ function punctuationQ(ageIdx, diffIdx) {
   if (diffIdx <= 1) {
     const kindPool = diffIdx === 0 ? ["statement", "question"] : ["statement", "question", "exclamation"];
     const kind = choice(kindPool);
-    const text = kind === "statement" ? choice(PUNCT_STATEMENTS) : kind === "question" ? choice(PUNCT_QUESTIONS) : choice(PUNCT_EXCLAMATIONS);
+    const text = kind === "statement" ? SEEN.pickUnseen("punct_statements", PUNCT_STATEMENTS, (s) => s)
+      : kind === "question" ? SEEN.pickUnseen("punct_questions", PUNCT_QUESTIONS, (s) => s)
+      : SEEN.pickUnseen("punct_exclamations", PUNCT_EXCLAMATIONS, (s) => s);
     const answer = kind === "statement" ? "." : kind === "question" ? "?" : "!";
     return { prompt: `What punctuation mark should end this sentence?\n\n"${text}___"`, choices: [".", "?", "!"], answer };
   }
   if (diffIdx === 2) {
-    const word = choice(PUNCT_CAP_WORDS);
+    const word = SEEN.pickUnseen("punct_cap_words", PUNCT_CAP_WORDS, (w) => w);
     const correct = word.charAt(0).toUpperCase() + word.slice(1);
     const wrong1 = word;
     const wrong2 = word.toUpperCase();
     const wrong3 = capitalizeWrong(word);
     return { prompt: "Which one is capitalized correctly?", choices: shuffle([correct, wrong1, wrong2, wrong3]), answer: correct };
   }
-  const items = choice(COMMA_LISTS);
+  const items = SEEN.pickUnseen("punct_comma_lists", COMMA_LISTS, (l) => l.join(","));
   const correct = `I like ${items[0]}, ${items[1]}, ${items[2]}.`;
   const wrong1 = `I like ${items[0]} ${items[1]} ${items[2]}.`;
   const wrong2 = `I like ${items[0]}, ${items[1]} ${items[2]}.`;
@@ -558,7 +566,7 @@ const CONTRACTIONS = [
 ];
 
 function contractionsQ(ageIdx, diffIdx) {
-  const [full, contr] = choice(CONTRACTIONS);
+  const [full, contr] = SEEN.pickUnseen("contractions", CONTRACTIONS, (e) => e[0]);
   if (diffIdx <= 1) {
     const distractors = CONTRACTIONS.filter(([f]) => f !== full).map(([, c]) => c);
     return { prompt: `What is the contraction for '${full}'?`, choices: makeChoices(contr, distractors), answer: contr };
@@ -610,13 +618,16 @@ function prefixSuffixQ(ageIdx, diffIdx) {
   if (diffIdx <= 1) {
     const pool = diffIdx === 0 ? PREFIX_WORDS : SUFFIX_WORDS;
     const label = diffIdx === 0 ? "prefix" : "suffix";
-    const [base, affix, result] = choice(pool);
+    // id is base+affix, not just base -- SUFFIX_WORDS has "care" and "hope" twice each with a
+    // different suffix (careful/careless, hopeful/hopeless), which a base-only id would wrongly
+    // treat as the same entry.
+    const [base, affix, result] = SEEN.pickUnseen(diffIdx === 0 ? "prefix_words" : "suffix_words", pool, (e) => e[0] + e[1]);
     const distractors = pool.filter(([b]) => b !== base).map(([, , r]) => r);
     const affixLabel = diffIdx === 0 ? `${affix}-` : `-${affix}`; // prefix reads "un-", suffix reads "-ful"
     return { prompt: `Add the ${label} '${affixLabel}' to '${base}'. What word do you get?`, choices: makeChoices(result, distractors), answer: result };
   }
   const all = PREFIX_WORDS.concat(SUFFIX_WORDS);
-  const [base, affix, result] = choice(all);
+  const [base, affix, result] = SEEN.pickUnseen("affix_all", all, (e) => e[0] + e[1]);
   const otherAffixes = [...new Set(all.map(([, a]) => a))].filter((a) => a !== affix);
   return { prompt: `What was added to '${base}' to make '${result}'?`, choices: makeChoices(affix, otherAffixes), answer: affix };
 }
@@ -632,7 +643,7 @@ const COMPOUND_WORDS = [
 const COMPOUND_NON_WORDS = ["happy", "quickly", "the", "jumped", "blue", "because"];
 
 function compoundWordsQ(ageIdx, diffIdx) {
-  const [w1, w2, compound] = choice(COMPOUND_WORDS);
+  const [w1, w2, compound] = SEEN.pickUnseen("compound_words", COMPOUND_WORDS, (e) => e[2]);
   if (diffIdx === 0) {
     const distractors = COMPOUND_WORDS.filter(([a, b]) => a !== w1 || b !== w2).map(([, , c]) => c);
     return { prompt: `What compound word do you get when you combine '${w1}' and '${w2}'?`, choices: makeChoices(compound, distractors), answer: compound };
@@ -654,7 +665,8 @@ const POSSESSIVE_OWNERS = ["dog", "cat", "boy", "girl", "teacher", "student", "b
 const POSSESSIVE_ITEMS = ["ball", "book", "hat", "bike", "toy", "lunch", "pencil", "backpack"];
 
 function possessivesQ(ageIdx, diffIdx) {
-  const owner = choice(POSSESSIVE_OWNERS), item = choice(POSSESSIVE_ITEMS);
+  const owner = SEEN.pickUnseen("possessive_owners", POSSESSIVE_OWNERS, (w) => w);
+  const item = SEEN.pickUnseen("possessive_items", POSSESSIVE_ITEMS, (w) => w);
   if (diffIdx <= 1) {
     const answer = `the ${owner}'s ${item}`;
     const distractors = [`the ${owner}s ${item}`, `the ${owner}s' ${item}`, `the ${owner}es ${item}`];
@@ -680,23 +692,23 @@ const COMP_IRREGULAR = [["good", "better", "best"], ["bad", "worse", "worst"], [
 
 function comparativeSuperlativeQ(ageIdx, diffIdx) {
   if (diffIdx === 0) {
-    const [base, comp] = choice(COMP_REGULAR);
+    const [base, comp] = SEEN.pickUnseen("comp_regular", COMP_REGULAR, (e) => e[0]);
     return { prompt: `What is the comparative form of '${base}' (comparing two things)?`,
       choices: makeChoices(comp, [`${base}er${base}`, `more ${base}`, base]), answer: comp };
   }
   if (diffIdx === 1) {
-    const [base, , sup] = choice(COMP_REGULAR);
+    const [base, , sup] = SEEN.pickUnseen("comp_regular", COMP_REGULAR, (e) => e[0]);
     return { prompt: `What is the superlative form of '${base}' (comparing three or more things)?`,
       choices: makeChoices(sup, [`most ${base}`, `${base}est${base}`, base]), answer: sup };
   }
   if (diffIdx === 2) {
-    const [base, comp, sup] = choice(COMP_MORE_MOST);
+    const [base, comp, sup] = SEEN.pickUnseen("comp_more_most", COMP_MORE_MOST, (e) => e[0]);
     const askComp = Math.random() < 0.5;
     const answer = askComp ? comp : sup;
     return { prompt: `What is the ${askComp ? "comparative" : "superlative"} form of '${base}'?`,
       choices: makeChoices(answer, [`${base}er`, `${base}est`, askComp ? sup : comp]), answer };
   }
-  const [base, comp, sup] = choice(COMP_IRREGULAR);
+  const [base, comp, sup] = SEEN.pickUnseen("comp_irregular", COMP_IRREGULAR, (e) => e[0]);
   const askComp = Math.random() < 0.5;
   const answer = askComp ? comp : sup;
   const otherForms = COMP_IRREGULAR.filter(([b]) => b !== base).flatMap(([, c, s]) => [c, s]);
