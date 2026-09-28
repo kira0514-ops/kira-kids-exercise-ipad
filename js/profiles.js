@@ -91,6 +91,7 @@ function enterProfile(id) {
   SEEN.setProfile(id);
   DAILY.setProfile(id);
   RECENT_PROMPTS.setProfile(id);
+  ACTIVITY.setProfile(id);
   showSetup();
 }
 

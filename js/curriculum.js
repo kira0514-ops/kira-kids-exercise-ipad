@@ -156,6 +156,7 @@ class DailyCurriculumTracker {
   }
 
   completeToday() {
+    ACTIVITY.recordCurriculumDay(this.currentDay);
     this.completedDays.add(this.currentDay);
     if (this.currentDay < 365) this.currentDay += 1;
     this.save();

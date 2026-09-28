@@ -1731,5 +1731,7 @@ function mathQuestion(ageIdx, diffIdx, topics) {
   [ageIdx, diffIdx] = resolveExtreme(ageIdx, diffIdx);
   const pool = topics && topics.length ? topics : ["Addition", "Subtraction"];
   const topic = choice(pool);
-  return MATH_TOPIC_FUNCS[topic](ageIdx, diffIdx);
+  const q = MATH_TOPIC_FUNCS[topic](ageIdx, diffIdx);
+  q.topic = q.topic || topic; // for the parent report
+  return q;
 }

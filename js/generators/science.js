@@ -7,6 +7,12 @@
 // general growth facts (height, baby teeth, hair/nails) only -- nothing anatomical or about
 // reproduction/puberty.
 
+// Explanation pictures live in images/science/: one per fact question (named from a hash of its
+// prompt, so edits to other questions never shift them), one per materials property, one for the
+// magnet pick-up question, and one per lesson. A missing picture simply shows nothing.
+const sciPhoto = (name) => ({ type: "scene", words: [], photo: `images/science/${name}.jpg` });
+const sciFactPhoto = (prompt) => sciPhoto("fact-" + passageKey(prompt));
+
 const SCIENCE_MATERIALS = [
   { label: "🪵 wood", seeThrough: false, floats: true, bendy: false, natural: true },
   { label: "🥄 metal spoon", seeThrough: false, floats: false, bendy: false, natural: false },
@@ -54,7 +60,8 @@ function materialsQ(ageIdx, diffIdx) {
     const answerItem = choice(matching);
     const choices = makeChoices(answerItem.label, distractorPool);
     const prompt = negate ? propDef.negPrompt : propDef.posPrompt;
-    return { prompt: `${prompt}\n\n` + choices.join("   "), choices, answer: answerItem.label };
+    return { prompt: `${prompt}\n\n` + choices.join("   "), choices, answer: answerItem.label,
+      illustration: sciPhoto(`material-${propDef.key}`) };
   }
   // Extremely unlikely fallback: plain see-through question, always solvable with this bank.
   const choices = makeChoices("🥛 glass cup", SCIENCE_MATERIALS.filter((m) => !m.seeThrough).map((m) => m.label));
@@ -104,8 +111,8 @@ const MAGNET_FACT_QS = [
 function magnetsQ(ageIdx, diffIdx) {
   const factPool = MAGNET_FACT_QS.filter((q) => diffIdx >= q.minDiff);
   if (factPool.length && Math.random() < 0.35) {
-    const q = SEEN.pickUnseen("science_magnet_facts", factPool, (f) => f.prompt);
-    return { prompt: q.prompt, choices: q.choices.slice(), answer: q.answer };
+    const q = SEEN.pickUnseen("science_magnet_facts", sciDiffPool(MAGNET_FACT_QS, diffIdx, "science_magnet_facts"), (f) => f.prompt);
+    return { prompt: q.prompt, choices: q.choices.slice(), answer: q.answer, illustration: sciFactPhoto(q.prompt) };
   }
   const negate = diffIdx >= 1 && Math.random() < 0.5;
   const desired = !negate;
@@ -114,7 +121,8 @@ function magnetsQ(ageIdx, diffIdx) {
   const answerItem = choice(matching);
   const choices = makeChoices(answerItem.label, distractorPool);
   const prompt = negate ? "Which of these would a magnet NOT pick up?" : "Which of these would a magnet pick up?";
-  return { prompt: `${prompt}\n\n` + choices.join("   "), choices, answer: answerItem.label };
+  return { prompt: `${prompt}\n\n` + choices.join("   "), choices, answer: answerItem.label,
+    illustration: sciPhoto("magnet-pickup") };
 }
 
 const PLANT_FACT_QS = [
@@ -146,8 +154,8 @@ const PLANT_FACT_QS = [
 
 function plantsQ(ageIdx, diffIdx) {
   const pool = PLANT_FACT_QS.filter((q) => diffIdx >= q.minDiff);
-  const q = SEEN.pickUnseen("science_plants", pool, (f) => f.prompt);
-  return { prompt: q.prompt, choices: q.choices.slice(), answer: q.answer };
+  const q = SEEN.pickUnseen("science_plants", sciDiffPool(PLANT_FACT_QS, diffIdx, "science_plants"), (f) => f.prompt);
+  return { prompt: q.prompt, choices: q.choices.slice(), answer: q.answer, illustration: sciFactPhoto(q.prompt) };
 }
 
 const BODY_SENSES_QS = [
@@ -181,8 +189,8 @@ const BODY_SENSES_QS = [
 
 function bodySensesQ(ageIdx, diffIdx) {
   const pool = BODY_SENSES_QS.filter((q) => diffIdx >= q.minDiff);
-  const q = SEEN.pickUnseen("science_body_senses", pool, (f) => f.prompt);
-  return { prompt: q.prompt, choices: q.choices.slice(), answer: q.answer };
+  const q = SEEN.pickUnseen("science_body_senses", sciDiffPool(BODY_SENSES_QS, diffIdx, "science_body_senses"), (f) => f.prompt);
+  return { prompt: q.prompt, choices: q.choices.slice(), answer: q.answer, illustration: sciFactPhoto(q.prompt) };
 }
 
 const SCIENCE_TOPIC_FUNCS = {
@@ -196,5 +204,7 @@ function scienceQuestion(ageIdx, diffIdx, topics) {
   [ageIdx, diffIdx] = resolveExtreme(ageIdx, diffIdx);
   const pool = topics && topics.length ? topics : APP_DATA.SCIENCE_TOPICS;
   const topic = choice(pool);
-  return SCIENCE_TOPIC_FUNCS[topic](ageIdx, diffIdx);
+  const q = SCIENCE_TOPIC_FUNCS[topic](ageIdx, diffIdx);
+  q.topic = q.topic || topic; // for the parent report
+  return q;
 }

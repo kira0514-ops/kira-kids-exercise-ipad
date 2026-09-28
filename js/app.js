@@ -46,6 +46,7 @@ const SUBJECT_MAX_AGE = {
   Math: APP_DATA.MATH_TOPIC_MAX_AGE,
   "Reading / Spelling": APP_DATA.READING_TOPIC_MAX_AGE,
   "Logic / Puzzles": APP_DATA.LOGIC_TOPIC_MAX_AGE,
+  Science: APP_DATA.SCIENCE_TOPIC_MAX_AGE,
 };
 const SUBJECT_GENERATOR = {
   Math: (ageIdx, diffIdx, topics) => mathQuestion(ageIdx, diffIdx, topics),
@@ -77,10 +78,9 @@ const TOPIC_CATEGORIES = {
     ["🔁 Patterns & Sequences", ["Patterns", "Pattern Builder", "Number Sequences", "Number Sequence Solver"]],
     ["🧠 Reasoning & Logic", ["Odd One Out", "Analogies", "Chart Reading", "Who's Right?"]],
   ],
-  Science: [
-    ["🌱 Life Science", ["Plants", "My Body & Senses"]],
-    ["🧲 Physical Science", ["Materials", "Magnets"]],
-  ],
+  // Built from SCIENCE_TOPIC_CATEGORY (js/science/register.js) so new units group themselves.
+  Science: Object.entries(SCIENCE_CATEGORY_LABELS).map(([key, label]) =>
+    [label, APP_DATA.SCIENCE_TOPICS.filter((t) => SCIENCE_TOPIC_CATEGORY[t] === key)]),
 };
 
 const root = document.getElementById("app");
@@ -271,7 +271,9 @@ function showSetup() {
     const groups = leftover.length ? [...categories, ["✨ More", leftover]] : categories;
 
     for (const [catLabel, catTopics] of groups) {
-      const present = catTopics.filter((tp) => allTopics.includes(tp));
+      // Science has a separate topic set per age track, so only show the current age's topics.
+      const present = catTopics.filter((tp) => allTopics.includes(tp) &&
+        (subject !== "Science" || topicAgeOk(tp, state.ageIdx, minAge, maxAge)));
       if (present.length === 0) continue;
       left.appendChild(el("div", { class: "topic-category-label", text: catLabel }));
       const topicsGrid = el("div", { class: "topics-grid" });
@@ -330,6 +332,7 @@ function showSetup() {
   right.appendChild(button("📚 Learn a Topic", showLessonPicker, "next"));
   right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("📆 365-Day Curriculum", showDailyCurriculum, "next"));
+  right.appendChild(button("📊 Parent Report", () => showParentReport(), "next"));
   right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("📇 Phonics Flashcards", startPhonicsFlashcards, "next"));
   right.appendChild(el("div", { style: "height:10px" }));
@@ -388,6 +391,7 @@ function showQuestion() {
   clearRoot();
   const t = theme();
   const q = state.questions[state.currentIndex];
+  state.questionShownAt = Date.now();
 
   root.appendChild(headerBanner(t.quiz_title));
 
@@ -423,6 +427,7 @@ function showQuestion() {
     // once actually solved correctly, so completion always counts as correct.
     const onSolved = () => {
       state.score += 1;
+      ACTIVITY.record(q, true, Date.now() - state.questionShownAt);
       feedback.textContent = "Correct! ✅";
       feedback.className = "feedback feedback-correct";
       nextBtn.disabled = false;
@@ -490,6 +495,7 @@ function onChoice(chosenStr, clickedBtn, buttons, q) {
   } else {
     state.score += 1;
   }
+  ACTIVITY.record(q, isCorrect, Date.now() - state.questionShownAt);
   const feedback = document.getElementById("quiz-feedback");
   feedback.textContent = isCorrect ? "Correct! ✅" : `Not quite — the answer is ${answerStr}.`;
   feedback.className = "feedback " + (isCorrect ? "feedback-correct" : "feedback-wrong");

@@ -1084,5 +1084,7 @@ function readingQuestion(ageIdx, diffIdx, topics) {
   [ageIdx, diffIdx] = resolveExtreme(ageIdx, diffIdx);
   const pool = topics && topics.length ? topics : ["Unscramble", "Missing Letter"];
   const topic = choice(pool);
-  return READING_TOPIC_FUNCS[topic](ageIdx, diffIdx);
+  const q = READING_TOPIC_FUNCS[topic](ageIdx, diffIdx);
+  q.topic = q.topic || topic; // for the parent report
+  return q;
 }

@@ -394,5 +394,7 @@ function logicQuestion(ageIdx, diffIdx, topics) {
   [ageIdx, diffIdx] = resolveExtreme(ageIdx, diffIdx);
   const pool = topics && topics.length ? topics : APP_DATA.LOGIC_TOPICS;
   const topic = choice(pool);
-  return LOGIC_TOPIC_FUNCS[topic](ageIdx, diffIdx);
+  const q = LOGIC_TOPIC_FUNCS[topic](ageIdx, diffIdx);
+  q.topic = q.topic || topic; // for the parent report
+  return q;
 }

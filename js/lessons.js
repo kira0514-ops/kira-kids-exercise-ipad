@@ -146,6 +146,14 @@ function renderLessonSections(container, subject, topic, learnerAgeIdx, learnerD
       cardInner.appendChild(el("div", { class: "step-text", text: section.explanation }));
     }
 
+    if (subject === "Science") {
+      // Science lessons get an explanation picture (images/science/lesson-<topic>-<n>.jpg).
+      const slug = topic.toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "");
+      const wrap = el("div", { class: "illustration-wrap" });
+      wrap.appendChild(drawPhotoWithFallback({ photo: `images/science/lesson-${slug}-${secI + 1}.jpg` }, theme()));
+      cardInner.appendChild(wrap);
+    }
+
     if (section.illustration) {
       const canvas = drawIllustration(section.illustration, theme());
       if (canvas) {
