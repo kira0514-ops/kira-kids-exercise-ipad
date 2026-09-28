@@ -126,6 +126,10 @@
 <script src="js/profiles.js?v=2"></script>
 <script src="js/flashcards.js?v=12"></script>
 <script src="js/minigames.js?v=34"></script>
+<!-- Weekly/monthly content packs: date-stamped so the browser re-fetches at most once a day
+     without the scheduled refresh jobs ever needing to edit this file. -->
+<script>document.write('<script src="js/content_packs.js?d=' + new Date().toISOString().slice(0, 10) + '"><\/script>');</script>
+<script src="js/content_merge.js?v=1"></script>
 <script src="js/app.js?v=38"></script>
 <script>
 // Fire-and-forget visit counter (no account/signup, no personal data) -- lets Kira
