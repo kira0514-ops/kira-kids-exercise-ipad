@@ -126,6 +126,208 @@ function readingComprehensionQ(ageIdx, diffIdx) {
   return result;
 }
 
+// Identify the central/main idea of a short passage, as opposed to a specific supporting
+// detail -- the classic "what is this mostly about" comprehension skill (Common Core
+// RI.2/RL.2 across grades), distinct from Reading Comprehension's mix of
+// detail/vocabulary/inference questions. Mirrors kids_exercise_app.py's CENTRAL_IDEA_GENERATORS:
+// each passage is built from a "story shape" with random name/place/animal slots, so the text
+// genuinely differs call to call instead of repeating from a fixed list.
+const CI_NAMES = ["Mia", "Liam", "Ava", "Noah", "Zoe", "Ben", "Ivy", "Sam", "Leo", "Nina",
+  "Maya", "Owen", "Ruby", "Jack", "Lily", "Eli", "Chloe", "Isaac", "Nora", "Theo",
+  "Hana", "Marcus", "Priya", "Diego", "Amara", "Kai", "Elena", "Omar", "Sofia", "Jamal"];
+const CI_PLACES_SIMPLE = ["the park", "the beach", "the backyard", "the classroom", "the farm",
+  "the garden", "the campsite", "the playground"];
+const CI_PET_ANIMALS = ["dog", "cat", "rabbit", "bird", "hamster", "turtle", "puppy", "kitten"];
+const CI_WEATHER = ["rain", "snow", "wind", "sunshine", "a storm"];
+const CI_TREASURES = ["shiny rock", "little ball", "wooden block", "paper boat", "small kite",
+  "toy drum", "stuffed bear", "bouncy ball"];
+const CI_SPORTS = ["soccer", "basketball", "baseball", "swimming", "tennis", "track", "volleyball"];
+const CI_TOWNS = ["Riverside", "Oakdale", "Maple Grove", "Cedar Hills", "Lakeside", "Brookfield",
+  "Fairview", "Elmwood"];
+const CI_ANIMAL_PLURALS = ["wolves", "elephants", "beavers", "sea turtles", "otters", "honeybees",
+  "octopuses", "sharks"];
+const CI_INVENTIONS = [
+  ["the refrigerator", "keep food cold, so it spoiled quickly", "using cold air to slow down spoilage", "store food safely for much longer"],
+  ["the printing press", "share written ideas, so books had to be copied by hand", "printing pages quickly with movable type", "spread books and knowledge to many more people"],
+  ["the light bulb", "light their homes after dark, so they relied on candles and lamps", "glowing safely when electricity passes through it", "work and study safely into the evening"],
+  ["the telephone", "talk to faraway friends, so they had to send slow letters", "carrying voices across wires", "speak with loved ones instantly"],
+  ["the bicycle", "travel far without a horse, so trips took a long time", "using pedals and wheels to move faster", "get to school and work much more quickly"],
+  ["the washing machine", "clean clothes easily, so laundry took hours of scrubbing by hand", "spinning clothes in soapy water automatically", "spend their time on other things"],
+];
+const CI_KEYSTONE = [
+  ["wolves", "deer", "plants"], ["sea otters", "sea urchins", "kelp forests"],
+  ["beavers", "flooded ponds", "wetland plants"], ["sharks", "small fish", "coral reefs"],
+];
+const ciCap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const CENTRAL_IDEA_GENERATORS = {
+  0: [
+    function lostAndFound() {
+      const name = choice(CI_NAMES), item = choice(CI_TREASURES), place = choice(CI_PLACES_SIMPLE);
+      return { text: `${name} found a ${item} at ${place}. ${name} played with it all afternoon. ${name} did not want to go home.`,
+        idea: `${name} loved playing with the ${item}.`,
+        distractors: [`${ciCap(place)} is a fun place to visit.`, `${name} wanted to go home early.`, `The ${item} was found by someone else.`] };
+    },
+    function thirstyPet() {
+      const name = choice(CI_NAMES), pet = choice(CI_PET_ANIMALS);
+      return { text: `${name}'s ${pet} was thirsty. ${name} filled a bowl with water. The ${pet} drank it all up happily.`,
+        idea: `${name} took good care of the thirsty ${pet}.`,
+        distractors: [`The ${pet} is very fast.`, "Water bowls are usually blue.", `The ${pet} did not want any water.`] };
+    },
+    function rainyDay() {
+      const name = choice(CI_NAMES), weather = choice(CI_WEATHER);
+      return { text: `It was ${weather} outside. ${name} decided to stay inside and read a book. ${name} enjoyed the quiet afternoon.`,
+        idea: `${name} had a quiet, happy afternoon reading inside.`,
+        distractors: [`${ciCap(weather)} happens in every season.`, "Books have pictures and words.", `${name} went outside to play in the ${weather}.`] };
+    },
+    function cleanup() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} saw that the toys were all over the floor. ${name} picked them up one by one. Soon the room looked neat and clean.`,
+        idea: `${name} cleaned up the messy room.`,
+        distractors: ["Toys come in many shapes.", "Floors can be made of wood.", `${name} left the toys on the floor.`] };
+    },
+    function sharing() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} had two cookies. ${name}'s friend did not have a snack. ${name} shared one cookie with the friend.`,
+        idea: `${name} shared a cookie with a friend.`,
+        distractors: ["Cookies are a sweet treat.", "Friends like to play games together.", `${name} ate both cookies alone.`] };
+    },
+    function newSkill() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} tried to tie their shoes many times. At first the laces got tangled. After some practice, ${name} tied them all on their own.`,
+        idea: `${name} practiced and learned to tie their shoes.`,
+        distractors: ["Shoelaces can come in many colors.", "Shoes protect your feet.", `${name} never learned to tie shoes.`] };
+    },
+    function farmVisit() {
+      const name = choice(CI_NAMES), pet = choice(CI_PET_ANIMALS), place = choice(CI_PLACES_SIMPLE);
+      return { text: `At ${place}, ${name} watched a ${pet} eat some food. The ${pet} made ${name} laugh by wiggling its ears. ${name} wanted to visit again soon.`,
+        idea: `${name} had a fun time watching the ${pet} at ${place}.`,
+        distractors: [`${ciCap(pet)}s need food and water.`, `${ciCap(place)} is open every day.`, `${name} did not enjoy the visit.`] };
+    },
+    function windyLeaves() {
+      const name = choice(CI_NAMES);
+      return { text: `The wind blew hard and leaves fell from the trees. ${name} watched from the window. ${name} thought the falling leaves looked pretty.`,
+        idea: `${name} enjoyed watching the leaves fall in the wind.`,
+        distractors: ["Trees lose their leaves in fall.", "Windows let in sunlight.", `${name} thought the wind was scary.`] };
+    },
+  ],
+  1: [
+    function sportsPractice() {
+      const name = choice(CI_NAMES), sport = choice(CI_SPORTS);
+      return { text: `${name} joined the school ${sport} team this year. In the first few games, ${name} struggled to keep up with the faster players. ${name} started practicing every day after school. By the end of the season, ${name} was one of the strongest players on the team.`,
+        idea: `${name} improved at ${sport} through daily practice.`,
+        distractors: [`${name} joined the ${sport} team this year.`, `${ciCap(sport)} games usually have referees.`, `${name} quit the team after struggling.`] };
+    },
+    function stormCleanup() {
+      const town = choice(CI_TOWNS);
+      return { text: `A big storm knocked down several trees in ${town}. Neighbors worked together to clear the fallen branches. They also helped an elderly neighbor fix her fence. Everyone felt proud of how the community came together.`,
+        idea: "Neighbors worked together to help their community recover after a storm.",
+        distractors: [`A storm knocked down trees in ${town}.`, "Storms can cause a lot of damage.", "The neighbors refused to help each other."] };
+    },
+    function animalSenses() {
+      const animals = choice(CI_ANIMAL_PLURALS), cap = ciCap(animals);
+      return { text: `${cap} are known for their excellent sense of smell, which is far stronger than a human's. They use this sense to find food, recognize other animals, and even sense danger. Scientists have studied how ${animals} process smells to understand their behavior better.`,
+        idea: `${cap} rely heavily on their powerful sense of smell.`,
+        distractors: [`${cap} can sense danger.`, "Scientists study animal behavior.", `${cap} have a weak sense of smell.`] };
+    },
+    function stageFright() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} was terrified of speaking in front of the class. Before the big presentation, ${name} practiced in front of a mirror every night. On presentation day, ${name}'s hands still shook, but the words came out clearly. Afterward, ${name} felt proud of facing the fear.`,
+        idea: `${name} overcame a fear of public speaking through practice.`,
+        distractors: [`${name} practiced in front of a mirror.`, "Presentations often use slides.", `${name} refused to give the presentation.`] };
+    },
+    function invention() {
+      const [name, problem, how, result] = choice(CI_INVENTIONS);
+      return { text: `Long ago, people had no way to ${problem}. The invention of ${name} changed that by ${how}. This allowed families to ${result}. Today, almost every home relies on this invention.`,
+        idea: `The invention of ${name} made daily life easier for families.`,
+        distractors: [`People lived without ${name} long ago.`, `${ciCap(name)} was invented by a single family.`, `People never needed ${name} at all.`] };
+    },
+    function savingUp() {
+      const name = choice(CI_NAMES), item = choice(ITEMS);
+      return { text: `${name} wanted to buy some new ${item}, but did not have enough money saved. Every week, ${name} did extra chores to earn a little more. After two months of saving, ${name} finally had enough to buy them. ${name} felt very proud of the hard work.`,
+        idea: `${name} saved money through hard work to buy some ${item}.`,
+        distractors: [`${name} wanted to buy some ${item}.`, "Chores can include cleaning and organizing.", `${name} gave up on saving money.`] };
+    },
+    function keystone() {
+      const [animal, prey, plants] = choice(CI_KEYSTONE);
+      return { text: `When ${animal} disappeared from an area, the ${prey} grew very large in number very quickly. This harmed the ${plants} that other animals needed. Once ${animal} were brought back, things slowly returned to normal. This showed how much one animal can affect an entire ecosystem.`,
+        idea: `Removing and returning ${animal} showed how one species can affect an ecosystem.`,
+        distractors: [`The ${prey} grew in number.`, `${ciCap(animal)} live in the wild.`, `${ciCap(animal)} had no effect on other living things.`] };
+    },
+    function friendshipRepair() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} and their best friend had a big disagreement over a game. For a few days, they did not talk to each other. Eventually, ${name} apologized, and they talked through what happened. Their friendship became even stronger afterward.`,
+        idea: `${name} and their friend resolved a disagreement and strengthened their friendship.`,
+        distractors: [`${name} and their friend disagreed over a game.`, "Friends sometimes argue with each other.", `${name} and their friend never spoke again.`] };
+    },
+  ],
+  2: [
+    function sportsPerseverance() {
+      const name = choice(CI_NAMES), sport = choice(CI_SPORTS);
+      return { text: `When ${name} first joined the ${sport} team, coaches noted several weaknesses in fundamental skills. Rather than becoming discouraged, ${name} dedicated extra hours each week to targeted practice, seeking feedback after every session. Over the course of the season, noticeable improvement became evident not just to ${name}, but to teammates and coaches alike. This transformation illustrates how consistent effort can outweigh natural talent over time.`,
+        idea: `Consistent effort and practice helped ${name} overcome early weaknesses in ${sport}.`,
+        distractors: [`${name} joined the ${sport} team.`, "Coaches often give feedback to athletes.", `${name} never improved despite practicing.`] };
+    },
+    function ecosystemInfluence() {
+      const animals = choice(CI_ANIMAL_PLURALS), cap = ciCap(animals);
+      return { text: `${cap} occupy a critical position in their ecosystem, influencing both the population of species below them in the food chain and the vegetation those species depend on. When ${animals} are removed from an environment, cascading effects can alter the landscape significantly, sometimes for decades. Conservation efforts increasingly focus on protecting these species precisely because of this outsized influence. Understanding these relationships helps scientists predict how ecosystems might respond to future changes.`,
+        idea: `${cap} have an outsized influence on their ecosystem's balance.`,
+        distractors: [`${cap} affect the food chain.`, "Conservation efforts protect various species.", `${cap} have little effect on their ecosystem.`] };
+    },
+    function communityRebuild() {
+      const town = choice(CI_TOWNS);
+      return { text: `After a severe storm damaged much of ${town}, residents faced the daunting task of rebuilding homes, businesses, and public spaces. Rather than waiting for outside help, community members organized volunteer crews, pooled resources, and shared skills to speed up recovery. Local businesses that reopened quickly often did so because of this cooperative spirit. Years later, the rebuilding effort is remembered as a turning point that strengthened community bonds.`,
+        idea: `Community cooperation was central to rebuilding ${town} after the storm.`,
+        distractors: [`A storm damaged ${town}.`, "Some businesses reopened quickly.", "Residents waited passively for outside help."] };
+    },
+    function readingBreakthrough() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} struggled with reading comprehension for most of elementary school, often avoiding books altogether out of frustration. A teacher introduced ${name} to graphic novels, which combined pictures with text in a way that felt less overwhelming. Slowly, ${name} began reading more complex material, eventually developing a genuine love of stories. This gradual shift demonstrates how the right resource can transform someone's relationship with a skill.`,
+        idea: `Finding the right resource helped ${name} overcome a struggle with reading and grow to love it.`,
+        distractors: [`${name} struggled with reading in elementary school.`, "Graphic novels combine pictures and text.", `${name} never improved at reading.`] };
+    },
+    function longTermResearch() {
+      const animals = choice(CI_ANIMAL_PLURALS), town = choice(CI_TOWNS);
+      return { text: `Researchers studying ${animals} near ${town} spent years quietly observing their behavior patterns before drawing any conclusions. Early assumptions about the species turned out to be incomplete once long-term data was gathered. This patient, methodical approach revealed behaviors that shorter studies had completely missed. The research demonstrates why scientific conclusions often require years of sustained observation rather than quick judgments.`,
+        idea: "Long-term, patient observation revealed behaviors that shorter studies missed.",
+        distractors: [`Researchers studied ${animals} near ${town}.`, "Early assumptions were incomplete.", "Scientific conclusions are usually reached quickly."] };
+    },
+    function freeTutoring() {
+      const town = choice(CI_TOWNS);
+      return { text: `When the local library in ${town} began offering free tutoring sessions after school, many families who could not otherwise afford tutoring took advantage of the program. Volunteer tutors, often local high school or college students, worked one-on-one with younger children struggling in specific subjects. Test scores across the school district began improving within a single year. The program's success shows how accessible community resources can meaningfully close educational gaps.`,
+        idea: `Free community tutoring in ${town} helped close educational gaps for families who needed it.`,
+        distractors: [`The library in ${town} offered free tutoring.`, "Volunteer tutors were often students themselves.", "Test scores showed no change after the program started."] };
+    },
+    function injuryGrowth() {
+      const name = choice(CI_NAMES), sport = choice(CI_SPORTS);
+      return { text: `After a serious injury forced ${name} to sit out an entire ${sport} season, doctors were uncertain whether ${name} would fully recover the same level of skill. Rather than giving up, ${name} spent the recovery period studying game strategy and mentoring younger teammates. When ${name} finally returned to play, the deeper understanding of the game proved just as valuable as physical skill. The experience reshaped how ${name} thought about contributing to a team.`,
+        idea: `An injury led ${name} to develop strategic understanding that became valuable upon returning to ${sport}.`,
+        distractors: [`${name} was injured and missed a season of ${sport}.`, "Doctors were uncertain about full recovery.", `${name} quit ${sport} permanently after the injury.`] };
+    },
+    function coastalErosion() {
+      const town = choice(CI_TOWNS);
+      return { text: `Coastal towns near ${town} have long struggled with erosion caused by rising sea levels and stronger storms. Engineers recently began installing large offshore structures designed to absorb wave energy before it reaches the shore. Early results show significantly less sand loss along protected beaches compared to unprotected areas nearby. Local officials are now considering expanding the project to other vulnerable coastlines.`,
+        idea: "New offshore structures have proven effective at reducing coastal erosion.",
+        distractors: [`Coastal towns near ${town} face erosion.`, "Storms and rising seas contribute to erosion.", "The offshore structures have shown no effect on erosion."] };
+    },
+  ],
+};
+
+function centralIdeaQ(ageIdx, diffIdx) {
+  const generators = CENTRAL_IDEA_GENERATORS[ageIdx];
+  const half = Math.floor(generators.length / 2);
+  const pool = diffIdx >= 2 && half ? generators.slice(half) : half ? generators.slice(0, half) : generators;
+  const indexed = pool.map((fn, i) => [i, fn]);
+  const [, gen] = SEEN.pickUnseen(`central_idea_shape_${ageIdx}`, indexed, (pair) => pair[0]);
+  const item = gen();
+  const choices = makeChoices(item.idea, item.distractors);
+  const prompt = item.text + "\n\nWhat is the central idea of this passage?";
+  const result = { prompt, choices, answer: item.idea };
+  const sceneWords = extractSceneWords(item.text);
+  if (sceneWords.length) result.illustration = { type: "scene", words: sceneWords };
+  return result;
+}
+
 function phonicsStartSoundQ() {
   const [letter, words] = SEEN.pickUnseen("phonics_groups", Object.entries(APP_DATA.PHONICS_START_SOUND_GROUPS), (kv) => kv[0]);
   const [target, correct] = sample(words, 2);
@@ -737,6 +939,7 @@ const READING_TOPIC_FUNCS = {
   "Compound Words": compoundWordsQ,
   Possessives: possessivesQ,
   "Comparative & Superlative": comparativeSuperlativeQ,
+  "Central Idea": centralIdeaQ,
 };
 
 // Tap-in-order letter tiles from a shuffled bank into blank boxes to spell `word`. No drag
