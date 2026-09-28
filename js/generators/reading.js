@@ -122,7 +122,9 @@ function readingComprehensionQ(ageIdx, diffIdx) {
   const choices = shuffle(q.choices.slice());
   const result = { prompt, choices, answer: q.answer };
   const sceneWords = extractSceneWords(passage.text);
-  if (sceneWords.length) result.illustration = { type: "scene", words: sceneWords };
+  // The story picture (when one exists) replaces the word scene; the scene stays as fallback.
+  result.illustration = { type: "scene", words: sceneWords,
+    photo: `images/passages/${passageKey(passage.text)}.jpg` };
   return result;
 }
 

@@ -896,6 +896,24 @@ function drawQVisual(q, theme) {
   // Mirrors _draw_q_visual: chart takes priority over illustration, matching the
   // Python dispatcher's precedence.
   if (q.chart) return drawChart(q.chart, theme);
+  if (q.illustration?.photo) return drawPhotoWithFallback(q.illustration, theme);
   if (q.illustration) return drawIllustration(q.illustration, theme);
   return null;
+}
+
+// Shows the fallback drawing right away, then swaps in the photo if it loads.
+function drawPhotoWithFallback(illus, theme) {
+  const box = el("div", { class: "passage-photo-box" });
+  if (illus.words && illus.words.length) {
+    const fallback = drawIllustration(illus, theme);
+    if (fallback) box.appendChild(fallback);
+  }
+  const img = new Image();
+  img.alt = "";
+  img.decoding = "async";
+  img.className = "passage-photo";
+  img.style.borderColor = theme.choice_palette[1];
+  img.onload = () => { box.innerHTML = ""; box.appendChild(img); };
+  img.src = illus.photo;
+  return box;
 }

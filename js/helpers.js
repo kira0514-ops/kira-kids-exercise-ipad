@@ -110,3 +110,14 @@ function topicAgeOk(topic, ageIdx, minAge, maxAge) {
 function fmtMoney(cents) {
   return cents;
 }
+
+// Stable 8-hex-char key for a reading passage (FNV-1a over its text), used to name its
+// picture file: images/passages/{key}.jpg. tools/passage_key.py computes the same value.
+function passageKey(text) {
+  let h = 0x811c9dc5;
+  for (const ch of new TextEncoder().encode(text)) {
+    h ^= ch;
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
+}
