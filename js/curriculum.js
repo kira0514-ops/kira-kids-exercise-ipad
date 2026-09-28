@@ -22,9 +22,9 @@ function getCurriculumPhase(ageIdx, day, trackYear = 1) {
   // instead of serving up identical content, so nudge the difficulty up per lap (capped at
   // Extreme) rather than only ever ramping within a single lap.
   diffIdx = Math.min(3, diffIdx + (trackYear - 1));
-  const mathAvail = mathList !== null ? mathList : APP_DATA.MATH_TOPICS.filter((t) => APP_DATA.MATH_TOPIC_MIN_AGE[t] <= ageIdx);
-  const readingAvail = readingList !== null ? readingList : APP_DATA.READING_TOPICS.filter((t) => APP_DATA.READING_TOPIC_MIN_AGE[t] <= ageIdx);
-  const logicAvail = logicList !== null ? logicList : APP_DATA.LOGIC_TOPICS.filter((t) => APP_DATA.LOGIC_TOPIC_MIN_AGE[t] <= ageIdx);
+  const mathAvail = mathList !== null ? mathList : APP_DATA.MATH_TOPICS.filter((t) => topicAgeOk(t, ageIdx, APP_DATA.MATH_TOPIC_MIN_AGE, APP_DATA.MATH_TOPIC_MAX_AGE));
+  const readingAvail = readingList !== null ? readingList : APP_DATA.READING_TOPICS.filter((t) => topicAgeOk(t, ageIdx, APP_DATA.READING_TOPIC_MIN_AGE, APP_DATA.READING_TOPIC_MAX_AGE));
+  const logicAvail = logicList !== null ? logicList : APP_DATA.LOGIC_TOPICS.filter((t) => topicAgeOk(t, ageIdx, APP_DATA.LOGIC_TOPIC_MIN_AGE, APP_DATA.LOGIC_TOPIC_MAX_AGE));
   return [diffIdx, mathAvail, readingAvail, logicAvail, unitLabel];
 }
 
