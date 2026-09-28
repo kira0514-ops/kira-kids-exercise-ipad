@@ -161,6 +161,11 @@ const CI_KEYSTONE = [
   ["beavers", "flooded ponds", "wetland plants"], ["sharks", "small fish", "coral reefs"],
 ];
 const ciCap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+// For Central Idea pictures: which CI_NAMES are drawn as a girl vs. a boy.
+const CI_GIRL_NAMES = new Set(["Mia", "Ava", "Zoe", "Ivy", "Nina", "Maya", "Ruby", "Lily", "Chloe",
+  "Nora", "Hana", "Priya", "Amara", "Elena", "Sofia"]);
+const ciKid = (name) => (CI_GIRL_NAMES.has(name) ? "girl" : "boy");
+const ciSlug = (s) => s.toLowerCase().replace(/^the /, "").replace(/[^a-z]+/g, "-");
 
 const CENTRAL_IDEA_GENERATORS = {
   0: [
@@ -217,49 +222,49 @@ const CENTRAL_IDEA_GENERATORS = {
     function sportsPractice() {
       const name = choice(CI_NAMES), sport = choice(CI_SPORTS);
       return { text: `${name} joined the school ${sport} team this year. In the first few games, ${name} struggled to keep up with the faster players. ${name} started practicing every day after school. By the end of the season, ${name} was one of the strongest players on the team.`,
-        idea: `${name} improved at ${sport} through daily practice.`,
+        idea: `${name} improved at ${sport} through daily practice.`, pic: `ci1-sport-${ciSlug(sport)}-${ciKid(name)}`,
         distractors: [`${name} joined the ${sport} team this year.`, `${ciCap(sport)} games usually have referees.`, `${name} quit the team after struggling.`] };
     },
     function stormCleanup() {
       const town = choice(CI_TOWNS);
       return { text: `A big storm knocked down several trees in ${town}. Neighbors worked together to clear the fallen branches. They also helped an elderly neighbor fix her fence. Everyone felt proud of how the community came together.`,
-        idea: "Neighbors worked together to help their community recover after a storm.",
+        idea: "Neighbors worked together to help their community recover after a storm.", pic: "ci1-storm-cleanup",
         distractors: [`A storm knocked down trees in ${town}.`, "Storms can cause a lot of damage.", "The neighbors refused to help each other."] };
     },
     function animalSenses() {
       const animals = choice(CI_ANIMAL_PLURALS), cap = ciCap(animals);
       return { text: `${cap} are known for their excellent sense of smell, which is far stronger than a human's. They use this sense to find food, recognize other animals, and even sense danger. Scientists have studied how ${animals} process smells to understand their behavior better.`,
-        idea: `${cap} rely heavily on their powerful sense of smell.`,
+        idea: `${cap} rely heavily on their powerful sense of smell.`, pic: `ci1-smell-${ciSlug(animals)}`,
         distractors: [`${cap} can sense danger.`, "Scientists study animal behavior.", `${cap} have a weak sense of smell.`] };
     },
     function stageFright() {
       const name = choice(CI_NAMES);
       return { text: `${name} was terrified of speaking in front of the class. Before the big presentation, ${name} practiced in front of a mirror every night. On presentation day, ${name}'s hands still shook, but the words came out clearly. Afterward, ${name} felt proud of facing the fear.`,
-        idea: `${name} overcame a fear of public speaking through practice.`,
+        idea: `${name} overcame a fear of public speaking through practice.`, pic: `ci1-speech-${ciKid(name)}`,
         distractors: [`${name} practiced in front of a mirror.`, "Presentations often use slides.", `${name} refused to give the presentation.`] };
     },
     function invention() {
       const [name, problem, how, result] = choice(CI_INVENTIONS);
       return { text: `Long ago, people had no way to ${problem}. The invention of ${name} changed that by ${how}. This allowed families to ${result}. Today, almost every home relies on this invention.`,
-        idea: `The invention of ${name} made daily life easier for families.`,
+        idea: `The invention of ${name} made daily life easier for families.`, pic: `ci1-invention-${ciSlug(name)}`,
         distractors: [`People lived without ${name} long ago.`, `${ciCap(name)} was invented by a single family.`, `People never needed ${name} at all.`] };
     },
     function savingUp() {
       const name = choice(CI_NAMES), item = choice(ITEMS);
       return { text: `${name} wanted to buy some new ${item}, but did not have enough money saved. Every week, ${name} did extra chores to earn a little more. After two months of saving, ${name} finally had enough to buy them. ${name} felt very proud of the hard work.`,
-        idea: `${name} saved money through hard work to buy some ${item}.`,
+        idea: `${name} saved money through hard work to buy some ${item}.`, pic: `ci1-saving-${ciKid(name)}`,
         distractors: [`${name} wanted to buy some ${item}.`, "Chores can include cleaning and organizing.", `${name} gave up on saving money.`] };
     },
     function keystone() {
       const [animal, prey, plants] = choice(CI_KEYSTONE);
       return { text: `When ${animal} disappeared from an area, the ${prey} grew very large in number very quickly. This harmed the ${plants} that other animals needed. Once ${animal} were brought back, things slowly returned to normal. This showed how much one animal can affect an entire ecosystem.`,
-        idea: `Removing and returning ${animal} showed how one species can affect an ecosystem.`,
+        idea: `Removing and returning ${animal} showed how one species can affect an ecosystem.`, pic: `ci1-keystone-${ciSlug(animal)}`,
         distractors: [`The ${prey} grew in number.`, `${ciCap(animal)} live in the wild.`, `${ciCap(animal)} had no effect on other living things.`] };
     },
     function friendshipRepair() {
       const name = choice(CI_NAMES);
       return { text: `${name} and their best friend had a big disagreement over a game. For a few days, they did not talk to each other. Eventually, ${name} apologized, and they talked through what happened. Their friendship became even stronger afterward.`,
-        idea: `${name} and their friend resolved a disagreement and strengthened their friendship.`,
+        idea: `${name} and their friend resolved a disagreement and strengthened their friendship.`, pic: `ci1-friends-${ciKid(name)}`,
         distractors: [`${name} and their friend disagreed over a game.`, "Friends sometimes argue with each other.", `${name} and their friend never spoke again.`] };
     },
   ],
@@ -326,7 +331,8 @@ function centralIdeaQ(ageIdx, diffIdx) {
   const prompt = item.text + "\n\nWhat is the central idea of this passage?";
   const result = { prompt, choices, answer: item.idea };
   const sceneWords = extractSceneWords(item.text);
-  if (sceneWords.length) result.illustration = { type: "scene", words: sceneWords };
+  if (item.pic) result.illustration = { type: "scene", words: sceneWords, photo: `images/passages/${item.pic}.jpg` };
+  else if (sceneWords.length) result.illustration = { type: "scene", words: sceneWords };
   return result;
 }
 
