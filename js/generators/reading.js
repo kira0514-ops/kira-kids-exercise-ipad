@@ -172,49 +172,49 @@ const CENTRAL_IDEA_GENERATORS = {
     function lostAndFound() {
       const name = choice(CI_NAMES), item = choice(CI_TREASURES), place = choice(CI_PLACES_SIMPLE);
       return { text: `${name} found a ${item} at ${place}. ${name} played with it all afternoon. ${name} did not want to go home.`,
-        idea: `${name} loved playing with the ${item}.`,
+        idea: `${name} loved playing with the ${item}.`, pic: `ci0-found-${ciSlug(item)}-${ciKid(name)}`,
         distractors: [`${ciCap(place)} is a fun place to visit.`, `${name} wanted to go home early.`, `The ${item} was found by someone else.`] };
     },
     function thirstyPet() {
       const name = choice(CI_NAMES), pet = choice(CI_PET_ANIMALS);
       return { text: `${name}'s ${pet} was thirsty. ${name} filled a bowl with water. The ${pet} drank it all up happily.`,
-        idea: `${name} took good care of the thirsty ${pet}.`,
+        idea: `${name} took good care of the thirsty ${pet}.`, pic: `ci0-thirsty-${ciSlug(pet)}`,
         distractors: [`The ${pet} is very fast.`, "Water bowls are usually blue.", `The ${pet} did not want any water.`] };
     },
     function rainyDay() {
       const name = choice(CI_NAMES), weather = choice(CI_WEATHER);
       return { text: `It was ${weather} outside. ${name} decided to stay inside and read a book. ${name} enjoyed the quiet afternoon.`,
-        idea: `${name} had a quiet, happy afternoon reading inside.`,
+        idea: `${name} had a quiet, happy afternoon reading inside.`, pic: `ci0-reading-${ciSlug(weather)}-${ciKid(name)}`,
         distractors: [`${ciCap(weather)} happens in every season.`, "Books have pictures and words.", `${name} went outside to play in the ${weather}.`] };
     },
     function cleanup() {
       const name = choice(CI_NAMES);
       return { text: `${name} saw that the toys were all over the floor. ${name} picked them up one by one. Soon the room looked neat and clean.`,
-        idea: `${name} cleaned up the messy room.`,
+        idea: `${name} cleaned up the messy room.`, pic: `ci0-cleanup-${ciKid(name)}`,
         distractors: ["Toys come in many shapes.", "Floors can be made of wood.", `${name} left the toys on the floor.`] };
     },
     function sharing() {
       const name = choice(CI_NAMES);
       return { text: `${name} had two cookies. ${name}'s friend did not have a snack. ${name} shared one cookie with the friend.`,
-        idea: `${name} shared a cookie with a friend.`,
+        idea: `${name} shared a cookie with a friend.`, pic: `ci0-sharing-${ciKid(name)}`,
         distractors: ["Cookies are a sweet treat.", "Friends like to play games together.", `${name} ate both cookies alone.`] };
     },
     function newSkill() {
       const name = choice(CI_NAMES);
       return { text: `${name} tried to tie their shoes many times. At first the laces got tangled. After some practice, ${name} tied them all on their own.`,
-        idea: `${name} practiced and learned to tie their shoes.`,
+        idea: `${name} practiced and learned to tie their shoes.`, pic: `ci0-shoes-${ciKid(name)}`,
         distractors: ["Shoelaces can come in many colors.", "Shoes protect your feet.", `${name} never learned to tie shoes.`] };
     },
     function farmVisit() {
       const name = choice(CI_NAMES), pet = choice(CI_PET_ANIMALS), place = choice(CI_PLACES_SIMPLE);
       return { text: `At ${place}, ${name} watched a ${pet} eat some food. The ${pet} made ${name} laugh by wiggling its ears. ${name} wanted to visit again soon.`,
-        idea: `${name} had a fun time watching the ${pet} at ${place}.`,
+        idea: `${name} had a fun time watching the ${pet} at ${place}.`, pic: `ci0-watching-${ciSlug(pet)}`,
         distractors: [`${ciCap(pet)}s need food and water.`, `${ciCap(place)} is open every day.`, `${name} did not enjoy the visit.`] };
     },
     function windyLeaves() {
       const name = choice(CI_NAMES);
       return { text: `The wind blew hard and leaves fell from the trees. ${name} watched from the window. ${name} thought the falling leaves looked pretty.`,
-        idea: `${name} enjoyed watching the leaves fall in the wind.`,
+        idea: `${name} enjoyed watching the leaves fall in the wind.`, pic: `ci0-leaves-${ciKid(name)}`,
         distractors: ["Trees lose their leaves in fall.", "Windows let in sunlight.", `${name} thought the wind was scary.`] };
     },
   ],
