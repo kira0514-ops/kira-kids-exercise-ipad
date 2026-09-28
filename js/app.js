@@ -42,6 +42,11 @@ const SUBJECT_MIN_AGE = {
   "Logic / Puzzles": APP_DATA.LOGIC_TOPIC_MIN_AGE,
   Science: APP_DATA.SCIENCE_TOPIC_MIN_AGE,
 };
+const SUBJECT_MAX_AGE = {
+  Math: APP_DATA.MATH_TOPIC_MAX_AGE,
+  "Reading / Spelling": APP_DATA.READING_TOPIC_MAX_AGE,
+  "Logic / Puzzles": APP_DATA.LOGIC_TOPIC_MAX_AGE,
+};
 const SUBJECT_GENERATOR = {
   Math: (ageIdx, diffIdx, topics) => mathQuestion(ageIdx, diffIdx, topics),
   "Reading / Spelling": (ageIdx, diffIdx, topics) => readingQuestion(ageIdx, diffIdx, topics),
@@ -82,7 +87,8 @@ const root = document.getElementById("app");
 
 function availableTopics(subject) {
   const minAge = SUBJECT_MIN_AGE[subject];
-  return Array.from(SUBJECT_TOPIC_STATE[subject]()).filter((t) => minAge[t] <= state.ageIdx);
+  const maxAge = SUBJECT_MAX_AGE[subject];
+  return Array.from(SUBJECT_TOPIC_STATE[subject]()).filter((t) => topicAgeOk(t, state.ageIdx, minAge, maxAge));
 }
 
 function theme() {
@@ -257,6 +263,7 @@ function showSetup() {
     heading.appendChild(clearAllBtn);
     left.appendChild(heading);
     const minAge = SUBJECT_MIN_AGE[subject];
+    const maxAge = SUBJECT_MAX_AGE[subject];
     const allTopics = SUBJECT_TOPIC_LIST[subject]();
     const categories = TOPIC_CATEGORIES[subject] || [];
     const categorized = new Set(categories.flatMap(([, topics]) => topics));
@@ -269,7 +276,7 @@ function showSetup() {
       left.appendChild(el("div", { class: "topic-category-label", text: catLabel }));
       const topicsGrid = el("div", { class: "topics-grid" });
       for (const topic of present) {
-        const available = minAge[topic] <= state.ageIdx;
+        const available = topicAgeOk(topic, state.ageIdx, minAge, maxAge);
         const label = el("label", { class: available ? "topic-chip" : "topic-chip topic-disabled" });
         const cb = el("input", { type: "checkbox" });
         cb.checked = available && topicSet.has(topic);

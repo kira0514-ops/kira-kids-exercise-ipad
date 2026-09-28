@@ -192,13 +192,13 @@ function showLessonPicker() {
   root.appendChild(top);
 
   const subjects = [
-    ["Math", APP_DATA.MATH_TOPICS, APP_DATA.MATH_TOPIC_MIN_AGE, "🔢"],
-    ["Reading / Spelling", APP_DATA.READING_TOPICS, APP_DATA.READING_TOPIC_MIN_AGE, "📖"],
-    ["Logic / Puzzles", APP_DATA.LOGIC_TOPICS, APP_DATA.LOGIC_TOPIC_MIN_AGE, "🧩"],
-    ["Science", APP_DATA.SCIENCE_TOPICS, APP_DATA.SCIENCE_TOPIC_MIN_AGE, "🔬"],
+    ["Math", APP_DATA.MATH_TOPICS, APP_DATA.MATH_TOPIC_MIN_AGE, APP_DATA.MATH_TOPIC_MAX_AGE, "🔢"],
+    ["Reading / Spelling", APP_DATA.READING_TOPICS, APP_DATA.READING_TOPIC_MIN_AGE, APP_DATA.READING_TOPIC_MAX_AGE, "📖"],
+    ["Logic / Puzzles", APP_DATA.LOGIC_TOPICS, APP_DATA.LOGIC_TOPIC_MIN_AGE, APP_DATA.LOGIC_TOPIC_MAX_AGE, "🧩"],
+    ["Science", APP_DATA.SCIENCE_TOPICS, APP_DATA.SCIENCE_TOPIC_MIN_AGE, APP_DATA.SCIENCE_TOPIC_MAX_AGE, "🔬"],
   ];
-  for (const [subject, topics, minAge, icon] of subjects) {
-    const available = topics.filter((tp) => minAge[tp] <= state.ageIdx);
+  for (const [subject, topics, minAge, maxAge, icon] of subjects) {
+    const available = topics.filter((tp) => topicAgeOk(tp, state.ageIdx, minAge, maxAge));
     root.appendChild(el("h3", { class: "lesson-subject-heading", text: `${icon} ${subject}` }));
     const grid = el("div", { class: "lesson-topic-grid" });
     for (const topic of available) {

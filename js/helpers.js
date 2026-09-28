@@ -100,6 +100,13 @@ function resolveExtreme(ageIdx, diffIdx) {
   return [ageIdx, diffIdx];
 }
 
+// True if `topic` belongs at `ageIdx`, per a subject's MIN_AGE/MAX_AGE maps. maxAge[topic]
+// defaults to 2 (no ceiling -- the oldest tier) for every topic that isn't explicitly capped.
+function topicAgeOk(topic, ageIdx, minAge, maxAge) {
+  const cap = (maxAge && maxAge[topic] != null) ? maxAge[topic] : 2;
+  return minAge[topic] <= ageIdx && ageIdx <= cap;
+}
+
 function fmtMoney(cents) {
   return cents;
 }
