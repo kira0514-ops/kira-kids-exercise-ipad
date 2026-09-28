@@ -61,7 +61,22 @@ function dailyCurriculumTopics(ageIdx, day, trackYear = 1, diffOverride = null) 
   // Logic used to always pick just 1 topic/day (vs. math's 3 and reading's 2), so every one
   // of its ~5 daily question slots was the exact same topic -- the single most repetitive
   // slice of a session. Matches reading's count now.
-  return [diffIdx, pick(mathAvail, 3), pick(readingAvail, 2), pick(logicAvail, 2), pick(scienceAvail, 2), unitLabel];
+  // Early and Upper Elementary lean harder on reading: 3 reading topics a day instead of 2,
+  // and Central Idea is always one of them (the rest rotate through the pool by day) rather
+  // than surfacing only when the rotation happens to land on it -- about once every 11 days.
+  let readingPicks;
+  if (ageIdx >= 1) {
+    readingPicks = ["Central Idea", ...pick(readingAvail.filter((t) => t !== "Central Idea"), 2)];
+  } else {
+    readingPicks = pick(readingAvail, 2);
+  }
+  return [diffIdx, pick(mathAvail, 3), readingPicks, pick(logicAvail, 2), pick(scienceAvail, 2), unitLabel];
+}
+
+// Extra question weight for topics a track is meant to focus on: Central Idea gets double
+// the share of the day's questions for Early and Upper Elementary.
+function curriculumTopicWeight(ageIdx, topic) {
+  return ageIdx >= 1 && topic === "Central Idea" ? 2 : 1;
 }
 
 const DAILY_STORAGE_KEY = "kidsExerciseGenerator.daily";
@@ -336,12 +351,14 @@ function startDailyCurriculum() {
     ...logicTopics.map((t) => ["Logic / Puzzles", t, logicQuestion]),
     ...scienceTopics.map((t) => ["Science", t, scienceQuestion]),
   ];
-  const perTopic = Math.ceil(DAILY_CURRICULUM_QUESTION_COUNT / topicSlots.length);
+  const totalWeight = topicSlots.reduce((sum, [, topic]) => sum + curriculumTopicWeight(ageIdx, topic), 0);
+  const perTopic = Math.ceil(DAILY_CURRICULUM_QUESTION_COUNT / totalWeight);
 
   let questions = [];
   for (const [subject, topic, genFn] of topicSlots) {
     const seenPrompts = new Set();
-    for (let i = 0; i < perTopic; i++) {
+    const count = perTopic * curriculumTopicWeight(ageIdx, topic);
+    for (let i = 0; i < count; i++) {
       let q = null;
       for (let attempt = 0; attempt < 25; attempt++) {
         q = genFn(ageIdx, diffIdx, [topic]);
