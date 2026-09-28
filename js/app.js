@@ -12,7 +12,7 @@ const state = {
   readingTopics: new Set(APP_DATA.READING_TOPICS.filter((t) => t !== "Reading Comprehension")),
   logicTopics: new Set(APP_DATA.LOGIC_TOPICS),
   scienceTopics: new Set(APP_DATA.SCIENCE_TOPICS),
-  count: 10,
+  count: 20,
   questions: [],
   currentIndex: 0,
   score: 0,
