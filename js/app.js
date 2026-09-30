@@ -336,6 +336,8 @@ function showSetup() {
   right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("📇 Phonics Flashcards", startPhonicsFlashcards, "next"));
   right.appendChild(el("div", { style: "height:10px" }));
+  right.appendChild(button("📖 Daily Reading Test", startDailyReadingTest, "next"));
+  right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("🎮 Mini Math Games", showMiniGames, "next"));
   const note = el("p", { class: "note",
     text: "Every feature is fully working: Math, Reading, Logic, Lessons, the 365-Day " +
@@ -377,6 +379,37 @@ function startQuiz() {
     q.ageIdx = state.ageIdx;
     questions.push(q);
   }
+  RECENT_PROMPTS.addAll(questions.map((q) => q.prompt));
+  state.questions = questions;
+  state.currentIndex = 0;
+  state.score = 0;
+  state.missed = [];
+  showQuestion();
+}
+
+// A focused 10-question test of just Reading Comprehension and Central Idea, at the
+// current age/difficulty -- unlike Start!, this ignores every other subject and topic
+// entirely, including the topic pickers to the left.
+function startDailyReadingTest() {
+  function pickN(topic, n) {
+    const out = [];
+    const seenPrompts = new Set();
+    for (let i = 0; i < n; i++) {
+      let q = null;
+      for (let attempt = 0; attempt < 25; attempt++) {
+        q = readingQuestion(state.ageIdx, state.diffIdx, [topic]);
+        if (!seenPrompts.has(q.prompt) && !RECENT_PROMPTS.has(q.prompt)) break;
+      }
+      seenPrompts.add(q.prompt);
+      q.subject = "Reading / Spelling";
+      q.diffIdx = state.diffIdx;
+      q.ageIdx = state.ageIdx;
+      out.push(q);
+    }
+    return out;
+  }
+  const questions = [...pickN("Reading Comprehension", 4), ...pickN("Central Idea", 6)];
+  shuffle(questions);
   RECENT_PROMPTS.addAll(questions.map((q) => q.prompt));
   state.questions = questions;
   state.currentIndex = 0;
