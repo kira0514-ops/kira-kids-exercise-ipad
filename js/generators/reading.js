@@ -100,9 +100,18 @@ function extractSceneWords(text, maxWords = 3) {
   return picks.map((w) => [w, APP_DATA.WORD_EMOJI[w] || "❓"]);
 }
 
+// Blends sentence length with vocabulary complexity, so the "harder" half of a pool is also
+// the half with more advanced words -- not just more words of the same simplicity. Mirrors
+// kids_exercise_app.py's _reading_difficulty_score().
+function readingDifficultyScore(text) {
+  const words = text.split(/\s+/);
+  const longWords = words.filter((w) => w.replace(/[.,!?;:"']/g, "").length >= 7).length;
+  return words.length + 4 * longWords;
+}
+
 function readingComprehensionQ(ageIdx, diffIdx) {
   const passages = APP_DATA.READING_PASSAGES[ageIdx];
-  const byLength = passages.slice().sort((a, b) => a.text.length - b.text.length);
+  const byLength = passages.slice().sort((a, b) => readingDifficultyScore(a.text) - readingDifficultyScore(b.text));
   const half = Math.floor(byLength.length / 2);
   const pool = diffIdx >= 2 && half ? byLength.slice(half) : half ? byLength.slice(0, half) : byLength;
   const poolKey = `reading_passages_${ageIdx}`;
@@ -382,6 +391,21 @@ const CENTRAL_IDEA_GENERATORS = {
     },
   ],
 };
+
+// centralIdeaQ() below splits each age's shape list in half by position to get an easy/hard
+// pool. Sort each list by measured average output length (shapes are randomized, so one sample
+// isn't reliable) so that split is actually easy-vs-hard rather than just authoring order.
+for (const age of Object.keys(CENTRAL_IDEA_GENERATORS)) {
+  const avgScore = (g) => {
+    let total = 0;
+    for (let i = 0; i < 15; i++) total += readingDifficultyScore(g().text);
+    return total / 15;
+  };
+  CENTRAL_IDEA_GENERATORS[age] = CENTRAL_IDEA_GENERATORS[age]
+    .map((g) => [avgScore(g), g])
+    .sort((a, b) => a[0] - b[0])
+    .map((pair) => pair[1]);
+}
 
 function centralIdeaQ(ageIdx, diffIdx) {
   const generators = CENTRAL_IDEA_GENERATORS[ageIdx];
