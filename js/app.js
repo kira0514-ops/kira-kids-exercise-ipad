@@ -336,7 +336,7 @@ function showSetup() {
   right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("📇 Phonics Flashcards", startPhonicsFlashcards, "next"));
   right.appendChild(el("div", { style: "height:10px" }));
-  right.appendChild(button("📖 Daily Reading Test", startDailyReadingTest, "next"));
+  right.appendChild(button("📖 Daily Reading Test", showDailyReadingTestSetup, "next"));
   right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("🎮 Mini Math Games", showMiniGames, "next"));
   const note = el("p", { class: "note",
@@ -387,22 +387,59 @@ function startQuiz() {
   showQuestion();
 }
 
+// The Daily Reading Test has its own difficulty, remembered per child (defaults to the
+// main screen's difficulty until one is picked here).
+function readingTestDiffIdx() {
+  const p = PROFILES.active();
+  return p && p.readingTestDiffIdx != null ? p.readingTestDiffIdx : state.diffIdx;
+}
+
+function showDailyReadingTestSetup() {
+  applyThemeVars();
+  clearRoot();
+  root.appendChild(headerBanner("📖 Daily Reading Test",
+    `10 questions: 4 Reading Comprehension + 6 Central Idea · ${APP_DATA.AGE_GROUPS[state.ageIdx]}`));
+  const top = el("div", { class: "quiz-top" });
+  top.appendChild(button("🏠 Main Menu", showSetup, "quit"));
+  root.appendChild(top);
+
+  const card = el("div", { class: "card" });
+  card.appendChild(el("h3", { text: "⭐ Test Difficulty:" }));
+  const diffRow = el("div", { class: "chip-row" });
+  const current = readingTestDiffIdx();
+  APP_DATA.DIFFICULTIES.forEach((label, i) => {
+    diffRow.appendChild(button(label, () => {
+      PROFILES.updateActive({ readingTestDiffIdx: i });
+      showDailyReadingTestSetup();
+    }, i === current ? "chip-selected" : "chip"));
+  });
+  card.appendChild(diffRow);
+  card.appendChild(el("div", { class: "note", text:
+    "Easy: short passages, mostly \"who/what/where\" questions. Medium: medium passages with " +
+    "more \"why\" and \"what happened next\". Hard: long multi-paragraph passages with word-meaning " +
+    "and main-idea questions. Extreme: next age group's passages at Hard." }));
+  card.appendChild(el("div", { style: "height:12px" }));
+  card.appendChild(button("🚀 Start Test", startDailyReadingTest, "start"));
+  root.appendChild(card);
+}
+
 // A focused 10-question test of just Reading Comprehension and Central Idea, at the
-// current age/difficulty -- unlike Start!, this ignores every other subject and topic
-// entirely, including the topic pickers to the left.
+// current age and the test's own difficulty -- unlike Start!, this ignores every other
+// subject and topic entirely, including the topic pickers on the main screen.
 function startDailyReadingTest() {
+  const diffIdx = readingTestDiffIdx();
   function pickN(topic, n) {
     const out = [];
     const seenPrompts = new Set();
     for (let i = 0; i < n; i++) {
       let q = null;
       for (let attempt = 0; attempt < 25; attempt++) {
-        q = readingQuestion(state.ageIdx, state.diffIdx, [topic]);
+        q = readingQuestion(state.ageIdx, diffIdx, [topic]);
         if (!seenPrompts.has(q.prompt) && !RECENT_PROMPTS.has(q.prompt)) break;
       }
       seenPrompts.add(q.prompt);
       q.subject = "Reading / Spelling";
-      q.diffIdx = state.diffIdx;
+      q.diffIdx = diffIdx;
       q.ageIdx = state.ageIdx;
       out.push(q);
     }

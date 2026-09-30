@@ -111,20 +111,34 @@ function readingDifficultyScore(text) {
 
 function readingComprehensionQ(ageIdx, diffIdx) {
   const passages = APP_DATA.READING_PASSAGES[ageIdx];
+  // Three real steps: Easy = shortest third of the passages, Medium = middle third,
+  // Hard (and Extreme at the top age) = longest third, which includes the long
+  // multi-paragraph passages from js/reading/long_*.js.
   const byLength = passages.slice().sort((a, b) => readingDifficultyScore(a.text) - readingDifficultyScore(b.text));
-  const half = Math.floor(byLength.length / 2);
-  const pool = diffIdx >= 2 && half ? byLength.slice(half) : half ? byLength.slice(0, half) : byLength;
-  const poolKey = `reading_passages_${ageIdx}`;
-  const passage = SEEN.pickUnseen(poolKey, pool, (p) => p.text.slice(0, 40));
+  const third = Math.floor(byLength.length / 3);
+  const tier = Math.min(diffIdx, 2);
+  const pool = third ? byLength.slice(tier * third, tier === 2 ? byLength.length : (tier + 1) * third) : byLength;
+  // Hard/Extreme lean on the long multi-paragraph passages (65% / 85% of the time).
+  const longPool = pool.filter((p) => p.long);
+  const useLong = tier === 2 && longPool.length && Math.random() < (diffIdx >= 3 ? 0.85 : 0.65);
+  const poolKey = `reading_passages_${ageIdx}_${tier}${useLong ? "_long" : ""}`;
+  const passage = SEEN.pickUnseen(poolKey, useLong ? longPool : pool, (p) => p.text.slice(0, 40));
 
+  // Question level mix per difficulty (levels are set in js/reading/merge.js):
+  // 0 recall, 1 inference/sequence/feelings, 2 word meaning/main idea/purpose.
+  const LEVEL_WEIGHTS = [[80, 20, 0], [40, 45, 15], [15, 40, 45], [5, 35, 60]];
+  const weights = LEVEL_WEIGHTS[Math.min(diffIdx, 3)];
   const questions = passage.questions;
-  let q;
-  if (diffIdx >= 2) {
-    const harder = questions.filter((qq) => qq.question.toLowerCase().includes("means") ||
-      qq.question.toLowerCase().includes("why"));
-    q = harder.length && Math.random() < 0.6 ? choice(harder) : choice(questions);
-  } else {
-    q = choice(questions);
+  const byLevel = [0, 1, 2].map((lv) => questions.filter((qq) => (qq.level ?? 0) === lv));
+  const total = [0, 1, 2].reduce((s, lv) => s + (byLevel[lv].length ? weights[lv] : 0), 0);
+  let q = choice(questions);
+  if (total > 0) {
+    let r = Math.random() * total;
+    for (const lv of [0, 1, 2]) {
+      if (!byLevel[lv].length) continue;
+      r -= weights[lv];
+      if (r < 0) { q = choice(byLevel[lv]); break; }
+    }
   }
 
   const prompt = passage.text + "\n\n" + q.question;
