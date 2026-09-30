@@ -123,8 +123,10 @@ function readingComprehensionQ(ageIdx, diffIdx) {
   const result = { prompt, choices, answer: q.answer };
   const sceneWords = extractSceneWords(passage.text);
   // The story picture (when one exists) replaces the word scene; the scene stays as fallback.
+  // A pack can set passage.photo to reuse an existing image (e.g. a flashcard photo) instead
+  // of the usual content-hash lookup, which a brand-new passage's text could never match.
   result.illustration = { type: "scene", words: sceneWords,
-    photo: `images/passages/${passageKey(passage.text)}.jpg` };
+    photo: passage.photo || `images/passages/${passageKey(passage.text)}.jpg` };
   return result;
 }
 
