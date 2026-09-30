@@ -146,6 +146,7 @@ const CI_TREASURES = ["shiny rock", "little ball", "wooden block", "paper boat",
 const CI_SPORTS = ["soccer", "basketball", "baseball", "swimming", "tennis", "track", "volleyball"];
 const CI_TOWNS = ["Riverside", "Oakdale", "Maple Grove", "Cedar Hills", "Lakeside", "Brookfield",
   "Fairview", "Elmwood"];
+const CI_EVENTS = ["the county fair", "the grocery store", "the shopping mall", "the amusement park"];
 const CI_ANIMAL_PLURALS = ["wolves", "elephants", "beavers", "sea turtles", "otters", "honeybees",
   "octopuses", "sharks"];
 const CI_INVENTIONS = [
@@ -160,6 +161,12 @@ const CI_KEYSTONE = [
   ["wolves", "deer", "plants"], ["sea otters", "sea urchins", "kelp forests"],
   ["beavers", "flooded ponds", "wetland plants"], ["sharks", "small fish", "coral reefs"],
 ];
+const CI_INVENTIONS2 = [
+  ["the zipper", "buttons, hooks, or laces", "Whitcomb Judson", "Gideon Sundback", "over twenty years"],
+  ["the ballpoint pen", "fountain pens that smudged and leaked", "John Loud", "Laszlo Biro", "decades"],
+  ["the modern umbrella", "capes and wide hats", "unknown early inventors", "Samuel Fox", "many years"],
+];
+const CI_NOCTURNAL = ["owls", "bats", "raccoons", "foxes"];
 const ciCap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 // For Central Idea pictures: which CI_NAMES are drawn as a girl vs. a boy.
 const CI_GIRL_NAMES = new Set(["Mia", "Ava", "Zoe", "Ivy", "Nina", "Maya", "Ruby", "Lily", "Chloe",
@@ -217,6 +224,24 @@ const CENTRAL_IDEA_GENERATORS = {
         idea: `${name} enjoyed watching the leaves fall in the wind.`, pic: `ci0-leaves-${ciKid(name)}`,
         distractors: ["Trees lose their leaves in fall.", "Windows let in sunlight.", `${name} thought the wind was scary.`] };
     },
+    function newRide() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} got a new scooter. At first, ${name} was scared to ride it. ${name}'s dad held on and walked alongside. Soon ${name} could ride all alone.`,
+        idea: `${name} learned to ride a new scooter with help.`,
+        distractors: ["The scooter was a gift.", "Dad also rides a scooter.", `${name} never learned to ride it.`] };
+    },
+    function firefighterVisit() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} visited a fire station on a school trip. A firefighter showed ${name} her big red helmet and loud fire truck. She explained how she sprays water to put out fires and keep people safe.`,
+        idea: "A firefighter showed how she keeps people safe from fires.",
+        distractors: ["The fire truck is red.", "The visit happened on a school trip.", "The firefighter was afraid of fire."] };
+    },
+    function gardenSeed() {
+      const name = choice(CI_NAMES);
+      return { text: `${name} and dad dug a small hole in the dirt. They dropped in a seed and covered it up. ${name} waters it every day and checks to see if it has grown.`,
+        idea: `${name} and dad planted a seed and are caring for it.`,
+        distractors: ["The hole was very deep.", "Dad likes gardening the most.", `${name} forgot to water the seed.`] };
+    },
   ],
   1: [
     function sportsPractice() {
@@ -267,6 +292,24 @@ const CENTRAL_IDEA_GENERATORS = {
         idea: `${name} and their friend resolved a disagreement and strengthened their friendship.`, pic: `ci1-friends-${ciKid(name)}`,
         distractors: [`${name} and their friend disagreed over a game.`, "Friends sometimes argue with each other.", `${name} and their friend never spoke again.`] };
     },
+    function lostAndFoundEvent() {
+      const name = choice(CI_NAMES), event = choice(CI_EVENTS);
+      return { text: `At ${event}, ${name} let go of a parent's hand to look at something interesting. When ${name} turned around, the family was nowhere in sight. Remembering what to do, ${name} stayed put and looked for a worker to help. A worker in a bright vest noticed ${name} and helped find the family again.`,
+        idea: `${name} got separated from family but stayed calm and found help.`,
+        distractors: [`${name} was at ${event}.`, "The worker wore a bright vest.", `${name} never found the family.`] };
+    },
+    function readingContest() {
+      const name = choice(CI_NAMES);
+      return { text: `The school librarian noticed fewer students checking out books each month. She started a reading contest with small prizes for every five books finished. ${name} joined right away, and soon the library was busier than ever with kids picking out new stories.`,
+        idea: "A librarian's reading contest got more students interested in books.",
+        distractors: ["The prizes were for every five books.", `${name} joined the contest.`, "Fewer students visited the library afterward."] };
+    },
+    function communityGarden() {
+      const town = choice(CI_TOWNS);
+      return { text: `Neighbors in ${town} noticed an empty lot full of weeds and trash. They decided to clean it up together and turn it into a garden. Now the lot has rows of vegetables that anyone in the neighborhood can help tend and pick from.`,
+        idea: `Neighbors in ${town} turned a messy lot into a shared garden.`,
+        distractors: [`The lot in ${town} had weeds and trash.`, "The garden grows vegetables.", "Only one family can use the garden."] };
+    },
   ],
   2: [
     function sportsPerseverance() {
@@ -316,6 +359,24 @@ const CENTRAL_IDEA_GENERATORS = {
       return { text: `Coastal towns near ${town} have long struggled with erosion caused by rising sea levels and stronger storms. Engineers recently began installing large offshore structures designed to absorb wave energy before it reaches the shore. Early results show significantly less sand loss along protected beaches compared to unprotected areas nearby. Local officials are now considering expanding the project to other vulnerable coastlines.`,
         idea: "New offshore structures have proven effective at reducing coastal erosion.",
         distractors: [`Coastal towns near ${town} face erosion.`, "Storms and rising seas contribute to erosion.", "The offshore structures have shown no effect on erosion."] };
+    },
+    function firstRace() {
+      const name = choice(CI_NAMES);
+      return { text: `When ${name} signed up for a first 5K race, running a single mile without stopping felt impossible. Rather than giving up, ${name} built a simple plan: run a little farther each week, with rest days in between. Ten weeks later, standing at the starting line, ${name} realized the race itself felt easier than the training that had led up to it.`,
+        idea: `Steady, gradual training prepared ${name} for the race.`,
+        distractors: [`${name} signed up for a 5K race.`, "The training plan lasted ten weeks.", `${name} could already run a 5K before training.`] };
+    },
+    function inventionHistory() {
+      const [item, before, first, second, span] = choice(CI_INVENTIONS2);
+      return { text: `Before ${item}, people relied on ${before}. An early attempt by ${first} was not reliable and rarely worked well. It took ${second} and ${span} of redesigning before it became the dependable version people use today.`,
+        idea: `${ciCap(item)} took years of redesign to become reliable.`,
+        distractors: [`People used ${before} before ${item}.`, `${first} made an early attempt.`, `${ciCap(item)} worked perfectly on the first try.`] };
+    },
+    function nocturnalAnimals() {
+      const animal = choice(CI_NOCTURNAL);
+      return { text: `Many animals, including ${animal}, are nocturnal, meaning they are most active at night and rest during the day. Being active at night helps some avoid predators that hunt in daylight, while others have evolved senses that work better in the dark. For these animals, darkness isn't an obstacle -- it's the environment they are specially built for.`,
+        idea: `${ciCap(animal)} have adaptations that make darkness their natural advantage.`,
+        distractors: [`${ciCap(animal)} are active at night.`, "Some nocturnal animals avoid daytime predators.", `${ciCap(animal)} are afraid of the dark.`] };
     },
   ],
 };
