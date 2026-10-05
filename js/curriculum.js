@@ -360,11 +360,7 @@ function startDailyCurriculum() {
     const seenPrompts = new Set();
     const count = perTopic * curriculumTopicWeight(ageIdx, topic);
     for (let i = 0; i < count; i++) {
-      let q = null;
-      for (let attempt = 0; attempt < 25; attempt++) {
-        q = genFn(ageIdx, diffIdx, [topic]);
-        if (!seenPrompts.has(q.prompt) && !RECENT_PROMPTS.has(q.prompt)) break;
-      }
+      const q = generateFresh(() => genFn(ageIdx, diffIdx, [topic]), seenPrompts);
       seenPrompts.add(q.prompt);
       q.subject = subject;
       q.diffIdx = diffIdx;

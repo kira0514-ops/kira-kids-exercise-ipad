@@ -143,7 +143,7 @@ function readingComprehensionQ(ageIdx, diffIdx) {
 
   const prompt = passage.text + "\n\n" + q.question;
   const choices = shuffle(q.choices.slice());
-  const result = { prompt, choices, answer: q.answer };
+  const result = { prompt, choices, answer: q.answer, contentKey: `rc:${passageKey(passage.text)}` };
   const sceneWords = extractSceneWords(passage.text);
   // The story picture (when one exists) replaces the word scene; the scene stays as fallback.
   // A pack can set passage.photo to reuse an existing image (e.g. a flashcard photo) instead

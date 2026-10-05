@@ -69,16 +69,29 @@ const SEEN = new SeenTracker();
 const RECENT_PROMPTS_STORAGE_KEY = "kidsExerciseGenerator.recentPrompts";
 const RECENT_PROMPTS_CAP = 300;
 
+// A question the player has actually answered is kept out of every quiz for a week. It's
+// remembered by its exact prompt AND by q.contentKey (the passage / story it came from), so
+// the same long passage with a different question, or the same story with a different name,
+// counts as a repeat too. Only the last 7 days are kept.
+const ANSWERED_STORAGE_KEY = "kidsExerciseGenerator.answeredWeek";
+const ANSWERED_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const ANSWERED_CAP = 5000;
+
 class RecentPromptsTracker {
   constructor() {
     this.profileId = "default";
     this.order = [];
     this.set = new Set();
+    this.answered = {};
     this.load();
   }
 
   storageKey() {
     return this.profileId === "default" ? RECENT_PROMPTS_STORAGE_KEY : `${RECENT_PROMPTS_STORAGE_KEY}.${this.profileId}`;
+  }
+
+  answeredStorageKey() {
+    return this.profileId === "default" ? ANSWERED_STORAGE_KEY : `${ANSWERED_STORAGE_KEY}.${this.profileId}`;
   }
 
   setProfile(profileId) {
@@ -95,6 +108,15 @@ class RecentPromptsTracker {
       this.order = [];
       this.set = new Set();
     }
+    try {
+      const raw = localStorage.getItem(this.answeredStorageKey());
+      const data = raw ? JSON.parse(raw) : {};
+      const cutoff = Date.now() - ANSWERED_WINDOW_MS;
+      this.answered = {};
+      for (const k in data) if (data[k] > cutoff) this.answered[k] = data[k];
+    } catch (e) {
+      this.answered = {};
+    }
   }
 
   save() {
@@ -103,6 +125,53 @@ class RecentPromptsTracker {
     } catch (e) {
       // a failed save should never crash the app
     }
+  }
+
+  saveAnswered() {
+    try {
+      localStorage.setItem(this.answeredStorageKey(), JSON.stringify(this.answered));
+    } catch (e) {
+      // a failed save should never crash the app
+    }
+  }
+
+  static keysFor(q) {
+    const keys = [`p:${passageKey(q.prompt)}`];
+    if (q.contentKey) keys.push(`c:${q.contentKey}`);
+    return keys;
+  }
+
+  markAnswered(q, now = Date.now()) {
+    for (const key of RecentPromptsTracker.keysFor(q)) this.answered[key] = now;
+    const cutoff = now - ANSWERED_WINDOW_MS;
+    let keys = Object.keys(this.answered);
+    for (const k of keys) if (this.answered[k] <= cutoff) delete this.answered[k];
+    keys = Object.keys(this.answered);
+    if (keys.length > ANSWERED_CAP) {
+      keys.sort((a, b) => this.answered[a] - this.answered[b]);
+      for (const k of keys.slice(0, keys.length - ANSWERED_CAP)) delete this.answered[k];
+    }
+    this.saveAnswered();
+  }
+
+  // Ms since this exact prompt was answered within the week (Infinity if it wasn't).
+  exactStaleness(q, now = Date.now()) {
+    const t = this.answered[`p:${passageKey(q.prompt)}`];
+    return t && t > now - ANSWERED_WINDOW_MS ? now - t : Infinity;
+  }
+
+  // How long since this question (or its passage/story) was last answered or shown:
+  // Infinity = fresh. Bigger is better when every candidate has been used.
+  staleness(q, now = Date.now()) {
+    const cutoff = now - ANSWERED_WINDOW_MS;
+    let last = 0;
+    for (const key of RecentPromptsTracker.keysFor(q)) {
+      const t = this.answered[key];
+      if (t && t > cutoff && t > last) last = t;
+    }
+    if (last) return now - last;
+    if (this.set.has(q.prompt)) return 60 * 60 * 1000;
+    return Infinity;
   }
 
   has(prompt) {
@@ -124,3 +193,24 @@ class RecentPromptsTracker {
 }
 
 const RECENT_PROMPTS = new RecentPromptsTracker();
+
+// Draw a question that isn't already in this quiz and hasn't been answered or shown lately.
+// If every attempt collides (a small pool), take the one used longest ago instead of a
+// random repeat -- so it's "try not to", never a hang.
+function generateFresh(genFn, seen, maxAttempts = 25) {
+  let best = null, bestScore = -2;
+  for (let i = 0; i < maxAttempts; i++) {
+    const q = genFn();
+    const ck = q.contentKey ? `c:${q.contentKey}` : null;
+    let score;
+    if (seen.has(q.prompt)) score = -1;          // identical question already in this quiz
+    else if (ck && seen.has(ck)) score = -0.5;   // same passage/story already in this quiz
+    else if (RECENT_PROMPTS.exactStaleness(q) !== Infinity) score = RECENT_PROMPTS.exactStaleness(q) / 1e15; // identical to one answered this week: last resort
+    else score = RECENT_PROMPTS.staleness(q);
+    if (score > bestScore) { best = q; bestScore = score; }
+    if (score === Infinity) break;
+  }
+  seen.add(best.prompt);
+  if (best.contentKey) seen.add(`c:${best.contentKey}`);
+  return best;
+}

@@ -368,11 +368,7 @@ function startQuiz() {
   for (let i = 0; i < state.count; i++) {
     const subject = choice(chosenSubjects);
     const topics = availableTopics(subject);
-    let q = null;
-    for (let attempt = 0; attempt < 25; attempt++) {
-      q = SUBJECT_GENERATOR[subject](state.ageIdx, state.diffIdx, topics);
-      if (!seenPrompts.has(q.prompt) && !RECENT_PROMPTS.has(q.prompt)) break;
-    }
+    const q = generateFresh(() => SUBJECT_GENERATOR[subject](state.ageIdx, state.diffIdx, topics), seenPrompts);
     seenPrompts.add(q.prompt);
     q.subject = subject;
     q.diffIdx = state.diffIdx;
@@ -432,11 +428,7 @@ function startDailyReadingTest() {
     const out = [];
     const seenPrompts = new Set();
     for (let i = 0; i < n; i++) {
-      let q = null;
-      for (let attempt = 0; attempt < 25; attempt++) {
-        q = readingQuestion(state.ageIdx, diffIdx, [topic]);
-        if (!seenPrompts.has(q.prompt) && !RECENT_PROMPTS.has(q.prompt)) break;
-      }
+      const q = generateFresh(() => readingQuestion(state.ageIdx, diffIdx, [topic]), seenPrompts);
       seenPrompts.add(q.prompt);
       q.subject = "Reading / Spelling";
       q.diffIdx = diffIdx;
@@ -498,6 +490,7 @@ function showQuestion() {
     const onSolved = () => {
       state.score += 1;
       ACTIVITY.record(q, true, Date.now() - state.questionShownAt);
+      RECENT_PROMPTS.markAnswered(q);
       feedback.textContent = "Correct! ✅";
       feedback.className = "feedback feedback-correct";
       nextBtn.disabled = false;
@@ -566,6 +559,7 @@ function onChoice(chosenStr, clickedBtn, buttons, q) {
     state.score += 1;
   }
   ACTIVITY.record(q, isCorrect, Date.now() - state.questionShownAt);
+  RECENT_PROMPTS.markAnswered(q);
   const feedback = document.getElementById("quiz-feedback");
   feedback.textContent = isCorrect ? "Correct! ✅" : `Not quite — the answer is ${answerStr}.`;
   feedback.className = "feedback " + (isCorrect ? "feedback-correct" : "feedback-wrong");
