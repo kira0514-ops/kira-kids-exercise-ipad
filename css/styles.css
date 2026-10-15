@@ -863,3 +863,12 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .report-cal-cell { aspect-ratio: 1; border-radius: 6px; background: rgba(0, 0, 0, 0.08); font-size: 0.7em; display: flex; align-items: center; justify-content: center; }
 .report-cal-done { background: #4caf50; color: white; font-weight: 700; }
 @media (max-width: 520px) { .report-row { grid-template-columns: 1fr; gap: 2px; } .report-row-value { text-align: left; } }
+.report-tabs { margin: 8px 0 4px; }
+.report-missed-day { margin-top: 12px; }
+.report-missed { border-top: 1px solid rgba(0, 0, 0, 0.1); padding: 10px 0; }
+.report-missed-meta { font-size: 0.8em; opacity: 0.7; margin-bottom: 4px; }
+.report-missed-q { font-weight: 600; white-space: pre-wrap; margin: 4px 0; }
+.report-missed-passage summary { cursor: pointer; font-size: 0.85em; color: var(--grad1); margin: 4px 0; }
+.report-missed-passage .step-text { white-space: pre-wrap; font-size: 0.9em; }
+.report-missed-wrong { color: #c62828; font-size: 0.95em; }
+.report-missed-right { color: #2e7d32; font-size: 0.95em; font-weight: 600; }

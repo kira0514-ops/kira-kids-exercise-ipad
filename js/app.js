@@ -558,7 +558,7 @@ function onChoice(chosenStr, clickedBtn, buttons, q) {
   } else {
     state.score += 1;
   }
-  ACTIVITY.record(q, isCorrect, Date.now() - state.questionShownAt);
+  ACTIVITY.record(q, isCorrect, Date.now() - state.questionShownAt, chosenStr);
   RECENT_PROMPTS.markAnswered(q);
   const feedback = document.getElementById("quiz-feedback");
   feedback.textContent = isCorrect ? "Correct! ✅" : `Not quite — the answer is ${answerStr}.`;

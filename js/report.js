@@ -5,6 +5,7 @@
 const ACTIVITY_STORAGE_KEY = "kidsExerciseGenerator.activity";
 const ACTIVITY_KEEP_DAYS = 400;
 const ACTIVITY_MAX_MS = 3 * 60 * 1000; // cap time per question so a walk-away doesn't count
+const ACTIVITY_MAX_MISSED = 300;      // most recent wrong answers kept for the report
 
 function localDateKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -13,7 +14,7 @@ function localDateKey(d = new Date()) {
 class ActivityLog {
   constructor() {
     this.profileId = "default";
-    this.data = { days: {}, topics: {}, curriculum: {} };
+    this.data = { days: {}, topics: {}, curriculum: {}, missed: [] };
     this.load();
   }
 
@@ -29,9 +30,9 @@ class ActivityLog {
   static read(key) {
     try {
       const d = JSON.parse(localStorage.getItem(key) || "{}");
-      return { days: d.days || {}, topics: d.topics || {}, curriculum: d.curriculum || {} };
+      return { days: d.days || {}, topics: d.topics || {}, curriculum: d.curriculum || {}, missed: d.missed || [] };
     } catch (e) {
-      return { days: {}, topics: {}, curriculum: {} };
+      return { days: {}, topics: {}, curriculum: {}, missed: [] };
     }
   }
 
@@ -49,8 +50,8 @@ class ActivityLog {
     }
   }
 
-  // One answered quiz question.
-  record(q, correct, ms) {
+  // One answered quiz question. `chosen` is the child's answer (kept for wrong answers).
+  record(q, correct, ms, chosen) {
     const day = localDateKey();
     const d = this.data.days[day] || (this.data.days[day] = { n: 0, c: 0, ms: 0, subj: {} });
     const hit = correct ? 1 : 0;
@@ -61,6 +62,11 @@ class ActivityLog {
     const key = `${subject}|${q.topic || "Mixed"}`;
     const t = this.data.topics[key] || (this.data.topics[key] = [0, 0, day]);
     t[0] += 1; t[1] += hit; t[2] = day;
+    if (!correct) {
+      this.data.missed.push({ at: Date.now(), subject, topic: q.topic || "Mixed",
+        prompt: String(q.prompt).slice(0, 2500), chosen: String(chosen ?? ""), answer: String(q.answer) });
+      if (this.data.missed.length > ACTIVITY_MAX_MISSED) this.data.missed.splice(0, this.data.missed.length - ACTIVITY_MAX_MISSED);
+    }
     this.save();
   }
 
@@ -102,7 +108,7 @@ function accuracyClass(c, n) {
   return p >= 0.8 ? "report-good" : p >= 0.6 ? "report-ok" : "report-weak";
 }
 
-function showParentReport(profileId) {
+function showParentReport(profileId, tab = "overview", subjectFilter = "All") {
   applyThemeVars();
   clearRoot();
   const profiles = PROFILES.profiles.length ? PROFILES.profiles : [{ id: "default", name: "Player" }];
@@ -122,9 +128,21 @@ function showParentReport(profileId) {
   if (profiles.length > 1) {
     const row = el("div", { class: "chip-row" });
     for (const p of profiles) {
-      row.appendChild(button(p.name, () => showParentReport(p.id), p.id === who.id ? "chip-selected" : "chip"));
+      row.appendChild(button(p.name, () => showParentReport(p.id, tab), p.id === who.id ? "chip-selected" : "chip"));
     }
     root.appendChild(row);
+  }
+
+  const tabs = el("div", { class: "chip-row report-tabs" });
+  tabs.appendChild(button("📈 Overview", () => showParentReport(who.id, "overview"),
+    tab === "overview" ? "chip-selected" : "chip"));
+  tabs.appendChild(button(`❌ Missed Questions (${data.missed.length})`, () => showParentReport(who.id, "missed"),
+    tab === "missed" ? "chip-selected" : "chip"));
+  root.appendChild(tabs);
+
+  if (tab === "missed") {
+    showMissedQuestions(who.id, data, subjectFilter);
+    return;
   }
 
   // Summary: last 7 days
@@ -217,4 +235,54 @@ function showParentReport(profileId) {
 
   root.appendChild(el("div", { class: "note",
     text: "This report is stored only in this device's browser. It is not uploaded anywhere, and clearing the browser's website data will erase it." }));
+}
+
+// "Missed Questions" tab: the most recent wrong answers, newest first, with what the child
+// picked and the correct answer. Reading passages are folded away under "Show passage".
+function showMissedQuestions(pid, data, subjectFilter) {
+  const missed = data.missed.slice().reverse();
+  const subjects = SUBJECT_NAMES.filter((s) => missed.some((m) => m.subject === s));
+
+  if (!missed.length) {
+    root.appendChild(el("div", { class: "card note", text: "No wrong answers recorded yet. 🎉" }));
+    return;
+  }
+  if (subjects.length > 1) {
+    const row = el("div", { class: "chip-row" });
+    for (const s of ["All", ...subjects]) {
+      row.appendChild(button(s === "All" ? "All subjects" : `${SUBJECT_ICONS[s] || ""} ${s}`,
+        () => showParentReport(pid, "missed", s), s === subjectFilter ? "chip-selected" : "chip"));
+    }
+    root.appendChild(row);
+  }
+
+  const shown = missed.filter((m) => subjectFilter === "All" || m.subject === subjectFilter);
+  let lastDay = null;
+  const list = el("div", { class: "card" });
+  for (const m of shown) {
+    const when = new Date(m.at);
+    const day = when.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+    if (day !== lastDay) {
+      list.appendChild(el("div", { class: "lesson-section-title report-missed-day", text: day }));
+      lastDay = day;
+    }
+    const item = el("div", { class: "report-missed" });
+    item.appendChild(el("div", { class: "report-missed-meta",
+      text: `${SUBJECT_ICONS[m.subject] || ""} ${m.subject} · ${m.topic} · ${when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` }));
+    const parts = m.prompt.split("\n\n");
+    const question = parts.pop();  // whatever is left in `parts` is the passage, if any
+    if (parts.length) {
+      const details = el("details", { class: "report-missed-passage" });
+      details.appendChild(el("summary", { text: "Show passage" }));
+      details.appendChild(el("div", { class: "step-text", text: parts.join("\n\n") }));
+      item.appendChild(details);
+    }
+    item.appendChild(el("div", { class: "report-missed-q", text: question }));
+    item.appendChild(el("div", { class: "report-missed-wrong", text: `✗ Their answer: ${m.chosen || "—"}` }));
+    item.appendChild(el("div", { class: "report-missed-right", text: `✓ Correct answer: ${m.answer}` }));
+    list.appendChild(item);
+  }
+  root.appendChild(list);
+  root.appendChild(el("div", { class: "note",
+    text: `Showing the ${ACTIVITY_MAX_MISSED} most recent wrong answers. Stored only on this device.` }));
 }
