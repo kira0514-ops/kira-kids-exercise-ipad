@@ -496,6 +496,7 @@ function spellWordQ(ageIdx, diffIdx) {
   const word = SEEN.pickUnseen(`spell_word_${wordPoolKey(ageIdx, diffIdx)}`, pool, (w) => w);
   return {
     prompt: "🔊 Tap \"Read Aloud\" to hear the word, then spell it!",
+    uid: `spell:${word}`,
     speak: word,
     choices: makeChoices(word, pool), answer: word,
     interactive: "spell_word", word, emoji: APP_DATA.WORD_EMOJI[word] || null,

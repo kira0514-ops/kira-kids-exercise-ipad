@@ -135,8 +135,10 @@ class RecentPromptsTracker {
     }
   }
 
+  // q.uid identifies a question whose on-screen prompt is shared by many questions
+  // (e.g. every Spell the Word round says "Tap Read Aloud…"); otherwise the prompt is the id.
   static keysFor(q) {
-    const keys = [`p:${passageKey(q.prompt)}`];
+    const keys = [`p:${passageKey(q.uid || q.prompt)}`];
     if (q.contentKey) keys.push(`c:${q.contentKey}`);
     return keys;
   }
@@ -156,7 +158,7 @@ class RecentPromptsTracker {
 
   // Ms since this exact prompt was answered within the week (Infinity if it wasn't).
   exactStaleness(q, now = Date.now()) {
-    const t = this.answered[`p:${passageKey(q.prompt)}`];
+    const t = this.answered[`p:${passageKey(q.uid || q.prompt)}`];
     return t && t > now - ANSWERED_WINDOW_MS ? now - t : Infinity;
   }
 
@@ -170,7 +172,7 @@ class RecentPromptsTracker {
       if (t && t > cutoff && t > last) last = t;
     }
     if (last) return now - last;
-    if (this.set.has(q.prompt)) return 60 * 60 * 1000;
+    if (this.set.has(q.uid || q.prompt)) return 60 * 60 * 1000;
     return Infinity;
   }
 
@@ -203,14 +205,14 @@ function generateFresh(genFn, seen, maxAttempts = 25) {
     const q = genFn();
     const ck = q.contentKey ? `c:${q.contentKey}` : null;
     let score;
-    if (seen.has(q.prompt)) score = -1;          // identical question already in this quiz
+    if (seen.has(q.uid || q.prompt)) score = -1; // identical question already in this quiz
     else if (ck && seen.has(ck)) score = -0.5;   // same passage/story already in this quiz
     else if (RECENT_PROMPTS.exactStaleness(q) !== Infinity) score = RECENT_PROMPTS.exactStaleness(q) / 1e15; // identical to one answered this week: last resort
     else score = RECENT_PROMPTS.staleness(q);
     if (score > bestScore) { best = q; bestScore = score; }
     if (score === Infinity) break;
   }
-  seen.add(best.prompt);
+  seen.add(best.uid || best.prompt);
   if (best.contentKey) seen.add(`c:${best.contentKey}`);
   return best;
 }

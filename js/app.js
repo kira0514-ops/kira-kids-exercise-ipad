@@ -375,7 +375,7 @@ function startQuiz() {
     q.ageIdx = state.ageIdx;
     questions.push(q);
   }
-  RECENT_PROMPTS.addAll(questions.map((q) => q.prompt));
+  RECENT_PROMPTS.addAll(questions.map((q) => q.uid || q.prompt));
   state.questions = questions;
   state.currentIndex = 0;
   state.score = 0;
@@ -439,7 +439,7 @@ function startDailyReadingTest() {
   }
   const questions = [...pickN("Reading Comprehension", 4), ...pickN("Central Idea", 6)];
   shuffle(questions);
-  RECENT_PROMPTS.addAll(questions.map((q) => q.prompt));
+  RECENT_PROMPTS.addAll(questions.map((q) => q.uid || q.prompt));
   state.questions = questions;
   state.currentIndex = 0;
   state.score = 0;

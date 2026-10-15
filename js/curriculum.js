@@ -370,7 +370,7 @@ function startDailyCurriculum() {
   }
   shuffle(questions);
   questions = questions.slice(0, DAILY_CURRICULUM_QUESTION_COUNT);
-  RECENT_PROMPTS.addAll(questions.map((q) => q.prompt));
+  RECENT_PROMPTS.addAll(questions.map((q) => q.uid || q.prompt));
 
   state.questions = questions;
   state.currentIndex = 0;
