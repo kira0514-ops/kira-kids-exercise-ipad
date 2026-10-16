@@ -338,6 +338,8 @@ function showSetup() {
   right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("📖 Daily Reading Test", showDailyReadingTestSetup, "next"));
   right.appendChild(el("div", { style: "height:10px" }));
+  right.appendChild(button("📚 Story Time", showStoryTimeSetup, "next"));
+  right.appendChild(el("div", { style: "height:10px" }));
   right.appendChild(button("🎮 Mini Math Games", showMiniGames, "next"));
   const note = el("p", { class: "note",
     text: "Every feature is fully working: Math, Reading, Logic, Lessons, the 365-Day " +

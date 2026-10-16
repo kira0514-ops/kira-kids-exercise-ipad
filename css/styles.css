@@ -872,3 +872,15 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .report-missed-passage .step-text { white-space: pre-wrap; font-size: 0.9em; }
 .report-missed-wrong { color: #c62828; font-size: 0.95em; }
 .report-missed-right { color: #2e7d32; font-size: 0.95em; font-weight: 600; }
+
+/* -- Story Time --------------------------------------------------------------- */
+.story-layout { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 900px) { .story-layout { grid-template-columns: 3fr 2fr; align-items: start; } }
+.story-panel { text-align: left; max-height: 62vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+@media (min-width: 900px) { .story-panel { max-height: 78vh; } .story-question { position: sticky; top: 12px; } }
+.story-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.story-para { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: start; margin: 10px 0; }
+.story-para-num { font-weight: 700; color: var(--grad1); text-align: right; }
+.story-para-text { font-size: 18px; line-height: 1.6; }
+.story-para-say { padding: 4px 8px; min-width: 0; }
+.story-choices { grid-template-columns: 1fr; }
