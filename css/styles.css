@@ -884,3 +884,26 @@ button.btn-choice { padding: 16px; font-size: 16px; }
 .story-para-text { font-size: 18px; line-height: 1.6; }
 .story-para-say { padding: 4px 8px; min-width: 0; }
 .story-choices { grid-template-columns: 1fr; }
+
+/* -- Written answers ---------------------------------------------------------- */
+.written-passage-box, .written-passage { text-align: left; }
+.written-para { font-size: 18px; line-height: 1.7; margin: 8px 0; }
+.written-sent { cursor: pointer; border-radius: 4px; padding: 1px 0; transition: background 0.15s; }
+.written-sent:hover { background: rgba(124, 77, 255, 0.10); }
+.written-sent-picked { background: #fff3b0; box-shadow: 0 0 0 2px #f2c94c; }
+.written-step { font-weight: 700; margin: 14px 0 6px; text-align: left; }
+.written-input { width: 100%; box-sizing: border-box; font-size: 18px; line-height: 1.5; padding: 10px 12px;
+  border: 2px solid var(--grad1); border-radius: 12px; font-family: inherit; resize: vertical; }
+.written-cite { text-align: left; padding: 10px 12px; border: 2px dashed #bbb; border-radius: 12px; color: #888; font-style: italic; }
+.written-cite-filled { border-style: solid; border-color: #f2c94c; color: inherit; background: #fffbe6; font-style: normal; }
+.written-result { text-align: left; margin-top: 12px; }
+.written-score { display: inline-block; font-weight: 800; padding: 4px 12px; border-radius: 999px; margin: 6px 0; }
+.written-score-0 { background: #fdecea; color: #8a1c1c; }
+.written-score-1 { background: #fff4d6; color: #7a5200; }
+.written-score-2 { background: #e6f4ea; color: #1e6b34; }
+.written-ok { color: #2e7d32; margin: 4px 0; }
+.written-miss { color: #8a5a00; margin: 4px 0; }
+.written-model-label { font-weight: 700; margin-top: 10px; }
+.written-model { background: #f3efff; border-radius: 10px; padding: 8px 10px; margin: 4px 0; text-align: left; }
+.written-rec { text-align: left; margin: 3px 0; white-space: pre-wrap; }
+.written-grade-row { align-items: center; margin-top: 6px; }

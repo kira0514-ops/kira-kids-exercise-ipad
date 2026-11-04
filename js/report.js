@@ -6,6 +6,7 @@ const ACTIVITY_STORAGE_KEY = "kidsExerciseGenerator.activity";
 const ACTIVITY_KEEP_DAYS = 400;
 const ACTIVITY_MAX_MS = 3 * 60 * 1000; // cap time per question so a walk-away doesn't count
 const ACTIVITY_MAX_MISSED = 300;      // most recent wrong answers kept for the report
+const ACTIVITY_MAX_WRITTEN = 200;     // most recent written answers kept for the report
 
 function localDateKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -14,7 +15,7 @@ function localDateKey(d = new Date()) {
 class ActivityLog {
   constructor() {
     this.profileId = "default";
-    this.data = { days: {}, topics: {}, curriculum: {}, missed: [] };
+    this.data = { days: {}, topics: {}, curriculum: {}, missed: [], written: [] };
     this.load();
   }
 
@@ -30,9 +31,9 @@ class ActivityLog {
   static read(key) {
     try {
       const d = JSON.parse(localStorage.getItem(key) || "{}");
-      return { days: d.days || {}, topics: d.topics || {}, curriculum: d.curriculum || {}, missed: d.missed || [] };
+      return { days: d.days || {}, topics: d.topics || {}, curriculum: d.curriculum || {}, missed: d.missed || [], written: d.written || [] };
     } catch (e) {
-      return { days: {}, topics: {}, curriculum: {}, missed: [] };
+      return { days: {}, topics: {}, curriculum: {}, missed: [], written: [] };
     }
   }
 
@@ -67,6 +68,13 @@ class ActivityLog {
         prompt: String(q.prompt).slice(0, 2500), chosen: String(chosen ?? ""), answer: String(q.answer) });
       if (this.data.missed.length > ACTIVITY_MAX_MISSED) this.data.missed.splice(0, this.data.missed.length - ACTIVITY_MAX_MISSED);
     }
+    this.save();
+  }
+
+  // One written (3-step) answer with its auto score; the parent can add a grade/flag later.
+  recordWritten(rec) {
+    this.data.written.push({ at: Date.now(), ...rec, passage: String(rec.passage || "").slice(0, 3000), parent: null, flag: false });
+    if (this.data.written.length > ACTIVITY_MAX_WRITTEN) this.data.written.splice(0, this.data.written.length - ACTIVITY_MAX_WRITTEN);
     this.save();
   }
 
@@ -138,8 +146,14 @@ function showParentReport(profileId, tab = "overview", subjectFilter = "All") {
     tab === "overview" ? "chip-selected" : "chip"));
   tabs.appendChild(button(`❌ Missed Questions (${data.missed.length})`, () => showParentReport(who.id, "missed"),
     tab === "missed" ? "chip-selected" : "chip"));
+  tabs.appendChild(button(`✍️ Written Answers (${data.written.length})`, () => showParentReport(who.id, "written"),
+    tab === "written" ? "chip-selected" : "chip"));
   root.appendChild(tabs);
 
+  if (tab === "written") {
+    showWrittenAnswers(who.id, data);
+    return;
+  }
   if (tab === "missed") {
     showMissedQuestions(who.id, data, subjectFilter);
     return;
@@ -285,4 +299,59 @@ function showMissedQuestions(pid, data, subjectFilter) {
   root.appendChild(list);
   root.appendChild(el("div", { class: "note",
     text: `Showing the ${ACTIVITY_MAX_MISSED} most recent wrong answers. Stored only on this device.` }));
+}
+
+// "Written Answers" tab: every written answer with the app's auto score and the checks behind
+// it, the model answer, and buttons for the parent's own 0-2 grade and a "graded wrong" flag.
+function showWrittenAnswers(pid, data) {
+  const list = data.written.map((w, i) => [w, i]).reverse();
+  if (!list.length) {
+    root.appendChild(el("div", { class: "card note", text: "No written answers yet." }));
+    return;
+  }
+  const graded = data.written.filter((w) => w.parent != null);
+  const agree = graded.filter((w) => w.parent === w.auto).length;
+  const flagged = data.written.filter((w) => w.flag).length;
+  root.appendChild(el("div", { class: "card note",
+    text: `Auto score vs. your grade: ${graded.length ? `agrees on ${agree} of ${graded.length} you graded` : "grade a few to compare"}` +
+      ` · ${flagged} flagged as graded wrong. Tap a score to set your own grade.` }));
+
+  const save = () => {
+    try {
+      const key = ACTIVITY.storageKey(pid);
+      if (pid === ACTIVITY.profileId) ACTIVITY.data = data;
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) { /* ignore */ }
+  };
+  const card = el("div", { class: "card" });
+  for (const [w, idx] of list) {
+    const item = el("div", { class: "report-missed" });
+    const when = new Date(w.at);
+    item.appendChild(el("div", { class: "report-missed-meta",
+      text: `${w.topic} · ${when.toLocaleDateString(undefined, { month: "short", day: "numeric" })} ${when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` }));
+    if (w.passage) {
+      const details = el("details", { class: "report-missed-passage" });
+      details.appendChild(el("summary", { text: "Show passage" }));
+      details.appendChild(el("div", { class: "step-text", text: w.passage }));
+      item.appendChild(details);
+    }
+    item.appendChild(el("div", { class: "report-missed-q", text: w.question }));
+    const c = w.checks || {};
+    item.appendChild(el("div", { class: "written-rec", text: `${c.answer ? "✅" : "❌"} Answer: ${w.answer}` }));
+    item.appendChild(el("div", { class: "written-rec", text: `${c.cite ? "✅" : "❌"} Proof: ${w.cited ? `“${w.cited}”` : "(none picked)"}` }));
+    item.appendChild(el("div", { class: "written-rec", text: `${c.explain ? "✅" : "❌"} Explain: ${w.explain}` }));
+    item.appendChild(el("div", { class: "written-model", text: `Model: ${w.model}` }));
+    const row = el("div", { class: "chip-row written-grade-row" });
+    row.appendChild(el("span", { class: `written-score written-score-${w.auto}`, text: `App: ${w.auto}/2` }));
+    row.appendChild(el("span", { text: "Your grade:" }));
+    for (const g of [0, 1, 2]) {
+      row.appendChild(button(String(g), () => { data.written[idx].parent = data.written[idx].parent === g ? null : g; save(); showParentReport(pid, "written"); },
+        w.parent === g ? "chip-selected" : "chip"));
+    }
+    row.appendChild(button(w.flag ? "🚩 Flagged" : "Flag: app graded wrong", () => { data.written[idx].flag = !w.flag; save(); showParentReport(pid, "written"); },
+      w.flag ? "chip-selected" : "chip"));
+    item.appendChild(row);
+    card.appendChild(item);
+  }
+  root.appendChild(card);
 }

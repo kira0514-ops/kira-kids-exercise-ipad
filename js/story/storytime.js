@@ -72,6 +72,10 @@ function startStoryTime() {
   storyState.score = 0;
   storyState.missed = [];
   storyState.order = story.questions.map((q) => ({ ...q, choices: shuffle(q.choices.slice()) }));
+  // Two written (3-step) questions at the end of each story, see js/written/.
+  if (typeof writtenItemsFor === "function") {
+    for (const item of writtenItemsFor(`story:${story.id}`)) storyState.order.push({ question: item.question, written: item, answer: item.model });
+  }
   showStoryQuestion();
 }
 
@@ -107,6 +111,10 @@ function showStoryQuestion() {
   root.appendChild(top);
 
   const layout = el("div", { class: "story-layout" });
+  if (q.written) {
+    showStoryWrittenQuestion(story, q, layout);
+    return;
+  }
   layout.appendChild(storyPanel(story));
 
   const qcard = el("div", { class: "card story-question" });
@@ -167,4 +175,41 @@ function showStoryResults() {
   row.appendChild(button("📚 Another Story", startStoryTime, "playagain"));
   row.appendChild(button("🏠 Main Menu", showSetup, "quit"));
   root.appendChild(row);
+}
+
+// Written question: the story's sentences become tappable for the "prove it" step.
+function showStoryWrittenQuestion(story, q, layout) {
+  const panel = el("div", { class: "card story-panel" });
+  const head = el("div", { class: "story-head" });
+  head.appendChild(el("div", { class: "lesson-section-title", text: `📖 ${story.title}` }));
+  const readAll = button("🔊 Read All", () => speak(story.paragraphs.join(" ")), "next");
+  readAll.classList.add("read-aloud-btn");
+  head.appendChild(readAll);
+  panel.appendChild(head);
+  const host = el("div");
+  panel.appendChild(host);
+  layout.appendChild(panel);
+  const qcard = el("div", { class: "card story-question written-card" });
+  layout.appendChild(qcard);
+  root.appendChild(layout);
+  const next = button(storyState.index + 1 < storyState.order.length ? "Next ▶" : "See Results ▶", () => {
+    storyState.index += 1;
+    if (storyState.index >= storyState.order.length) showStoryResults();
+    else showStoryQuestion();
+  }, "next");
+  next.disabled = true;
+  const shownAt = Date.now();
+  buildWrittenQuestion(qcard, {
+    item: q.written, text: story.paragraphs.join("\n\n"), sentenceHost: host,
+    onDone: (r, rec) => {
+      if (r.score === 2) storyState.score += 1; else storyState.missed.push({ ...q, explain: "" });
+      const prompt = `${story.title}\n\n${story.paragraphs.join("\n\n")}\n\n${q.question}`;
+      ACTIVITY.record({ subject: "Reading / Spelling", topic: "Story Time (written)", prompt, answer: q.written.model },
+        r.score === 2, Date.now() - shownAt, rec.answer);
+      ACTIVITY.recordWritten({ ...rec, subject: "Reading / Spelling", topic: `Story Time · ${story.title}`,
+        passage: story.paragraphs.join("\n\n"), auto: r.score });
+      next.disabled = false;
+    },
+  });
+  qcard.appendChild(el("div", { class: "next-row" }, [next]));
 }

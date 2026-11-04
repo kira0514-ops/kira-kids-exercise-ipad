@@ -150,6 +150,13 @@ function readingComprehensionQ(ageIdx, diffIdx) {
   // of the usual content-hash lookup, which a brand-new passage's text could never match.
   result.illustration = { type: "scene", words: sceneWords,
     photo: passage.photo || `images/passages/${passageKey(passage.text)}.jpg` };
+  // Early/Upper Elementary: some questions become written (3-step) answers, see js/written/.
+  const written = ageIdx >= 1 && typeof writtenItemsFor === "function" ? writtenItemsFor(passageKey(passage.text)) : [];
+  if (written.length && Math.random() < WRITTEN_SHARE) {
+    const item = choice(written);
+    return { ...result, prompt: passage.text + "\n\n" + item.question, choices: [], answer: item.model,
+      interactive: "written", written: item, passageText: passage.text, uid: `written:${item.question}` };
+  }
   return result;
 }
 
