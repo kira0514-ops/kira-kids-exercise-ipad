@@ -15,6 +15,14 @@
       for (const p of passages) if (!have.has(p.text)) { bank.push(p); have.add(p.text); }
     }
 
+    // Fixed Central Idea stories join the procedural story shapes in one pool (see centralIdeaQ).
+    APP_DATA.CENTRAL_IDEA_STORIES = APP_DATA.CENTRAL_IDEA_STORIES || { 0: [], 1: [], 2: [] };
+    for (const [age, stories] of Object.entries(pack.central_idea_stories || {})) {
+      const bank = APP_DATA.CENTRAL_IDEA_STORIES[age];
+      const have = new Set(bank.map((s) => s.text));
+      for (const s of stories) if (!have.has(s.text)) { bank.push(s); have.add(s.text); }
+    }
+
     for (const [label, easy, hard] of [
       ["synonyms", APP_DATA.SYNONYMS, APP_DATA.SYNONYMS_HARD],
       ["antonyms", APP_DATA.ANTONYMS, APP_DATA.ANTONYMS_HARD],

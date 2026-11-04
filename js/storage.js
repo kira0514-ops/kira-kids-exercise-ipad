@@ -76,6 +76,7 @@ const RECENT_PROMPTS_CAP = 300;
 const ANSWERED_STORAGE_KEY = "kidsExerciseGenerator.answeredWeek";
 const ANSWERED_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const ANSWERED_CAP = 5000;
+const RESERVE_MS = 30 * 60 * 1000;
 
 class RecentPromptsTracker {
   constructor() {
@@ -83,6 +84,7 @@ class RecentPromptsTracker {
     this.order = [];
     this.set = new Set();
     this.answered = {};
+    this.reserved = {};
     this.load();
   }
 
@@ -156,6 +158,27 @@ class RecentPromptsTracker {
     this.saveAnswered();
   }
 
+  // A story that was just picked for a quiz is held back for 30 minutes (in memory only), so the
+  // rest of that quiz can't pick it again before any answers are recorded.
+  reserve(contentKey, now = Date.now()) {
+    this.reserved[contentKey] = now;
+  }
+
+  // True if no question from this passage/story (its contentKey) was answered in the last week
+  // and it wasn't just picked for the quiz being built.
+  contentFresh(contentKey, now = Date.now()) {
+    return this.contentStaleness(contentKey, now) === Infinity;
+  }
+
+  // Ms since a passage/story (by contentKey) was last answered or picked; Infinity if neither
+  // happened in the window.
+  contentStaleness(contentKey, now = Date.now()) {
+    const a = this.answered[`c:${contentKey}`];
+    const r = this.reserved[contentKey];
+    const last = Math.max(a && a > now - ANSWERED_WINDOW_MS ? a : 0, r && r > now - RESERVE_MS ? r : 0);
+    return last ? now - last : Infinity;
+  }
+
   // Ms since this exact prompt was answered within the week (Infinity if it wasn't).
   exactStaleness(q, now = Date.now()) {
     const t = this.answered[`p:${passageKey(q.uid || q.prompt)}`];
@@ -172,7 +195,9 @@ class RecentPromptsTracker {
       if (t && t > cutoff && t > last) last = t;
     }
     if (last) return now - last;
-    if (this.set.has(q.uid || q.prompt)) return 60 * 60 * 1000;
+    // Questions with a passage/story identity are covered by the week rule above; the
+    // last-300-prompts list is only the fallback for questions that have none.
+    if (!q.contentKey && this.set.has(q.uid || q.prompt)) return 60 * 60 * 1000;
     return Infinity;
   }
 

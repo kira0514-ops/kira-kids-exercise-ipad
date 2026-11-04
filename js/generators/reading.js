@@ -406,31 +406,59 @@ const CENTRAL_IDEA_GENERATORS = {
   ],
 };
 
-// centralIdeaQ() below splits each age's shape list in half by position to get an easy/hard
-// pool. Sort each list by measured average output length (shapes are randomized, so one sample
-// isn't reliable) so that split is actually easy-vs-hard rather than just authoring order.
+// Each shape's typical difficulty (average score over several random fills, since one sample
+// isn't reliable), so shapes and fixed stories can be ranked together by difficulty.
+const CI_SHAPE_SCORE = new Map();
 for (const age of Object.keys(CENTRAL_IDEA_GENERATORS)) {
   const avgScore = (g) => {
     let total = 0;
     for (let i = 0; i < 15; i++) total += readingDifficultyScore(g().text);
     return total / 15;
   };
-  CENTRAL_IDEA_GENERATORS[age] = CENTRAL_IDEA_GENERATORS[age]
-    .map((g) => [avgScore(g), g])
-    .sort((a, b) => a[0] - b[0])
-    .map((pair) => pair[1]);
+  for (const g of CENTRAL_IDEA_GENERATORS[age]) CI_SHAPE_SCORE.set(g, avgScore(g));
+  CENTRAL_IDEA_GENERATORS[age].sort((a, b) => CI_SHAPE_SCORE.get(a) - CI_SHAPE_SCORE.get(b));
 }
 
+// One pool per age: the ~11 procedural story shapes plus every fixed story merged in from the
+// content packs (APP_DATA.CENTRAL_IDEA_STORIES), ranked easiest to hardest by text difficulty.
+// Cached until the number of merged stories changes.
+const CI_POOL_CACHE = {};
+function centralIdeaEntries(ageIdx) {
+  const stories = (APP_DATA.CENTRAL_IDEA_STORIES && APP_DATA.CENTRAL_IDEA_STORIES[ageIdx]) || [];
+  const cached = CI_POOL_CACHE[ageIdx];
+  if (cached && cached.n === stories.length) return cached.entries;
+  const entries = [
+    ...CENTRAL_IDEA_GENERATORS[ageIdx].map((fn) => ({ kind: "shape", fn, key: `ci:${ageIdx}:${fn.name}`, score: CI_SHAPE_SCORE.get(fn) })),
+    ...stories.map((story) => ({ kind: "story", story, key: `cs:${passageKey(story.text)}`, score: readingDifficultyScore(story.text) })),
+  ].sort((a, b) => a.score - b.score);
+  CI_POOL_CACHE[ageIdx] = { n: stories.length, entries };
+  return entries;
+}
+
+// Easy / Medium / Hard are the bottom, middle and top third of the pool. A child who does the
+// Daily Reading Test and the 365 Curriculum every day uses ~80 of these a week, which is more
+// than any one third holds, so when the preferred third has nothing left that wasn't answered
+// this week it borrows from the neighbouring third rather than repeating a story.
 function centralIdeaQ(ageIdx, diffIdx) {
-  const generators = CENTRAL_IDEA_GENERATORS[ageIdx];
-  const half = Math.floor(generators.length / 2);
-  const pool = diffIdx >= 2 && half ? generators.slice(half) : half ? generators.slice(0, half) : generators;
-  const indexed = pool.map((fn, i) => [i, fn]);
-  const [, gen] = SEEN.pickUnseen(`central_idea_shape_${ageIdx}`, indexed, (pair) => pair[0]);
-  const item = gen();
+  const entries = centralIdeaEntries(ageIdx);
+  const third = Math.max(1, Math.floor(entries.length / 3));
+  const bands = [entries.slice(0, third), entries.slice(third, 2 * third), entries.slice(2 * third)];
+  const tier = Math.min(diffIdx, 2);
+  const order = [[0, 1, 2], [1, 0, 2], [2, 1, 0]][tier];
+  let entry = null;
+  for (const b of order) {
+    const fresh = bands[b].filter((e) => RECENT_PROMPTS.contentFresh(e.key));
+    if (fresh.length) { entry = SEEN.pickUnseen(`central_idea_${ageIdx}_band${b}`, fresh, (e) => e.key); break; }
+  }
+  if (!entry) {
+    // Every story was answered this week: reuse the one answered longest ago.
+    entry = entries.reduce((best, e) => (RECENT_PROMPTS.contentStaleness(e.key) > RECENT_PROMPTS.contentStaleness(best.key) ? e : best), entries[0]);
+  }
+  RECENT_PROMPTS.reserve(entry.key);
+  const item = entry.kind === "shape" ? entry.fn() : entry.story;
   const choices = makeChoices(item.idea, item.distractors);
-  const prompt = item.text + "\n\nWhat is the central idea of this passage?";
-  const result = { prompt, choices, answer: item.idea };
+  const prompt = item.text + "\n\n" + (item.stem || "What is the central idea of this passage?");
+  const result = { prompt, choices, answer: item.idea, contentKey: entry.key };
   const sceneWords = extractSceneWords(item.text);
   if (item.pic) result.illustration = { type: "scene", words: sceneWords, photo: `images/passages/${item.pic}.jpg` };
   else if (sceneWords.length) result.illustration = { type: "scene", words: sceneWords };
