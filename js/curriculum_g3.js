@@ -1,11 +1,15 @@
-// Re-points the 365-day Curriculum's math at NYS Grade 3 skills. The tracks in data.js came from
-// the desktop app's general syllabus (Grade 1-6), which put decimals, percentages, ratio and
-// trigonometry in the Upper track and Grade 1-2 sums in the Early track. For a child preparing
-// for the Grade 3 state tests, those phases now serve the Grade 3 test topics instead.
-//   Upper Elementary (age 2): days 1-225 (phases 1-5). Later phases keep the original Grade 4-6 path.
-//   Early Elementary (age 1): days 71-270 (phases 3-6). Days 1-70 keep the Grade 1-2 foundations.
-// The list is ordered so day 1 opens on multiplication, fractions and two-step problems; the
-// curriculum rotates through it (3 math topics a day), so each test topic returns about weekly.
+// Re-points the 365-day Curriculum's math at the NYS Grade 3 skills. The tracks in data.js came
+// from the desktop app's general syllabus (Grade 1-6): decimals, percentages, ratio and
+// trigonometry sat in the Upper track, and the Early track drifted into Grade 4 previews.
+//
+//   Upper Elementary (age 2, a Grade 3 child): days 1-225 serve the Grade 3 test topics.
+//     Later phases keep the original Grade 4-6 path.
+//   Early Elementary (age 1, e.g. a 2nd grader): keeps its Grade 1-2 foundations and EASES IN the
+//     Grade 3 topics: Grade-2-friendly ones (time, fraction models, graphs, patterns, area by
+//     counting squares) from day 71, the full Grade 3 set only from day 171. Off-target Grade 4+
+//     topics (decimals, ratio, negative numbers, averages, factors) are dropped from days 71-270.
+//
+// Each list keeps the original topics first, so day-1 rotation order is unchanged.
 
 const G3_MATH_TOPICS = [
   "Multiplication", "Fraction Number Line", "Two-Step & Estimation", "Time", "Division", "Fraction Models",
@@ -21,21 +25,31 @@ const G3_PHASE_LABELS = [
   "Grade 3 test prep: mixed practice of every test topic",
   "Grade 3 test prep: test-style review",
 ];
+const G2_EASE_IN_TOPICS = ["Time", "Fraction Models", "Graphs", "Number Patterns", "Area"];
+const G3_PREVIEW_TOPICS = ["Fraction Number Line", "Equivalent Fractions", "Compare Fractions", "Perimeter",
+  "Liquid Volume & Mass", "Two-Step & Estimation", "Equation Match", "Show Your Work"];
+const G4_OFF_TARGET = ["Decimals", "Ratio & Proportion", "Negative Numbers", "Average", "Factors & Multiples", "Percentages", "Trigonometry", "Equations"];
 
 (function repointCurriculum() {
   const phases = APP_DATA.CURRICULUM_PHASES;
-  const apply = (ageIdx, firstPhase, lastPhase) => {
-    const list = phases[ageIdx];
-    if (!list) return;
-    for (let i = firstPhase; i <= lastPhase && i < list.length; i++) {
-      const ph = list[i];
-      if (ph[2] === null) continue; // "all topics" review phases already include the new topics
-      // rotate the starting topic per phase so consecutive phases don't open on the same lesson
-      const rot = ((i - firstPhase) * 5) % G3_MATH_TOPICS.length;
-      ph[2] = G3_MATH_TOPICS.slice(rot).concat(G3_MATH_TOPICS.slice(0, rot));
-      ph[6] = G3_PHASE_LABELS[Math.min(i - firstPhase, G3_PHASE_LABELS.length - 1)];
-    }
-  };
-  apply(2, 0, 4); // Upper Elementary, days 1-225
-  apply(1, 2, 5); // Early Elementary, days 71-270
+
+  // Upper Elementary: replace days 1-225 with the Grade 3 test topics.
+  const upper = phases[2] || [];
+  for (let i = 0; i <= 4 && i < upper.length; i++) {
+    const ph = upper[i];
+    if (ph[2] === null) continue;
+    const rot = (i * 5) % G3_MATH_TOPICS.length; // rotate the opener per phase
+    ph[2] = G3_MATH_TOPICS.slice(rot).concat(G3_MATH_TOPICS.slice(0, rot));
+    ph[6] = G3_PHASE_LABELS[Math.min(i, G3_PHASE_LABELS.length - 1)];
+  }
+
+  // Early Elementary: ease the new topics in on top of the existing Grade 1-2 lists.
+  const early = phases[1] || [];
+  const addTopics = { 2: G2_EASE_IN_TOPICS.slice(0, 3), 3: G2_EASE_IN_TOPICS, 4: G2_EASE_IN_TOPICS.concat(G3_PREVIEW_TOPICS), 5: G2_EASE_IN_TOPICS.concat(G3_PREVIEW_TOPICS) };
+  for (const [idx, extra] of Object.entries(addTopics)) {
+    const ph = early[idx];
+    if (!ph || ph[2] === null) continue;
+    const kept = ph[2].filter((t) => !G4_OFF_TARGET.includes(t));
+    ph[2] = kept.concat(extra.filter((t) => !kept.includes(t)));
+  }
 })();
