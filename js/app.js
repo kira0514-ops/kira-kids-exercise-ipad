@@ -455,6 +455,7 @@ function showQuestion() {
   clearRoot();
   const t = theme();
   const q = state.questions[state.currentIndex];
+  shuffleChoicesOnce(q);
   state.questionShownAt = Date.now();
 
   root.appendChild(headerBanner(t.quiz_title));

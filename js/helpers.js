@@ -30,6 +30,21 @@ function shuffle(arr) {
   return arr;
 }
 
+// Some generators and content packs list the right answer in a fixed spot (e.g. always the
+// 2nd choice). Called once per question as it is shown, this puts it at a random position,
+// unless the order carries meaning: interactive questions, "none of the above" lists,
+// Yes/No and True/False pairs, and neatly ascending number lists stay as written.
+function shuffleChoicesOnce(q) {
+  if (!q || q._choicesShuffled || q.interactive || !Array.isArray(q.choices) || q.choices.length < 2) return;
+  q._choicesShuffled = true;
+  const strs = q.choices.map((c) => String(c).trim().toLowerCase());
+  if (strs.some((s) => /^(none|all|both) of (the|these)/.test(s))) return;
+  if (q.choices.length === 2 && (strs.includes("yes") || strs.includes("true"))) return;
+  const nums = strs.map((s) => Number(s.replace(/[,$%]/g, "")));
+  if (nums.every((n) => Number.isFinite(n)) && nums.every((n, i) => i === 0 || n >= nums[i - 1])) return;
+  q.choices = shuffle(q.choices.slice());
+}
+
 function round1(x) {
   return Math.round(x * 10) / 10;
 }
