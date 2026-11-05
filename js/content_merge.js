@@ -52,5 +52,28 @@
       if (!bank) continue;
       for (const t of templates) if (!bank.includes(t)) bank.push(t);
     }
+
+    // NYS Grade 3 style math banks (see generators/math_nys.js): graph themes, real-world masses
+    // and volumes for estimating, two-step story templates, and time-problem activities.
+    const mb = pack.math_banks;
+    if (mb && typeof NYS_GRAPH_SETS !== "undefined") {
+      const haveThemes = new Set(NYS_GRAPH_SETS.map((s) => s[0]));
+      for (const g of mb.graph_sets || []) {
+        if (!haveThemes.has(g.theme)) { NYS_GRAPH_SETS.push([g.theme, g.categories.slice(), g.noun]); haveThemes.add(g.theme); }
+      }
+      const haveMass = new Set(NYS_MASS_ITEMS.map((m) => m[0]));
+      for (const m of mb.mass_items || []) {
+        if (!haveMass.has(m.item)) { NYS_MASS_ITEMS.push([m.item, m.value, m.unit]); haveMass.add(m.item); }
+      }
+      const haveLiquid = new Set(NYS_LIQUID_ITEMS.map((m) => m[0]));
+      for (const m of mb.liquid_items || []) {
+        if (!haveLiquid.has(m.item)) { NYS_LIQUID_ITEMS.push([m.item, m.liters]); haveLiquid.add(m.item); }
+      }
+      const haveStories = new Set(NYS_STORIES_BUILTIN.concat(NYS_STORIES_EXTRA).map((s) => s.text));
+      for (const s of mb.two_step_stories || []) {
+        if (!haveStories.has(s.text)) { NYS_STORIES_EXTRA.push({ form: s.form, text: s.text }); haveStories.add(s.text); }
+      }
+      for (const a of mb.time_activities || []) if (!NYS_TIME_ACTIVITIES.includes(a)) NYS_TIME_ACTIVITIES.push(a);
+    }
   }
 })();

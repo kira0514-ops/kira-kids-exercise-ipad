@@ -48,15 +48,14 @@ function gradeMath(item, answerText, workText, explainText) {
 function wmWithChart(item, chart) { item.chart = chart; return item; }
 
 function wmTwoStep(L) {
-  const name = choice(NAMES), item = choice(NYS_ITEMS);
-  const g = randInt(3, L >= 2 ? 9 : 6), p = randInt(3, L >= 2 ? 9 : 7);
-  const total = g * p, s = randInt(3, Math.min(total - 2, L >= 2 ? 30 : 15)), ans = total - s;
+  const pool = NYS_STORIES_BUILTIN.concat(NYS_STORIES_EXTRA).filter((st) => L >= 2 || st.form !== "add_div");
+  const f = nysFillStory(choice(pool), L);
   return {
-    key: `two:${name}:${item}:${g}x${p}-${s}`, needs: ["answer", "work"],
-    question: `${name} puts ${p} ${item} in each of ${g} bags. Then ${name} gives away ${s} ${item}. How many ${item} does ${name} have left?\n\nShow your work.`,
-    answerAny: [String(ans)],
-    workGroups: [{ any: [`${g}x${p}`, `${p}x${g}`, String(total), `${g}groupsof${p}`] }, { any: [`${total}-${s}`, `${total}minus${s}`] }],
-    model: `${g} × ${p} = ${total}. ${total} − ${s} = ${ans}. ${name} has ${ans} ${item} left.`,
+    key: `two:${f.text}`, needs: ["answer", "work"],
+    question: `${f.text}\n\nShow your work.`,
+    answerAny: [String(f.ans)],
+    workGroups: f.groups.map((any) => ({ any })),
+    model: `${f.steps.join(". ")}. The answer is ${f.ans}.`,
   };
 }
 function wmComposite(L) {
@@ -88,7 +87,7 @@ function wmElapsed(L) {
   const toHour = 60 - m;
   const rest = choice([10, 15, 20, 25, 30, 35, 40]);
   const dur = toHour + rest;
-  const act = choice(["Soccer practice", "The movie", "Art class", "The school play"]);
+  const act = choice(NYS_TIME_ACTIVITIES);
   const t1 = nysTime(h, m), t2 = nysTime(h + 1, rest);
   return {
     key: `el:${t1}:${t2}:${act}`, needs: ["answer", "work"],

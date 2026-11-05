@@ -514,6 +514,8 @@ function nysPerimeterQ(ageIdx, diffIdx) {
 }
 
 // ---------- 7. Time ----------
+// Noun phrases usable as "{act} starts at ... / ended at ... / lasts N minutes" (packs can add more).
+const NYS_TIME_ACTIVITIES = ["Soccer practice", "A movie", "Art class", "A piano lesson", "The school play", "A baking class", "A show", "The class", "A bike ride", "A science test", "The game", "Lunch", "Dance class", "The assembly", "A walk", "The field trip", "Band practice"];
 function nysTimeQ(ageIdx, diffIdx) {
   const L = nysLevel(ageIdx, diffIdx);
   const mode = choice([["read5", "elapsed", "read5"], ["read5", "elapsed", "endtime", "elapsed"], ["read1", "elapsed", "endtime", "starttime"], ["read1", "elapsed", "endtime", "starttime", "elapsed"]][L]);
@@ -544,7 +546,7 @@ function nysTimeQ(ageIdx, diffIdx) {
     const t1 = nysTime(startH, startM), t2 = nysMinsToHM(end);
     const fmt = (d) => d < 60 ? `${d} minutes` : (d % 60 === 0 ? `${d / 60} hour${d / 60 > 1 ? "s" : ""}` : `${Math.floor(d / 60)} hour${Math.floor(d / 60) > 1 ? "s" : ""} ${d % 60} minutes`);
     const wrongs = [fmt(dur + 5), fmt(dur + 10), fmt(Math.max(5, dur - 5)), fmt(Math.max(5, dur - 10)), fmt(dur + 60), fmt(dur > 60 ? dur - 60 : dur + 20)];
-    const act = choice(["Soccer practice", "A movie", "Art class", "A piano lesson", "The school play", "A baking class"]);
+    const act = choice(NYS_TIME_ACTIVITIES);
     return {
       prompt: `${act} starts at ${t1} ${ap} and ends at ${t2} ${ap}. How long does it last?`,
       choices: nysPick4(fmt(dur), wrongs.filter((w) => w !== fmt(dur))), answer: fmt(dur),
@@ -560,7 +562,7 @@ function nysTimeQ(ageIdx, diffIdx) {
     const wrongs = [noCarry, nysMinsToHM(start + dur + 10), nysMinsToHM(start + dur - 10), nysMinsToHM(start + dur + 60), nysMinsToHM(start + dur - 5), nysMinsToHM(start + dur + 5)];
     const t1 = nysTime(startH, startM);
     const ap = am();
-    const act = choice(["A show", "The class", "A bike ride", "A science test", "The game", "Lunch"]);
+    const act = choice(NYS_TIME_ACTIVITIES);
     return {
       prompt: `${act} starts at ${t1} ${ap} and lasts ${dur} minutes. What time does it end?`,
       choices: nysPick4(answer, wrongs.filter((w) => w !== answer)), answer, uid: `time:end:${t1}:${dur}:${ap}:${act}`,
@@ -574,7 +576,7 @@ function nysTimeQ(ageIdx, diffIdx) {
   const wrongs = [nysMinsToHM(end + dur), nysMinsToHM(end - dur + 10), nysMinsToHM(end - dur - 10), nysMinsToHM(end - dur + 60), nysMinsToHM(end - dur - 5), nysMinsToHM(end - dur + 5)];
   const t2 = nysTime(endH, endM);
   const ap = am();
-  const act = choice(["Dance class", "The assembly", "A walk", "The field trip", "Band practice"]);
+  const act = choice(NYS_TIME_ACTIVITIES);
   return {
     prompt: `${act} ended at ${t2} ${ap}. It lasted ${dur} minutes. What time did it start?`,
     choices: nysPick4(answer, wrongs.filter((w) => w !== answer)), answer, uid: `time:start:${t2}:${dur}:${ap}:${act}`,
@@ -811,6 +813,45 @@ function nysPatternsQ(ageIdx, diffIdx) {
   return { prompt: `The numbers follow a pattern, but one number does not belong.\n\n${shown.join(", ")}\n\nWhich number does not belong?`, choices: nysPick4(answer, pool), answer, uid: `pat:odd:${shown.join(",")}` };
 }
 
+// Two-step story templates. Placeholders: {name} {item} plus the numbers each form needs:
+//   mul_sub {g}{p}{s}: g groups of p, then s taken away     (g*p - s)
+//   mul_add {g}{p}{e}: g groups of p, then e more            (g*p + e)
+//   div_add {t}{b}{e}: share t equally among b, then e more  (t/b + e)
+//   add_div {a}{b}{c}: a and b more together, split into c   ((a+b)/c)
+// NYS_STORIES_EXTRA is filled from content packs (math_banks.two_step_stories, see content_merge.js).
+const NYS_STORIES_BUILTIN = [
+  { form: "mul_sub", text: "{name} has {g} bags with {p} {item} in each bag. {name} gives away {s} {item}. How many {item} does {name} have left?" },
+  { form: "mul_add", text: "{name} buys {g} packs of {p} {item}. Then {name} finds {e} more {item}. How many {item} does {name} have now?" },
+  { form: "div_add", text: "{name} shares {t} {item} equally among {b} friends. Then {name} gives each friend {e} more. How many {item} does each friend have now?" },
+  { form: "add_div", text: "{name} has {a} {item} and buys {b} more. Then {name} puts all of them equally into {c} boxes. How many {item} are in each box?" },
+];
+const NYS_STORIES_EXTRA = [];
+function nysStoryText(text, vars) { return text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)); }
+// Returns { text, ans, w (wrong answers), steps (model lines), groups (acceptable work strings per step) }.
+function nysFillStory(st, L, name, item) {
+  name = name || choice(NAMES); item = item || choice(NYS_ITEMS);
+  const big = L >= 2;
+  if (st.form === "mul_sub") {
+    const g = randInt(2, big ? 9 : 6), p = randInt(2, big ? 9 : 7), total = g * p, s = randInt(1, Math.min(total - 1, big ? 30 : 12));
+    return { text: nysStoryText(st.text, { name, item, g, p, s }), ans: total - s, w: [total + s, g + p - s, total, total - s + 2],
+      steps: [`${g} × ${p} = ${total}`, `${total} − ${s} = ${total - s}`], groups: [[`${g}x${p}`, `${p}x${g}`, String(total)], [`${total}-${s}`]] };
+  }
+  if (st.form === "mul_add") {
+    const g = randInt(2, big ? 9 : 6), p = randInt(2, big ? 9 : 7), e = randInt(2, 12), total = g * p;
+    return { text: nysStoryText(st.text, { name, item, g, p, e }), ans: total + e, w: [g + p + e, total, g * (p + e), total + e + 2],
+      steps: [`${g} × ${p} = ${total}`, `${total} + ${e} = ${total + e}`], groups: [[`${g}x${p}`, `${p}x${g}`, String(total)], [`${total}+${e}`]] };
+  }
+  if (st.form === "div_add") {
+    const b = randInt(2, 6), q = randInt(2, 8), e = randInt(1, 9), t = b * q;
+    return { text: nysStoryText(st.text, { name, item, t, b, e }), ans: q + e, w: [t + e, q, q * e, q + e + 1],
+      steps: [`${t} ÷ ${b} = ${q}`, `${q} + ${e} = ${q + e}`], groups: [[`${t}/${b}`, String(q)], [`${q}+${e}`]] };
+  }
+  // add_div
+  const c = randInt(2, 6), q = randInt(3, 9), a = randInt(2, c * q - 2), b = c * q - a;
+  return { text: nysStoryText(st.text, { name, item, a, b, c }), ans: q, w: [a + b, q + 1, c, q - 1, a],
+    steps: [`${a} + ${b} = ${a + b}`, `${a + b} ÷ ${c} = ${q}`], groups: [[`${a}+${b}`, String(a + b)], [`${a + b}/${c}`]] };
+}
+
 // ---------- 11. Two-step problems & estimation ----------
 function nysTwoStepQ(ageIdx, diffIdx) {
   const L = nysLevel(ageIdx, diffIdx);
@@ -818,15 +859,9 @@ function nysTwoStepQ(ageIdx, diffIdx) {
   const name = choice(NAMES), item = choice(NYS_ITEMS);
 
   if (mode === "two") {
-    const maxN = L === 0 ? 5 : 9;
-    const kinds = [
-      () => { const g = randInt(2, maxN), p = randInt(2, maxN), s = randInt(1, g * p - 2); return { t: `${name} has ${g} bags with ${p} ${item} in each bag. ${name} gives away ${s} ${item}. How many ${item} does ${name} have left?`, ans: g * p - s, w: [g * p + s, g + p - s, g * p, g * p - s + 2] }; },
-      () => { const g = randInt(2, maxN), p = randInt(2, maxN), e = randInt(2, 12); return { t: `${name} buys ${g} packs of ${p} ${item}. Then ${name} finds ${e} more ${item}. How many ${item} does ${name} have now?`, ans: g * p + e, w: [g + p + e, g * p, g * (p + e), g * p + e + 2] }; },
-      () => { const b = randInt(2, 6), q = randInt(2, 8), e = randInt(1, 9); return { t: `${name} shares ${b * q} ${item} equally among ${b} friends. Then ${name} gives each friend ${e} more. How many ${item} does each friend have now?`, ans: q + e, w: [b * q + e, q, q * e, q + e + 1] }; },
-      () => { const c = randInt(2, 6), q = randInt(3, 9), a = randInt(2, c * q - 2), b = c * q - a; return { t: `${name} has ${a} ${item} and buys ${b} more. Then ${name} puts all of them equally into ${c} boxes. How many ${item} are in each box?`, ans: q, w: [a + b, q + 1, c, q - 1, a] }; },
-    ];
-    const k = choice(kinds.slice(0, L >= 2 ? 4 : 3))();
-    return { prompt: k.t, choices: nysNumChoices(k.ans, k.w), answer: String(k.ans), uid: `ts:two:${k.t}` };
+    const pool = NYS_STORIES_BUILTIN.concat(NYS_STORIES_EXTRA).filter((st) => L >= 2 || st.form !== "add_div");
+    const f = nysFillStory(choice(pool), L, name, item);
+    return { prompt: f.text, choices: nysNumChoices(f.ans, f.w), answer: String(f.ans), uid: `ts:two:${f.text}` };
   }
   if (mode === "estimate") {
     const place = L >= 3 ? 100 : 10;
