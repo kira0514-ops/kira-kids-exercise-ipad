@@ -4,10 +4,11 @@
 //
 //   Upper Elementary (age 2, a Grade 3 child): days 1-225 serve the Grade 3 test topics.
 //     Later phases keep the original Grade 4-6 path.
-//   Early Elementary (age 1, e.g. a 2nd grader): keeps its Grade 1-2 foundations and EASES IN the
-//     Grade 3 topics: Grade-2-friendly ones (time, fraction models, graphs, patterns, area by
-//     counting squares) from day 71, the full Grade 3 set only from day 171. Off-target Grade 4+
-//     topics (decimals, ratio, negative numbers, averages, factors) are dropped from days 71-270.
+//   Early Elementary (age 1, a 2nd grader who already multiplies and divides): keeps its Grade 1-2
+//     foundations but adds multiplication/division, time and fraction models from day 1, graphs
+//     and patterns from day 31, the first Grade 3 fraction/two-step topics from day 71 and the
+//     full Grade 3 set from day 121. Off-target Grade 4+ topics (decimals, ratio, negative
+//     numbers, averages, factors) are dropped from days 71-270.
 //
 // Each list keeps the original topics first, so day-1 rotation order is unchanged.
 
@@ -45,7 +46,16 @@ const G4_OFF_TARGET = ["Decimals", "Ratio & Proportion", "Negative Numbers", "Av
 
   // Early Elementary: ease the new topics in on top of the existing Grade 1-2 lists.
   const early = phases[1] || [];
-  const addTopics = { 2: G2_EASE_IN_TOPICS.slice(0, 3), 3: G2_EASE_IN_TOPICS, 4: G2_EASE_IN_TOPICS.concat(G3_PREVIEW_TOPICS), 5: G2_EASE_IN_TOPICS.concat(G3_PREVIEW_TOPICS) };
+  // She already multiplies and divides, so those join from day 1 (the original track only
+  // introduces them at day 71), and the Grade 3 topics start earlier than first planned.
+  const MULDIV = ["Multiplication", "Division"];
+  const allEarly = G2_EASE_IN_TOPICS.concat(G3_PREVIEW_TOPICS);
+  const addTopics = {
+    0: MULDIV.concat(["Time", "Fraction Models"]),
+    1: MULDIV.concat(["Vertical Multiplication", "Time", "Fraction Models", "Graphs", "Number Patterns"]),
+    2: MULDIV.concat(G2_EASE_IN_TOPICS, ["Fraction Number Line", "Compare Fractions", "Equivalent Fractions", "Two-Step & Estimation"]),
+    3: MULDIV.concat(allEarly), 4: MULDIV.concat(allEarly), 5: MULDIV.concat(allEarly),
+  };
   for (const [idx, extra] of Object.entries(addTopics)) {
     const ph = early[idx];
     if (!ph || ph[2] === null) continue;
