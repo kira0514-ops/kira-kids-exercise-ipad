@@ -63,10 +63,10 @@ const TOPIC_CATEGORIES = {
     ["➕ Addition & Subtraction", ["Addition", "Make 10 Addition", "Vertical Addition", "Vertical Addition (Single Digit)", "Subtraction", "Vertical Subtraction", "Counting Tap", "Ten-Frame Fill"]],
     ["✖️ Multiplication & Division", ["Multiplication", "Vertical Multiplication", "Division", "Mixed Operations", "Equal Groups Sorter", "Division Hops", "Groups Multiplier"]],
     ["🔢 Numbers & Place Value", ["Place Value", "Missing Number"]],
-    ["🍰 Fractions, Decimals & Percentages", ["Fractions", "Fraction Bar Builder", "Decimals", "Percentages"]],
-    ["📐 Geometry & Measurement", ["Geometry", "Measurement", "Trigonometry"]],
-    ["🧮 Word Problems & Equations", ["Word Problems", "Equations"]],
-    ["🔍 Number Theory & Estimation", ["Factors & Multiples", "Ratio & Proportion", "Negative Numbers", "Rounding & Estimation", "Average"]],
+    ["🍰 Fractions, Decimals & Percentages", ["Fractions", "Fraction Bar Builder", "Fraction Number Line", "Equivalent Fractions", "Compare Fractions", "Fraction Models", "Decimals", "Percentages"]],
+    ["📐 Geometry & Measurement", ["Geometry", "Measurement", "Area", "Perimeter", "Time", "Liquid Volume & Mass", "Graphs", "Trigonometry"]],
+    ["🧮 Word Problems & Equations", ["Word Problems", "Two-Step & Estimation", "Equation Match", "Show Your Work", "Equations"]],
+    ["🔍 Number Theory & Estimation", ["Number Patterns", "Factors & Multiples", "Ratio & Proportion", "Negative Numbers", "Rounding & Estimation", "Average"]],
   ],
   "Reading / Spelling": [
     ["🔤 Letters & Sounds", ["Phonics", "First Letter", "Rhyming", "Missing Letter"]],
@@ -474,6 +474,10 @@ function showQuestion() {
 
   if (q.interactive === "written") {
     showWrittenQuizQuestion(q);
+    return;
+  }
+  if (q.interactive === "written_math") {
+    showWrittenMathQuestion(q);
     return;
   }
 

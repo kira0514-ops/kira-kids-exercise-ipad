@@ -338,8 +338,14 @@ function showWrittenAnswers(pid, data) {
     item.appendChild(el("div", { class: "report-missed-q", text: w.question }));
     const c = w.checks || {};
     item.appendChild(el("div", { class: "written-rec", text: `${c.answer ? "✅" : "❌"} Answer: ${w.answer}` }));
-    item.appendChild(el("div", { class: "written-rec", text: `${c.cite ? "✅" : "❌"} Proof: ${w.cited ? `“${w.cited}”` : "(none picked)"}` }));
-    item.appendChild(el("div", { class: "written-rec", text: `${c.explain ? "✅" : "❌"} Explain: ${w.explain}` }));
+    if (w.kind === "math") {
+      // Show Your Work (math): only the parts that question asked for (work, or explanation)
+      if ((w.needs || []).includes("work")) item.appendChild(el("div", { class: "written-rec", text: `${c.cite ? "✅" : "❌"} Work: ${w.cited || "(blank)"}` }));
+      if ((w.needs || []).includes("explain")) item.appendChild(el("div", { class: "written-rec", text: `${c.explain ? "✅" : "❌"} Explain: ${w.explain || "(blank)"}` }));
+    } else {
+      item.appendChild(el("div", { class: "written-rec", text: `${c.cite ? "✅" : "❌"} Proof: ${w.cited ? `“${w.cited}”` : "(none picked)"}` }));
+      item.appendChild(el("div", { class: "written-rec", text: `${c.explain ? "✅" : "❌"} Explain: ${w.explain}` }));
+    }
     item.appendChild(el("div", { class: "written-model", text: `Model: ${w.model}` }));
     const row = el("div", { class: "chip-row written-grade-row" });
     row.appendChild(el("span", { class: `written-score written-score-${w.auto}`, text: `App: ${w.auto}/2` }));
